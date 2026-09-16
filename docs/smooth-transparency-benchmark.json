@@ -1,0 +1,52 @@
+{
+  "calmodulin-ball-and-stick-smooth": {
+    "frames": 690,
+    "seconds": 2.6467310829903,
+    "fps": 260.69894460922416,
+    "adapter": {
+      "vendor": "",
+      "architecture": "",
+      "device": "Apple M3 Max",
+      "description": "",
+      "stackgroup_min_size": 4,
+      "stackgroup_max_size": 128,
+      "vendor_id": 0,
+      "device_id": 0,
+      "adapter_type": "IntegratedGPU",
+      "backend_type": "Metal"
+    },
+    "codec": "h264_videotoolbox",
+    "output": "outputs/calmodulin-ball-and-stick-smooth.mp4",
+    "scene_preparation_seconds": 0.02352129202336073,
+    "video_fps": 60,
+    "width": 1920,
+    "height": 1080,
+    "duration_seconds": 11.5,
+    "transparency": "weighted blended OIT, per-MSAA-sample composition"
+  },
+  "calmodulin-cartoon-smooth": {
+    "frames": 690,
+    "seconds": 1.8410405830363743,
+    "fps": 374.7880445209976,
+    "adapter": {
+      "vendor": "",
+      "architecture": "",
+      "device": "Apple M3 Max",
+      "description": "",
+      "stackgroup_min_size": 4,
+      "stackgroup_max_size": 128,
+      "vendor_id": 0,
+      "device_id": 0,
+      "adapter_type": "IntegratedGPU",
+      "backend_type": "Metal"
+    },
+    "codec": "h264_videotoolbox",
+    "output": "outputs/calmodulin-cartoon-smooth.mp4",
+    "scene_preparation_seconds": 0.022067666985094547,
+    "video_fps": 60,
+    "width": 1920,
+    "height": 1080,
+    "duration_seconds": 11.5,
+    "transparency": "weighted blended OIT, per-MSAA-sample composition"
+  }
+}

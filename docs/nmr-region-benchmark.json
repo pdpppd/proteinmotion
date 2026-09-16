@@ -1,0 +1,80 @@
+{
+  "nmr-region-tour": {
+    "frames": 1446,
+    "seconds": 4.520934374944773,
+    "fps": 319.84538594804627,
+    "adapter": {
+      "vendor": "",
+      "architecture": "",
+      "device": "Apple M3 Max",
+      "description": "",
+      "stackgroup_min_size": 4,
+      "stackgroup_max_size": 128,
+      "vendor_id": 0,
+      "device_id": 0,
+      "adapter_type": "IntegratedGPU",
+      "backend_type": "Metal"
+    },
+    "codec": "h264_videotoolbox",
+    "output": "outputs/nmr-region-tour.mp4",
+    "scene_preparation_seconds": 0.3896505000302568,
+    "width": 1920,
+    "height": 1080,
+    "video_fps": 60,
+    "duration_seconds": 24.1,
+    "pdb": "2K39",
+    "deposited_models": 116
+  },
+  "nmr-116-states": {
+    "frames": 1440,
+    "seconds": 3.693758125009481,
+    "fps": 389.8468582038798,
+    "adapter": {
+      "vendor": "",
+      "architecture": "",
+      "device": "Apple M3 Max",
+      "description": "",
+      "stackgroup_min_size": 4,
+      "stackgroup_max_size": 128,
+      "vendor_id": 0,
+      "device_id": 0,
+      "adapter_type": "IntegratedGPU",
+      "backend_type": "Metal"
+    },
+    "codec": "h264_videotoolbox",
+    "output": "outputs/nmr-116-states.mp4",
+    "scene_preparation_seconds": 0.40888304205145687,
+    "width": 1920,
+    "height": 1080,
+    "video_fps": 60,
+    "duration_seconds": 24.0,
+    "pdb": "2K39",
+    "deposited_models": 116
+  },
+  "nmr-116-states-atoms": {
+    "frames": 1440,
+    "seconds": 3.6804838749812916,
+    "fps": 391.25290285569304,
+    "adapter": {
+      "vendor": "",
+      "architecture": "",
+      "device": "Apple M3 Max",
+      "description": "",
+      "stackgroup_min_size": 4,
+      "stackgroup_max_size": 128,
+      "vendor_id": 0,
+      "device_id": 0,
+      "adapter_type": "IntegratedGPU",
+      "backend_type": "Metal"
+    },
+    "codec": "h264_videotoolbox",
+    "output": "outputs/nmr-116-states-atoms.mp4",
+    "scene_preparation_seconds": 0.3858084589592181,
+    "width": 1920,
+    "height": 1080,
+    "video_fps": 60,
+    "duration_seconds": 24.0,
+    "pdb": "2K39",
+    "deposited_models": 116
+  }
+}

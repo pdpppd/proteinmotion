@@ -1,0 +1,86 @@
+{
+  "backbone-morph": {
+    "frames": 690,
+    "seconds": 2.8632295000134036,
+    "fps": 240.98662017724038,
+    "adapter": {
+      "vendor": "",
+      "architecture": "",
+      "device": "Apple M3 Max",
+      "description": "",
+      "stackgroup_min_size": 4,
+      "stackgroup_max_size": 128,
+      "vendor_id": 0,
+      "device_id": 0,
+      "adapter_type": "IntegratedGPU",
+      "backend_type": "Metal"
+    },
+    "codec": "h264_videotoolbox",
+    "output": "outputs/backbone-morph.mp4",
+    "scene_preparation_seconds": 0.02107833296759054,
+    "duration_seconds": 11.5,
+    "resolution": [
+      1920,
+      1080
+    ],
+    "video_fps": 60.0,
+    "atoms": 2414,
+    "ca_residues": 306
+  },
+  "groel-subunit": {
+    "frames": 360,
+    "seconds": 1.2155769169912674,
+    "fps": 296.1556730536256,
+    "adapter": {
+      "vendor": "",
+      "architecture": "",
+      "device": "Apple M3 Max",
+      "description": "",
+      "stackgroup_min_size": 4,
+      "stackgroup_max_size": 128,
+      "vendor_id": 0,
+      "device_id": 0,
+      "adapter_type": "IntegratedGPU",
+      "backend_type": "Metal"
+    },
+    "codec": "h264_videotoolbox",
+    "output": "outputs/groel-subunit.mp4",
+    "scene_preparation_seconds": 0.07159808301366866,
+    "duration_seconds": 6.0,
+    "resolution": [
+      1920,
+      1080
+    ],
+    "video_fps": 60.0,
+    "atoms": 3836,
+    "ca_residues": 524
+  },
+  "groel-complex": {
+    "frames": 540,
+    "seconds": 2.7910722920205444,
+    "fps": 193.47402843839532,
+    "adapter": {
+      "vendor": "",
+      "architecture": "",
+      "device": "Apple M3 Max",
+      "description": "",
+      "stackgroup_min_size": 4,
+      "stackgroup_max_size": 128,
+      "vendor_id": 0,
+      "device_id": 0,
+      "adapter_type": "IntegratedGPU",
+      "backend_type": "Metal"
+    },
+    "codec": "h264_videotoolbox",
+    "output": "outputs/groel-complex.mp4",
+    "scene_preparation_seconds": 4.222355582984164,
+    "duration_seconds": 9.0,
+    "resolution": [
+      1920,
+      1080
+    ],
+    "video_fps": 60.0,
+    "atoms": 58870,
+    "ca_residues": 8015
+  }
+}

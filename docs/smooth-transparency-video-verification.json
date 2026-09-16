@@ -1,0 +1,16 @@
+{
+  "calmodulin-ball-and-stick-smooth": {
+    "decoded_frames": 690,
+    "width": 1920,
+    "height": 1080,
+    "fps": "60",
+    "codec": "h264"
+  },
+  "calmodulin-cartoon-smooth": {
+    "decoded_frames": 690,
+    "width": 1920,
+    "height": 1080,
+    "fps": "60",
+    "codec": "h264"
+  }
+}

@@ -1,0 +1,7 @@
+* text=auto
+*.mp4 binary
+*.png binary
+*.jpg binary
+*.pdf binary
+# Preserve downloaded coordinate files byte-for-byte.
+*.cif binary

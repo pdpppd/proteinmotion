@@ -1,0 +1,26 @@
+{
+  "frames": 690,
+  "seconds": 2.6264300830080174,
+  "fps": 262.7140179607415,
+  "adapter": {
+    "vendor": "",
+    "architecture": "",
+    "device": "Apple M3 Max",
+    "description": "",
+    "stackgroup_min_size": 4,
+    "stackgroup_max_size": 128,
+    "vendor_id": 0,
+    "device_id": 0,
+    "adapter_type": "IntegratedGPU",
+    "backend_type": "Metal"
+  },
+  "codec": "h264_videotoolbox",
+  "output": "outputs/calmodulin-ball-and-stick-morph.mp4",
+  "scene_preparation_seconds": 0.02213183301500976,
+  "width": 1920,
+  "height": 1080,
+  "video_fps": 60,
+  "duration_seconds": 11.5,
+  "matched_residues": 114,
+  "residue_delay_seconds": 0.025
+}

@@ -1,0 +1,39 @@
+{
+  "nmr-region-tour": {
+    "frames_decoded": 1446,
+    "expected_frames": 1446,
+    "width": 1920,
+    "height": 1080,
+    "codec": "h264",
+    "average_rate": "60",
+    "duration_seconds": 24.1,
+    "stills": [
+      "nmr-helix-focus.png",
+      "nmr-tail-focus.png"
+    ]
+  },
+  "nmr-116-states": {
+    "frames_decoded": 1440,
+    "expected_frames": 1440,
+    "width": 1920,
+    "height": 1080,
+    "codec": "h264",
+    "average_rate": "60",
+    "duration_seconds": 24.0,
+    "stills": [
+      "nmr-ensemble-cartoon.png"
+    ]
+  },
+  "nmr-116-states-atoms": {
+    "frames_decoded": 1440,
+    "expected_frames": 1440,
+    "width": 1920,
+    "height": 1080,
+    "codec": "h264",
+    "average_rate": "60",
+    "duration_seconds": 24.0,
+    "stills": [
+      "nmr-ensemble-atoms.png"
+    ]
+  }
+}

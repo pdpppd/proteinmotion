@@ -1,0 +1,184 @@
+@import "tailwindcss";
+@theme {
+  --color-paper: #f7f9f7;
+  --color-ink: #202b29;
+  --color-muted: #68736f;
+  --color-line: #dfe5e1;
+  --color-accent: #2e6d57;
+  --color-accent-soft: #e8f0eb;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+}
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 100px;
+  }
+  body {
+    @apply bg-paper font-sans text-ink antialiased;
+  }
+  button,
+  summary {
+    cursor: pointer;
+  }
+  button,
+  a,
+  input,
+  summary,
+  pre {
+    outline-offset: 5px;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+  }
+  ::selection {
+    background: #d7e7dc;
+    color: #202b29;
+  }
+  dialog {
+    color: var(--color-ink);
+  }
+}
+@layer components {
+  .button-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-sm font-medium text-white transition hover:bg-accent/90 active:scale-[.98];
+  }
+  .button-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line px-5 py-3 text-sm font-medium transition hover:border-ink/30 active:scale-[.98];
+  }
+  .eyebrow {
+    @apply font-mono text-[10px] font-medium tracking-[.12em] text-accent;
+  }
+  .brand-mark {
+    @apply relative block h-7 w-6;
+  }
+  .brand-mark i {
+    @apply absolute h-2 w-5 -rotate-35 rounded-sm border-2 border-accent;
+  }
+  .brand-mark i:nth-child(1) {
+    top: 2px;
+  }
+  .brand-mark i:nth-child(2) {
+    top: 10px;
+  }
+  .brand-mark i:nth-child(3) {
+    top: 18px;
+  }
+  .skip-link {
+    @apply fixed left-4 top-4 z-50 -translate-y-24 rounded bg-accent px-4 py-3 text-white focus:translate-y-0;
+  }
+  .search-dialog {
+    @apply fixed inset-x-4 top-[12dvh] mx-auto m-0 w-auto max-w-xl overflow-hidden rounded-xl border border-line bg-white p-0 shadow-2xl;
+  }
+  .search-dialog::backdrop {
+    background: rgb(22 35 29 / 0.4);
+    backdrop-filter: blur(3px);
+  }
+  .code-block {
+    @apply overflow-hidden rounded-lg border border-[#dbe2de] bg-[#edf2ef];
+  }
+  .code-toolbar {
+    @apply flex items-center justify-between border-b border-[#dbe2de] bg-[#e6ede8] px-4 py-2 font-mono text-[10px] text-muted;
+  }
+  .copy-code {
+    @apply rounded px-2 py-1 text-[10px] font-medium transition hover:bg-ink/10 hover:text-ink active:scale-[.98];
+  }
+  .code-block pre {
+    @apply m-0 overflow-x-auto px-5 py-5 text-[12px] leading-[1.85];
+  }
+  .code-block code {
+    @apply font-mono text-[#253c31];
+  }
+  .prose-doc {
+    @apply text-[14px] leading-[1.9];
+    overflow-wrap: anywhere;
+  }
+  .prose-doc > :first-child {
+    margin-top: 0;
+  }
+  .prose-doc p {
+    @apply my-5;
+  }
+  .prose-doc h2 {
+    @apply mb-5 mt-12 scroll-mt-28 text-2xl font-medium leading-tight tracking-[-.025em];
+  }
+  .prose-doc h3 {
+    @apply mb-4 mt-8 scroll-mt-28 text-lg font-medium leading-snug tracking-tight;
+  }
+  .prose-doc a:not(.heading-anchor) {
+    @apply text-accent underline decoration-accent/35 underline-offset-4 hover:decoration-accent;
+  }
+  .prose-doc .heading-anchor {
+    @apply ml-2 text-base text-muted/0 no-underline focus:text-accent;
+  }
+  .prose-doc h2:hover .heading-anchor,
+  .prose-doc h3:hover .heading-anchor {
+    @apply text-muted/60;
+  }
+  .prose-doc .code-block {
+    @apply my-6;
+  }
+  .prose-doc :not(pre) > code {
+    @apply rounded border border-line bg-[#edf2ef] px-1 py-0.5 font-mono text-[.85em];
+  }
+  .prose-doc ul {
+    @apply my-5 list-disc pl-5;
+  }
+  .prose-doc ol {
+    @apply my-5 list-decimal pl-5;
+  }
+  .prose-doc li {
+    @apply mb-2 pl-1;
+  }
+  .prose-doc strong {
+    @apply font-semibold;
+  }
+  .prose-doc table {
+    @apply my-6 block w-full overflow-x-auto border-collapse text-xs;
+  }
+  .prose-doc th {
+    @apply border-b-2 border-line px-3 py-3 text-left font-semibold;
+  }
+  .prose-doc td {
+    @apply border-b border-line px-3 py-3 align-top leading-6;
+    min-width: 100px;
+  }
+  .prose-doc blockquote {
+    @apply my-6 border-l-2 border-accent bg-accent-soft px-5 py-1 text-muted;
+  }
+  .prose-doc img {
+    @apply my-6 max-w-full rounded-lg;
+  }
+  .hljs-comment {
+    color: #7b8d80;
+  }
+  .hljs-keyword,
+  .hljs-selector-tag {
+    color: #7c4664;
+  }
+  .hljs-string {
+    color: #397454;
+  }
+  .hljs-number,
+  .hljs-literal {
+    color: #906338;
+  }
+  .hljs-title,
+  .hljs-built_in {
+    color: #326477;
+  }
+  .hljs-params {
+    color: #54685b;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

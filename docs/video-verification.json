@@ -1,0 +1,23 @@
+{
+  "backbone-morph": {
+    "decoded_frames": 690,
+    "width": 1920,
+    "height": 1080,
+    "fps": "60",
+    "codec": "h264"
+  },
+  "groel-complex": {
+    "decoded_frames": 540,
+    "width": 1920,
+    "height": 1080,
+    "fps": "60",
+    "codec": "h264"
+  },
+  "groel-subunit": {
+    "decoded_frames": 360,
+    "width": 1920,
+    "height": 1080,
+    "fps": "60",
+    "codec": "h264"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "regions": {
+    "source": "nmr-region-tour.mp4",
+    "web_preview": "regions.mp4",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "bytes": 4717128
+  },
+  "nmr-cartoon": {
+    "source": "nmr-116-states.mp4",
+    "web_preview": "nmr-cartoon.mp4",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "bytes": 4720127
+  },
+  "nmr-atoms": {
+    "source": "nmr-116-states-atoms.mp4",
+    "web_preview": "nmr-atoms.mp4",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "bytes": 4735925
+  },
+  "morph": {
+    "source": "calmodulin-cartoon-smooth.mp4",
+    "web_preview": "morph.mp4",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "bytes": 2169249
+  },
+  "morph-atoms": {
+    "source": "calmodulin-ball-and-stick-smooth.mp4",
+    "web_preview": "morph-atoms.mp4",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "bytes": 2123816
+  },
+  "groel": {
+    "source": "groel-complex.mp4",
+    "web_preview": "groel.mp4",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "bytes": 1708179
+  }
+}

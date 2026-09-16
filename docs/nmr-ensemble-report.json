@@ -1,0 +1,18 @@
+{
+  "pdb": "2K39",
+  "title": "RDC-derived ubiquitin ensemble in solution",
+  "method": "SOLUTION NMR",
+  "source_url": "https://www.rcsb.org/structure/2K39",
+  "coordinate_url": "https://files.rcsb.org/download/2K39.cif",
+  "file_sha256": "a6bf4eed6d432c37089a81aba2ef1ef1bf6500e819ac628c5a5258460e1bb824",
+  "models": 116,
+  "selected_heavy_atoms": 602,
+  "residues": 76,
+  "chain": "A",
+  "alignment": "Proper rigid alignment on CA atoms of PDB residues 1\u201370 to model 1",
+  "state_order": "Deposited order; not a time sequence",
+  "state_interpolation": "Quintic easing within adjacent model pairs; illustrative interpolation",
+  "core_ca_rmsf_mean_angstrom": 0.8461905717849731,
+  "tail_ca_rmsf_mean_angstrom": 5.956736087799072,
+  "maximum_ca_rmsf_angstrom": 11.49548625946045
+}
