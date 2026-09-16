@@ -41,6 +41,10 @@ Use `space="world"` for endpoints on different protein objects. World distances 
 
 `Write`, `Unwrite`, `FadeIn`, `FadeOut` and `.animate.set_opacity()` work on a ruler. The line draws before the text fills. [Text animation options](text.md).
 
+## Alpha-helix diagnostic
+
+Start with the [controlled alpha-helix test](alpha-helix.md) to see the full i→i+4 network with visible amide hydrogens. It recovers all 12 expected contacts without a sequence-offset rule, and distinguishes H···O from N···O distances.
+
 ## Compute hydrogen bonds
 
 ```python
@@ -64,7 +68,7 @@ bonds = hb.highlight(
 self.play(Write(bonds), run_time=1.5)
 ```
 
-`p.hydrogen_bonds(**options)` is equivalent. `.pairs` returns immutable `Interaction` records: zero-based donor/acceptor atom indices `a`/`b`, donor–acceptor distance in Å, D–H–A angle in degrees, an explicit hydrogen index when available, and an `inferred_hydrogen` flag. The labels show **donor–acceptor** distance, not H–acceptor distance.
+`p.hydrogen_bonds(**options)` is equivalent. `.pairs` returns immutable `Interaction` records: zero-based donor/acceptor atom indices `a`/`b`, donor–acceptor distance in Å, D–H–A angle in degrees, an explicit hydrogen index when available, and an `inferred_hydrogen` flag. The default labels show **donor–acceptor** distance. Set `hb.highlight(endpoints="hydrogen_acceptor", ...)` to draw H···acceptor lines and label that distance instead; `Interaction.distance` remains donor–acceptor distance. `hb.hydrogen_position(pair)` returns the explicit or virtual H position in model Å.
 
 Detection requires `1.5 Å < D–A ≤ max_distance` and `D–H–A ≥ min_angle`. Defaults are **3.5 Å and 150°**, both configurable. Donor and acceptor in the same residue are excluded. Multiple qualifying hydrogens for one D–A pair collapse to the most linear angle. These are geometric criteria; there is no hydrogen-bond energy calculation. The angle/distance definitions follow the conventional [hydrogen-bond analysis](https://docs.mdanalysis.org/2.9.0/documentation_pages/analysis/hydrogenbonds.html), with our explicitly chosen distance cutoff.
 

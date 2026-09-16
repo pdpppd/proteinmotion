@@ -1,6 +1,6 @@
 # API reference
 
-This reference covers the public authoring API in version 0.6.0. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which live in their corresponding modules.
+This reference covers the public authoring API in version 0.6.1. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which live in their corresponding modules.
 
 ## ProteinScene
 
@@ -110,10 +110,13 @@ charges_from_pqr(protein, path, allow_extra=False)
 InteractionHighlight(analysis, mode="3d", color=None,
                      attractive_color="#58b8fa", repulsive_color="#ef7484",
                      show_distances=False, max_pairs=100, region=None,
+                     endpoints="donor_acceptor",
                      **distance_options)
 ```
 
 Options after required positional arguments (and `charges`) are keyword-only. `Distance.distance` evaluates live endpoint separation; labels convert to `unit="nm"` when requested. Analyses expose `.pairs` and `.highlight(**options)`. Immutable `Interaction` records contain atom indices, distance, kind, optional angle/energy/hydrogen and an `inferred_hydrogen` flag; `.as_dict()` exports one record.
+
+`HydrogenBonds.hydrogen_position(pair)` returns the current H coordinates. For hydrogen bonds, `endpoints="hydrogen_acceptor"` draws and optionally labels H···A instead of the default D···A. [Alpha-helix diagnostic](alpha-helix.md).
 
 Electrostatics also provides `.pair_energy(a, b)` in kcal/mol and `.potential(points, softening=1.0, chunk_size=2048)` in kcal/mol/e. Charges must match selected atom order or exact PQR identities. Formal side-chain charges and virtual backbone H are illustrative approximations. See [distance units, methods, import rules and limitations](interactions.md).
 

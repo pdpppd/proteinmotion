@@ -134,6 +134,7 @@ These snippets run inside a scene after loading `protein`. Surface meshes rebuil
 
 | Example | What it demonstrates | Source |
 |---|---|---|
+| Alpha-helix H bonds | Explicit amide H, full i→i+4 network, separate H···O and N···O measurements | [alpha_helix_hbonds.py](examples/alpha_helix_hbonds.py) |
 | Colors and surfaces | Staggered residue colors, local transparency, rebuilt NMR surfaces | [molecular_tools.py](examples/molecular_tools.py) |
 | Distances and interactions | 3D/2D rulers, virtual backbone H bonds, screened Coulomb contacts | [molecular_tools.py](examples/molecular_tools.py) |
 | Labels and callouts | Vector writing, amino acid names, live leaders in cartoon and ball-and-stick | [labels_and_callouts.py](examples/labels_and_callouts.py) |
@@ -160,7 +161,7 @@ Watch these in the [video gallery](https://pdpppd.github.io/proteinmotion/galler
 
 On the tested **Apple M3 Max**, the 24-second NMR cartoon exported at 1080p/60 fps in **3.69 seconds**. The annotated region tour exported in 4.52 seconds. These are single local runs including rendering/readback/encoding and excluding loading and scene construction, with potentially warm driver caches—not universal performance guarantees.
 
-**87 local tests pass**, including native Metal rendering, residue styling, surfaces, numerical interactions, reproducible seeking, trajectory I/O, matching and hardware encoding. All 4,326 frames of the three NMR examples and all 1,728 frames of the new text examples decoded successfully. The two v0.6 films add 2,700 successfully decoded frames: the 24.8-second rebuilt-surface film exported in 33.69 seconds and the 20.2-second interaction film in 8.45 seconds at 1080p/60 fps. Surface rebuilding during coordinate motion is CPU-bound. [Methods, raw measurements, and limits](https://pdpppd.github.io/proteinmotion/docs/validation/).
+**91 local tests pass**, including native Metal rendering, residue styling, surfaces, numerical interactions, reproducible seeking, trajectory I/O, matching and hardware encoding. All 4,326 frames of the three NMR examples and all 1,728 frames of the new text examples decoded successfully. The two v0.6 films add 2,700 successfully decoded frames: the 24.8-second rebuilt-surface film exported in 33.69 seconds and the 20.2-second interaction film in 8.45 seconds at 1080p/60 fps. Surface rebuilding during coordinate motion is CPU-bound. [Methods, raw measurements, and limits](https://pdpppd.github.io/proteinmotion/docs/validation/).
 
 ## Scientific and implementation limits
 

@@ -1,0 +1,166 @@
+{
+  "frames": 1381,
+  "seconds": 19.47747945797164,
+  "fps": 70.90239797094442,
+  "adapter": {
+    "vendor": "",
+    "architecture": "",
+    "device": "Apple M3 Max",
+    "description": "",
+    "stackgroup_min_size": 4,
+    "stackgroup_max_size": 128,
+    "vendor_id": 0,
+    "device_id": 0,
+    "adapter_type": "IntegratedGPU",
+    "backend_type": "Metal"
+  },
+  "codec": "h264_videotoolbox",
+  "output": "../alpha-helix-hbonds.mp4",
+  "model": "idealized 16-residue peptide backbone, not experimental or MD",
+  "phi": -57,
+  "psi": -47,
+  "omega": 180,
+  "expected_pairs": 12,
+  "detected_pairs": 12,
+  "sequence_rule_used_for_detection": false,
+  "hydrogens": "explicit",
+  "criteria": {
+    "donor_acceptor_max_angstrom": 3.5,
+    "donor_hydrogen_acceptor_min_degrees": 150
+  },
+  "scene_duration": 23.000000000000004,
+  "scene_construction_seconds": 0.14761479198932648,
+  "output_fps": 60,
+  "width": 1920,
+  "height": 1080,
+  "pairs": [
+    {
+      "acceptor_residue": 1,
+      "donor_residue": 5,
+      "acceptor_atom": "O",
+      "donor_atom": "N",
+      "hydrogen_atom": "H",
+      "donor_acceptor_angstrom": 3.086660385131836,
+      "hydrogen_acceptor_angstrom": 2.09808087348938,
+      "donor_hydrogen_acceptor_degrees": 165.62472534179688
+    },
+    {
+      "acceptor_residue": 2,
+      "donor_residue": 6,
+      "acceptor_atom": "O",
+      "donor_atom": "N",
+      "hydrogen_atom": "H",
+      "donor_acceptor_angstrom": 3.086660146713257,
+      "hydrogen_acceptor_angstrom": 2.0980803966522217,
+      "donor_hydrogen_acceptor_degrees": 165.62472534179688
+    },
+    {
+      "acceptor_residue": 3,
+      "donor_residue": 7,
+      "acceptor_atom": "O",
+      "donor_atom": "N",
+      "hydrogen_atom": "H",
+      "donor_acceptor_angstrom": 3.086660385131836,
+      "hydrogen_acceptor_angstrom": 2.098080635070801,
+      "donor_hydrogen_acceptor_degrees": 165.624755859375
+    },
+    {
+      "acceptor_residue": 4,
+      "donor_residue": 8,
+      "acceptor_atom": "O",
+      "donor_atom": "N",
+      "hydrogen_atom": "H",
+      "donor_acceptor_angstrom": 3.086660146713257,
+      "hydrogen_acceptor_angstrom": 2.098080635070801,
+      "donor_hydrogen_acceptor_degrees": 165.624755859375
+    },
+    {
+      "acceptor_residue": 5,
+      "donor_residue": 9,
+      "acceptor_atom": "O",
+      "donor_atom": "N",
+      "hydrogen_atom": "H",
+      "donor_acceptor_angstrom": 3.086660385131836,
+      "hydrogen_acceptor_angstrom": 2.098080635070801,
+      "donor_hydrogen_acceptor_degrees": 165.62472534179688
+    },
+    {
+      "acceptor_residue": 6,
+      "donor_residue": 10,
+      "acceptor_atom": "O",
+      "donor_atom": "N",
+      "hydrogen_atom": "H",
+      "donor_acceptor_angstrom": 3.086660385131836,
+      "hydrogen_acceptor_angstrom": 2.098080635070801,
+      "donor_hydrogen_acceptor_degrees": 165.624755859375
+    },
+    {
+      "acceptor_residue": 7,
+      "donor_residue": 11,
+      "acceptor_atom": "O",
+      "donor_atom": "N",
+      "hydrogen_atom": "H",
+      "donor_acceptor_angstrom": 3.086660146713257,
+      "hydrogen_acceptor_angstrom": 2.098080635070801,
+      "donor_hydrogen_acceptor_degrees": 165.62472534179688
+    },
+    {
+      "acceptor_residue": 8,
+      "donor_residue": 12,
+      "acceptor_atom": "O",
+      "donor_atom": "N",
+      "hydrogen_atom": "H",
+      "donor_acceptor_angstrom": 3.086660623550415,
+      "hydrogen_acceptor_angstrom": 2.0980803966522217,
+      "donor_hydrogen_acceptor_degrees": 165.624755859375
+    },
+    {
+      "acceptor_residue": 9,
+      "donor_residue": 13,
+      "acceptor_atom": "O",
+      "donor_atom": "N",
+      "hydrogen_atom": "H",
+      "donor_acceptor_angstrom": 3.086660146713257,
+      "hydrogen_acceptor_angstrom": 2.098080635070801,
+      "donor_hydrogen_acceptor_degrees": 165.624755859375
+    },
+    {
+      "acceptor_residue": 10,
+      "donor_residue": 14,
+      "acceptor_atom": "O",
+      "donor_atom": "N",
+      "hydrogen_atom": "H",
+      "donor_acceptor_angstrom": 3.086660385131836,
+      "hydrogen_acceptor_angstrom": 2.0980803966522217,
+      "donor_hydrogen_acceptor_degrees": 165.624755859375
+    },
+    {
+      "acceptor_residue": 11,
+      "donor_residue": 15,
+      "acceptor_atom": "O",
+      "donor_atom": "N",
+      "hydrogen_atom": "H",
+      "donor_acceptor_angstrom": 3.086660146713257,
+      "hydrogen_acceptor_angstrom": 2.09808087348938,
+      "donor_hydrogen_acceptor_degrees": 165.624755859375
+    },
+    {
+      "acceptor_residue": 12,
+      "donor_residue": 16,
+      "acceptor_atom": "O",
+      "donor_atom": "N",
+      "hydrogen_atom": "H",
+      "donor_acceptor_angstrom": 3.086660146713257,
+      "hydrogen_acceptor_angstrom": 2.0980803966522217,
+      "donor_hydrogen_acceptor_degrees": 165.624755859375
+    }
+  ],
+  "verification": {
+    "decoded_frames": 1381,
+    "codec": "h264",
+    "width": 1920,
+    "height": 1080,
+    "fps": 60,
+    "encoded_duration_seconds": 23.016666666666666
+  }
+}

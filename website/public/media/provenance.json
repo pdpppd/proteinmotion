@@ -78,5 +78,14 @@
     "height": 720,
     "fps": 30,
     "bytes": 3916776
+  },
+  "alpha-helix": {
+    "source": "alpha-helix-hbonds.mp4",
+    "web_preview": "alpha-helix.mp4",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "bytes": 4354026,
+    "decoded_frames": 690
   }
 }

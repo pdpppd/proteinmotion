@@ -88,6 +88,20 @@ def test_real_backbone_hbonds_and_no_silent_sidechain_hydrogens(protein):
     assert formal.charges.sum() == 0
     assert any(r.kind == "attractive" for r in formal.pairs)
     assert any(r.kind == "repulsive" for r in formal.pairs)
+    # Real 1UBQ helix: the 150° cutoff excludes two slightly bent inferred H.
+    # Lowering the declared cutoff recovers those pairs without forcing i+4.
+    local = HydrogenBonds(
+        protein,
+        donors=protein.select(residues=(23, 34), atoms="N"),
+        acceptors=protein.select(residues=(23, 34), atoms="O"),
+    )
+
+    def keys():
+        return {(protein.topology.atoms[r.b].resid, protein.topology.atoms[r.a].resid) for r in local.pairs}
+
+    assert keys() == {(23, 27), (25, 29), (26, 30), (27, 31), (28, 32), (30, 34)}
+    local.min_angle = 140
+    assert keys() == {(i, i + 4) for i in range(23, 31)}
 
 
 def test_distance_ca_atom_centroid_units_and_display_scale(protein):

@@ -185,6 +185,16 @@ class HydrogenBonds(_Analysis):
             return None
         return xyz[index] + 1.01 * direction / np.linalg.norm(direction)
 
+    def hydrogen_position(self, pair):
+        """Current explicit or inferred H position for a detected hydrogen bond, in Å."""
+        if pair.kind != "hydrogen_bond":
+            raise ValueError("Expected a hydrogen-bond Interaction")
+        xyz = self._coordinates()
+        point = xyz[pair.hydrogen] if pair.hydrogen is not None else self._virtual_hydrogen(pair.a, xyz)
+        if point is None:
+            raise ValueError("This conformation has no valid hydrogen for the supplied pair")
+        return np.array(point, copy=True)
+
     def _compute(self):
         xyz, atoms = self._xyz, self.protein.topology.atoms
         if not len(self.acceptors) or not len(self.donors):
@@ -407,6 +417,19 @@ class Electrostatics(_Analysis):
         return output
 
 
+class _HydrogenAnchor(Region):
+    """An inferred H anchor that inherits the donor's transform and opacity."""
+
+    def __init__(self, analysis, pair):
+        super().__init__(analysis.protein, [pair.a])
+        self.analysis, self.pair = analysis, pair
+
+    @property
+    def positions(self):
+        self._validate()
+        return self.analysis.hydrogen_position(self.pair)[None, :]
+
+
 class InteractionHighlight(Annotation):
     """Live styled interaction lines; a fixed slot pool bounds GPU allocations."""
 
@@ -421,6 +444,7 @@ class InteractionHighlight(Annotation):
         show_distances=False,
         max_pairs=100,
         region=None,
+        endpoints="donor_acceptor",
         **line_options,
     ):
         super().__init__()
@@ -428,6 +452,11 @@ class InteractionHighlight(Annotation):
             raise ValueError("max_pairs must be between 1 and 2000")
         if region is not None and (not isinstance(region, Region) or region.protein is not analysis.protein):
             raise ValueError("region must belong to the analyzed protein")
+        if endpoints not in ("donor_acceptor", "hydrogen_acceptor"):
+            raise ValueError("endpoints must be donor_acceptor or hydrogen_acceptor")
+        if endpoints == "hydrogen_acceptor" and not isinstance(analysis, HydrogenBonds):
+            raise ValueError("hydrogen_acceptor endpoints require HydrogenBonds")
+        self.endpoints = endpoints
         self.analysis, self.max_pairs, self.region = analysis, max_pairs, region
         self.color = None if color is None else parse_color(color)
         self.attractive_color, self.repulsive_color = (
@@ -442,7 +471,7 @@ class InteractionHighlight(Annotation):
 
     def _refresh(self):
         records = self.analysis.pairs
-        key = (id(records), self._write, self._lag_ratio, self._stroke_width, self._reverse)
+        key = (id(records), self.endpoints, self._write, self._lag_ratio, self._stroke_width, self._reverse)
         if key == self._refresh_key:
             return
         self._refresh_key = key
@@ -455,6 +484,12 @@ class InteractionHighlight(Annotation):
         p = self.analysis.protein
         for index, record in enumerate(self.visible_pairs):
             a, b = Region(p, [record.a]), Region(p, [record.b])
+            if self.endpoints == "hydrogen_acceptor":
+                a = (
+                    Region(p, [record.hydrogen])
+                    if record.hydrogen is not None
+                    else _HydrogenAnchor(self.analysis, record)
+                )
             color = (
                 self.color
                 if self.color is not None

@@ -4,6 +4,14 @@ Tested on 16 September 2026 on the local **Apple M3 Max, 40 GPU cores, 64 GB RAM
 macOS 26.6.2, arm64 Python 3.12.8. The native adapter reports `backend_type=Metal`.
 wgpu 0.32.0, Gemmi 0.7.5, PyAV 18.1.0, NumPy 2.5.3, and MDAnalysis 2.10.0 were used.
 
+## Version 0.6.1: an alpha-helix hydrogen-bond diagnostic
+
+A fixed idealized 16-residue backbone with explicit amide H recovers exactly **12 of 12 expected O(i)···H–N(i+4) contacts**, without supplying a sequence-offset rule to the detector. The new `endpoints="hydrogen_acceptor"` option draws H···A and optionally labels that distance; the default donor–acceptor display remains available. The example separates the full network from an annotated single-bond close-up so numbers cannot obscure the short dashed bonds.
+
+Four added tests bring the suite to **91 passing tests**. They independently check the fixture's φ/ψ angles, the complete pair set, a reversed-H negative control, an extended-backbone negative control, explicit/virtual endpoints, transformed anchors, native rendering and backward seeking. The existing 1UBQ test now checks six helix contacts at 150° and all eight at a declared 140° cutoff, documenting the two borderline angles rather than forcing them into the result.
+
+The 1080p/60 fps Metal/VideoToolbox film contains **1,381 frames** (23.02 seconds encoded); every frame decoded successfully. A local export took **19.48 seconds**, with other work running, so this is not an isolated performance benchmark. [Test guide](alpha-helix.md) · [Measured pairs](alpha-helix-hbonds.csv) · [Render and geometry report](alpha-helix-hbonds-report.json).
+
 ## Version 0.6: residue styling, surfaces and interactions
 
 The package now has **87 passing local tests**. Twenty added cases cover independent residue color/opacity tracks, stagger timing and backward seeking, all four GPU representations, closed single-atom vdW/SAS/SES geometry and outward normals, surface caching/rebuilding, Coulomb energy/potential against analytic references, strict PQR charge mapping, hydrogen-bond distance/angle rejection, live ruler units and anchors, real NMR virtual backbone H, 3D occlusion versus 2D overlays at 1×/4× MSAA, and bounded interaction rendering through state changes.
@@ -218,7 +226,7 @@ no claim that this is the fastest possible implementation of every workload.
 
 ## Verification
 
-`pytest`: **87 passed** for v0.6; 67 were present in v0.5. Coverage includes:
+`pytest`: **91 passed** for v0.6.1; 87 were present in v0.6 and 67 in v0.5. Coverage includes:
 
 - Real ubiquitin mmCIF loading, helix/sheet annotations, alternate-location selection,
   multi-model PDB loading, model identity mismatch rejection, and chain gap splitting.

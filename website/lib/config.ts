@@ -75,6 +75,14 @@ export const guides = [
       "A runnable film with camera focus, highlights, and real NMR models.",
   },
   {
+    slug: "alpha-helix",
+    file: "alpha-helix.md",
+    title: "Alpha-helix H bonds",
+    group: "EXAMPLES",
+    description:
+      "Verify the full i-to-i+4 network with visible hydrogens and a clear bond close-up.",
+  },
+  {
     slug: "molecular-example",
     file: "molecular-example.md",
     title: "Molecular tools script",
@@ -115,6 +123,18 @@ export const guides = [
   },
 ];
 export const demos = [
+  {
+    id: "alpha-helix",
+    title: "The bonds that hold a helix",
+    file: "alpha-helix",
+    label: "ALPHA-HELIX HYDROGEN-BOND TEST",
+    detail:
+      "A fixed idealized backbone with explicit H: all 12 expected i-to-i+4 bonds, then a close-up distinguishing gold H···O contacts from solid N–H bonds. Detection uses geometry, without a sequence-offset rule.",
+    source: "examples/alpha_helix_hbonds.py",
+    scene: "AlphaHelixHBonds",
+    duration: "23 s",
+    pdb: "",
+  },
   {
     id: "surfaces",
     title: "Color is part of the story",
