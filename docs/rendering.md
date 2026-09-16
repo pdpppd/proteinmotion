@@ -9,6 +9,7 @@
   The targets are reused. Swept surfaces accumulate their exterior face once to avoid
   counting both skins of a ribbon or bond. This follows the approach of
   [McGuire and Bavoil](https://www.jcgt.org/published/0002/02/09/) with bounded depth/opacity weights.
+- Vector text and callout leaders render in a separate overlay pass after molecular transparency. HarfBuzz/FontTools shape and tessellate cached glyphs; GPU uniforms control contour drawing and fills. Completed text skips the contour pass. Leaders follow projected 3D centroids and are not depth-occluded. See [text and labels](text.md).
 - Video export runs a Metal compute pass for limited-range BT.709 NV12 conversion,
   then feeds PyAV/VideoToolbox directly. NV12 readback uses 1.5 bytes/pixel instead of
   RGBA's 4. No raw-video subprocess pipe or CPU RGB-to-YUV conversion is required.
@@ -24,7 +25,7 @@
   IOSurface/CVPixelBuffer pipeline: staging buffers are still mapped and copied.
 - 4× MSAA smooths geometric edges; analytical sphere silhouettes do not get full
   per-sample antialiasing. No shadows, SSAO, ray tracing, refractive/transmissive materials,
-  text/labels, sequence alignment, or direct Manim Mobject integration in v0.4.
+  MathTex/LaTeX, sequence alignment, or direct Manim Mobject integration in v0.5.
 - Modern native GPUs are required. macOS requires Metal by default; other platforms
   can use native wgpu adapters but have not been verified in this delivery.
 
@@ -32,7 +33,7 @@ See [validation and benchmarks](VALIDATION.md) for the actual checks and timings
 
 ## Structure provenance
 
-MIT license for this package. Dependencies keep their respective licenses. The included
+MIT license for this package. Manim animation timing and bundled Source Sans 3 fonts retain their upstream [licenses and attribution](https://github.com/pdpppd/proteinmotion/blob/main/THIRD_PARTY.md). Dependencies keep their respective licenses. The included
 structures are PDB [1UBQ](https://www.rcsb.org/structure/1UBQ) (ubiquitin),
 [1CLL](https://www.rcsb.org/structure/1CLL) (calmodulin),
 [1NCX](https://www.rcsb.org/structure/1NCX) (troponin C),

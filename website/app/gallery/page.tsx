@@ -52,9 +52,11 @@ export default function Gallery() {
               >
                 <DownloadIcon /> Download preview
               </a>
-              <span className="font-mono text-[10px] text-muted">
-                PDB {demo.pdb}
-              </span>
+              {demo.pdb && (
+                <span className="font-mono text-[10px] text-muted">
+                  PDB {demo.pdb}
+                </span>
+              )}
             </div>
             <div
               className="mt-4"

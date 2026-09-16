@@ -10,7 +10,7 @@ const snippet = `class MyFilm(ProteinScene):
         self.camera.frame(p)
 
         helix = p.select(residues=(23, 34))
-        self.play(FadeIn(helix.highlight(style="box")))
+        self.play(Write(helix.callout("α helix")))
         self.focus(helix, run_time=1.5)
         self.play(PlayTrajectory(p), run_time=8)`;
 export default function Home() {
@@ -29,7 +29,7 @@ export default function Home() {
           </h1>
           <p className="mt-6 max-w-md text-[17px] leading-relaxed text-muted">
             Turn molecular structures into films. Compose cartoons, morphs,
-            trajectories, and focused close-ups with a small, expressive API.
+            trajectories, and animated labels with a small, expressive API.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/docs/getting-started/" className="button-primary">
@@ -52,7 +52,7 @@ export default function Home() {
         {[
           ["01", "Molecular representations", "Cartoon, ribbon, ball & stick"],
           ["02", "Motion with intent", "Easing, morphs, N-to-C delays"],
-          ["03", "A closer view", "Region focus & 3D highlights"],
+          ["03", "A closer view", "Labels, callouts & 3D highlights"],
           ["04", "Real structural ensembles", "NMR models & lazy MD playback"],
         ].map(([n, title, detail]) => (
           <div key={n}>
@@ -124,7 +124,7 @@ export default function Home() {
             </p>
           </div>
           <div>
-            <p className="font-mono text-4xl tracking-tight">56</p>
+            <p className="font-mono text-4xl tracking-tight">67</p>
             <p className="mt-3 text-xs leading-6 text-muted">
               Passing local tests
               <br />

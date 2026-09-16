@@ -3,6 +3,11 @@ import { useState } from "react";
 import Video from "./Video";
 const views = [
   {
+    name: "Labels & callouts",
+    file: "labels",
+    caption: "Ubiquitin · 2K39 · vector writing + live labels",
+  },
+  {
     name: "Regions & focus",
     file: "regions",
     caption: "Ubiquitin · 2K39 · live 3D annotations",

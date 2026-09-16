@@ -59,3 +59,7 @@ self.play(
 Focus evaluates after molecular motion in the same clip. It preserves camera angles
 and field of view. `self.camera.animate.focus(region, ...)` is also supported; camera
 focus and camera orbit/zoom must run in separate clips because both write camera state.
+
+## Text labels and callouts
+
+Use `region.callout("α helix")` for a fixed screen note with a live 3D leader, `region.label()` for one amino acid, or `protein.label_residues(residues=[8, 44, 70])` for a set of names. Animate them with `Write` and `Unwrite`. See [text, labels, and callouts](text.md).

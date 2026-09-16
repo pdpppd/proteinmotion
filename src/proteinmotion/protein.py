@@ -39,6 +39,12 @@ class Protein:
 
         return Region.select(self, chain=chain, residues=residues, atoms=atoms)
 
+    def label_residues(self, *, chain=None, residues=None, **kwargs):
+        """Create amino-acid labels attached to the selected residues' Cα atoms."""
+        from .annotations import ResidueLabels
+
+        return ResidueLabels(self.select(chain=chain, residues=residues), **kwargs)
+
     @classmethod
     def from_file(cls, path, **kwargs):
         topo, frames = load_structure(path, **kwargs)

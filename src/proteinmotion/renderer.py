@@ -7,6 +7,7 @@ from importlib.resources import files
 import numpy as np
 import wgpu
 
+from .annotations import Annotation
 from .geometry import atom_metadata, segments, state_data, sweep_grid
 
 
@@ -238,6 +239,7 @@ class Renderer:
         )
         self.depth_view = self.depth.create_view()
         self._molecules = {}
+        self._overlay = None
         self._pending, self._free = deque(), []
         self.row_bytes = ((width * 4 + 255) // 256) * 256
         self.readback_rows = height
@@ -343,7 +345,11 @@ class Renderer:
         u[24] = camera.depth_cue
         d.queue.write_buffer(self.camera_buffer, 0, u)
         draws = []
+        annotations = []
         for protein in proteins:
+            if isinstance(protein, Annotation):
+                annotations.append(protein)
+                continue
             if hasattr(protein, "_sync"):
                 protein._sync()
             if protein not in self._molecules:
@@ -364,7 +370,9 @@ class Renderer:
         encoder = d.create_command_encoder()
         attachment = {
             "view": self.ms_view,
-            "resolve_target": self.view if self.msaa > 1 and not transparent_draws else None,
+            "resolve_target": self.view
+            if self.msaa > 1 and not transparent_draws and not annotations
+            else None,
             "clear_value": (*map(float, background), 1.0),
             "load_op": "clear",
             "store_op": "store",
@@ -401,7 +409,7 @@ class Renderer:
                 color_attachments=[
                     {
                         "view": self.ms_view,
-                        "resolve_target": self.view if self.msaa > 1 else None,
+                        "resolve_target": self.view if self.msaa > 1 and not annotations else None,
                         "load_op": "load",
                         "store_op": "store",
                     }
@@ -411,6 +419,12 @@ class Renderer:
             composite.set_bind_group(0, self.composite_group)
             composite.draw(3)
             composite.end()
+        if annotations:
+            if self._overlay is None:
+                from .overlay import OverlayRenderer
+
+                self._overlay = OverlayRenderer(self)
+            self._overlay.draw(encoder, annotations, camera)
         return encoder
 
     def draw(self, proteins, camera, background):
@@ -478,6 +492,8 @@ class Renderer:
             pass
         for molecule in self._molecules.values():
             molecule.close()
+        if self._overlay is not None:
+            self._overlay.close()
         for resource in [
             self.camera_buffer,
             self.vertices,

@@ -89,6 +89,18 @@ class Region:
             self, style=style, color=color, opacity=opacity, padding=padding, line_width=line_width
         )
 
+    def callout(self, text, **kwargs):
+        """Create a screen-fixed callout whose leader follows this region."""
+        from .annotations import Callout
+
+        return Callout(self, text, **kwargs)
+
+    def label(self, text=None, **kwargs):
+        """Label a single amino acid, using its name and PDB residue number by default."""
+        from .annotations import ResidueLabel
+
+        return ResidueLabel(self, text, **kwargs)
+
 
 class RegionHighlight(Protein):
     """A sphere, wire box or atom halo following a region through motion/deformation.

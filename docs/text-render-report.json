@@ -1,0 +1,40 @@
+{
+  "ProteinLabels": {
+    "frames": 1128,
+    "seconds": 3.741763625002932,
+    "fps": 301.4621213543697,
+    "adapter": {
+      "vendor": "",
+      "architecture": "",
+      "device": "Apple M3 Max",
+      "description": "",
+      "stackgroup_min_size": 4,
+      "stackgroup_max_size": 128,
+      "vendor_id": 0,
+      "device_id": 0,
+      "adapter_type": "IntegratedGPU",
+      "backend_type": "Metal"
+    },
+    "codec": "h264_videotoolbox",
+    "output": "protein-labels.mp4"
+  },
+  "WritingStudy": {
+    "frames": 600,
+    "seconds": 1.576211208011955,
+    "fps": 380.6596457062176,
+    "adapter": {
+      "vendor": "",
+      "architecture": "",
+      "device": "Apple M3 Max",
+      "description": "",
+      "stackgroup_min_size": 4,
+      "stackgroup_max_size": 128,
+      "vendor_id": 0,
+      "device_id": 0,
+      "adapter_type": "IntegratedGPU",
+      "backend_type": "Metal"
+    },
+    "codec": "h264_videotoolbox",
+    "output": "vector-writing.mp4"
+  }
+}

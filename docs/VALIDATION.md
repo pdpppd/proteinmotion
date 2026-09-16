@@ -4,6 +4,23 @@ Tested on 16 September 2026 on the local **Apple M3 Max, 40 GPU cores, 64 GB RAM
 macOS 26.6.2, arm64 Python 3.12.8. The native adapter reports `backend_type=Metal`.
 wgpu 0.32.0, Gemmi 0.7.5, PyAV 18.1.0, NumPy 2.5.3, and MDAnalysis 2.10.0 were used.
 
+## Version 0.5: vector writing and live labels
+
+Native text uses HarfBuzz shaping, FontTools outlines and cached triangle/stroke geometry. `Write` draws glyph contours and then fills them with Manim-style lagged timing; `Unwrite` reverses it. Callout and amino-acid label anchors follow selected coordinates through camera motion, deformation, NMR state interpolation and transforms.
+
+Both new films use **1920 × 1080, 60 fps, 4× MSAA, Metal and h264_videotoolbox**:
+
+| Example | Frames / duration | Export time | Throughput |
+|---|---:|---:|---:|
+| Protein labels and callouts, 2K39 | 1,128 / 18.8 s | 3.742 s | **301.5 fps** |
+| Close-up vector writing study | 600 / 10 s | 1.576 s | **380.7 fps** |
+
+These are single local runs including initialization, rendering, readback and hardware encoding, excluding scene construction/font layout; shader caches may be warm. All **1,728 encoded frames** decoded successfully. Representative decoded frames were visually inspected. [Raw export measurements](text-render-report.json) and [video verification](text-video-verification.json).
+
+Eleven new tests cover kerning/ligatures, Greek glyphs, empty text, contour holes/islands, automatic author-number labels, insertion codes, configurable writing/erasing, timeline conflicts, live anchors, viewport clipping, opacity inheritance, label placement and scaling. Native GPU checks run at 1×/4× sampling and verify contour-to-fill progression, glyph staggering/reversal, open letter counters, continuous fades, transparency composition, reproducible backward seeking and unchanged glyph buffers across frames.
+
+Text is a screen overlay, not depth-occluded geometry. There is no LaTeX/MathTex, markup, font fallback or general collision-free placement. See the [text guide](text.md) for precise behavior and limitations.
+
 ## Version 0.4: regions and a real NMR ensemble
 
 The new example loads [PDB 2K39](https://www.rcsb.org/structure/2K39), an RDC-derived
@@ -182,7 +199,7 @@ no claim that this is the fastest possible implementation of every workload.
 
 ## Verification
 
-`pytest`: **56 passed** for v0.4. Coverage includes:
+`pytest`: **67 passed** for v0.5. Coverage includes:
 
 - Real ubiquitin mmCIF loading, helix/sheet annotations, alternate-location selection,
   multi-model PDB loading, model identity mismatch rejection, and chain gap splitting.
@@ -224,7 +241,7 @@ gallery and representative encoded video frames were visually inspected.
 
 ## Known limits
 
-See the README for supported formats and API examples. This is a standalone v0.4
+See the README for supported formats and API examples. This is a standalone v0.5
 package. In particular, it does not implement physically constrained morphing,
 automatic sequence alignment, per-frame DSSP, periodic unwrapping, bond-order chemistry,
 shadows/SSAO, refractive/transmissive materials, or direct Manim Mobject integration.

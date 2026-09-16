@@ -1,6 +1,6 @@
 # API reference
 
-This reference covers the public authoring API in version 0.4.0. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which live in their corresponding modules.
+This reference covers the public authoring API in version 0.5.0. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which live in their corresponding modules.
 
 ## ProteinScene
 
@@ -12,7 +12,7 @@ Subclass `ProteinScene` and implement `construct()`. `Scene` is an alias.
 
 | Method | Behavior |
 |---|---|
-| `add(*proteins)` | Add proteins or highlights at the current timeline position |
+| `add(*proteins)` | Add proteins, highlights, text or callouts at the current timeline position |
 | `play(*animations, run_time=1.0, rate_func=None)` | Run animations concurrently, then advance the timeline |
 | `wait(duration=1.0)` | Hold the current scene |
 | `focus(target, run_time=1.5, margin=1.25, follow=True)` | Ease the camera to a protein or region |
@@ -61,6 +61,31 @@ Selections use PDB author residue numbers. Tuples are inclusive ranges; lists se
 
 Highlight styles are `sphere`, `box`, and `atoms`. All accept `color`, `opacity`, and `padding`; boxes also use `line_width`. Highlights follow their parent coordinates and transforms. Animate their opacity, not their transform. [More examples](regions.md).
 
+## Text and annotations
+
+Import `Text`, `Callout`, `ResidueLabel`, `ResidueLabels`, `Write`, and `Unwrite` from `proteinmotion`.
+
+```python
+Text(text, font_size=36, font="regular", color="#edf3fc",
+     position=(0.06, 0.08), align="left", line_spacing=1.3,
+     ligatures=True, opacity=1)
+Callout(region, text, subtitle=None, position=(0.73, 0.25),
+        font_size=32, font="semibold", color="#edf3fc",
+        subtitle_color="#a3b3c7", line_color=None, line_width=1.5,
+        tip="dot", clamp=True, follow_opacity=True, opacity=1)
+ResidueLabel(region, text=None, offset=(24, -36),
+             format="three_letter", include_chain=True, font_size=26, **callout_options)
+ResidueLabels(region, offsets=None, avoid_overlap=True, **label_options)
+Write(target, lag_ratio=None, stroke_width=1.5, reverse=False, rate_func=linear)
+Unwrite(target, lag_ratio=None, stroke_width=1.5, reverse=False, rate_func=linear)
+```
+
+Constructor options after the positional arguments are keyword-only. Text fonts are bundled `regular` / `semibold` or a TTF/OTF path. Font sizes, outline widths, and label offsets use pixels at 1080p height. Positions are normalized viewport coordinates with `(0, 0)` at the top-left. `Text.to_corner("UL", buff=0.06)` supports all four corners.
+
+Convenience methods: `region.callout(text, **options)`, `region.label(text=None, **options)` for one residue, and `protein.label_residues(chain=None, residues=None, **options)`. Automatic names use PDB author numbers and insertion codes. Group offsets accept residue-number or `(chain, number, insertion_code)` keys.
+
+Annotations support `set_opacity()` and `.animate.set_opacity()`. Text/callouts support `move_to()`, `shift()` and animated equivalents. A single `ResidueLabel` supports `set_offset()` and `.animate.set_offset()` instead. `Write` and `Unwrite` operate on whole annotation objects; configure their child text styles before adding them to a scene. [Full guide and runnable example](text.md).
+
 ## Camera
 
 ```python
@@ -76,6 +101,7 @@ self.play(self.camera.animate.zoom(1.3), run_time=1)
 
 | Constructor | Purpose |
 |---|---|
+| `Write(annotation)` / `Unwrite(annotation)` | Draw or erase vector glyphs and callout leaders |
 | `Rotate(protein, angle, axis=(0, 1, 0))` | Rotate around the molecular centroid |
 | `FadeIn(target)` / `FadeOut(target)` | Animate opacity with smooth transparency |
 | `Representation(protein, name)` | Transition to `cartoon`, `ribbon`, or `ball_and_stick` |

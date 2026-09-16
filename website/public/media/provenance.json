@@ -46,5 +46,21 @@
     "height": 720,
     "fps": 30,
     "bytes": 1708179
+  },
+  "labels": {
+    "source": "protein-labels.mp4",
+    "web_preview": "labels.mp4",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "bytes": 3590878
+  },
+  "writing": {
+    "source": "vector-writing.mp4",
+    "web_preview": "writing.mp4",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "bytes": 719989
   }
 }

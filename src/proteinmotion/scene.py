@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .annotations import Annotation
 from .camera import Camera
 from .math3d import color
 from .protein import Protein
@@ -31,10 +32,10 @@ class ProteinScene:
 
     def add(self, *proteins):
         for p in proteins:
-            if not isinstance(p, Protein):
-                raise TypeError("Only Protein objects can be added")
+            if not isinstance(p, (Protein, Annotation)):
+                raise TypeError("Only Protein or annotation objects can be added")
             if any(item[0] is p for item in self._objects):
-                raise ValueError("Protein is already in this scene")
+                raise ValueError("Object is already in this scene")
             self._objects.append((p, self.duration, p.snapshot()))
         return self
 
@@ -50,7 +51,9 @@ class ProteinScene:
                     "BackboneMorph needs a linear clip clock for delays in seconds; use motion_easing"
                 )
             for target in anim.targets:
-                if isinstance(target, Protein) and not any(p is target for p, _, _ in self._objects):
+                if isinstance(target, (Protein, Annotation)) and not any(
+                    p is target for p, _, _ in self._objects
+                ):
                     self.add(target)
                 for channel in anim.channels:
                     key = (id(target), channel)

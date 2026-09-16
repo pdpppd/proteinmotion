@@ -1,0 +1,18 @@
+{
+  "protein-labels": {
+    "frames": 1128,
+    "width": 1920,
+    "height": 1080,
+    "fps": "60",
+    "codec": "h264",
+    "bytes": 41878022
+  },
+  "vector-writing": {
+    "frames": 600,
+    "width": 1920,
+    "height": 1080,
+    "fps": "60",
+    "codec": "h264",
+    "bytes": 1493362
+  }
+}

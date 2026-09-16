@@ -27,6 +27,14 @@ export const guides = [
       "Select residues, add 3D highlights, and follow moving regions.",
   },
   {
+    slug: "text",
+    file: "text.md",
+    title: "Text & labels",
+    group: "AUTHORING",
+    description:
+      "Write vector text, name amino acids, and anchor callouts to moving regions.",
+  },
+  {
     slug: "morphing",
     file: "morphing.md",
     title: "Morphs & matching",
@@ -83,6 +91,30 @@ export const guides = [
   },
 ];
 export const demos = [
+  {
+    id: "labels",
+    title: "Give each region a voice",
+    file: "labels",
+    label: "VECTOR TEXT + LIVE CALLOUTS",
+    detail:
+      "Contour-to-fill writing, region callouts, and automatic amino acid labels follow ubiquitin through NMR conformers in cartoon and ball-and-stick.",
+    source: "examples/labels_and_callouts.py",
+    scene: "ProteinLabels",
+    duration: "18.8 s",
+    pdb: "2K39",
+  },
+  {
+    id: "writing",
+    title: "Watch the letters take shape",
+    file: "writing",
+    label: "MANIM-STYLE WRITE",
+    detail:
+      "A close-up of cached vector glyphs drawing their contours, filling in, then erasing. Native Metal rendering, with Greek letters and configurable glyph timing.",
+    source: "examples/labels_and_callouts.py",
+    scene: "WritingStudy",
+    duration: "10 s",
+    pdb: "",
+  },
   {
     id: "regions",
     title: "Follow a region",

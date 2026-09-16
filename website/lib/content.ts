@@ -15,6 +15,15 @@ export const readGuide = (file: string) =>
           "utf8",
         ) +
         "```",
+    )
+    .replace(
+      "{{LABEL_SOURCE}}",
+      "```python\n" +
+        fs.readFileSync(
+          path.join(process.cwd(), "..", "examples/labels_and_callouts.py"),
+          "utf8",
+        ) +
+        "```",
     );
 export const searchData = () =>
   guides.map((g) => ({
