@@ -141,8 +141,9 @@ class OverlayRenderer:
             for index, leader in enumerate(layout.leaders):
                 key = (root, index)
                 points = leader.points
-                segments = np.zeros((max(0, len(points) - 1), 8), np.float32)
-                segments[:, :2], segments[:, 2:4] = points[:-1], points[1:]
+                pairs = points if points.ndim == 3 else np.stack((points[:-1], points[1:]), axis=1)
+                segments = np.zeros((len(pairs), 8), np.float32)
+                segments[:, :4] = pairs.reshape(-1, 4)
                 segments[:, 5] = 1
                 if key not in self.leaders:
                     self.leaders[key] = _Drawing(self, np.empty((0, 3), np.float32), segments, dynamic=True)
@@ -156,8 +157,11 @@ class OverlayRenderer:
                 text = placement.text
                 # Each placement owns its uniform, even when it shares cached glyph geometry.
                 key = (root, text)
+                if key in self.text and self.text[key].geometry is not text.geometry:
+                    self.text.pop(key).close()
                 if key not in self.text:
                     self.text[key] = _Drawing(self, text.geometry.fill, text.geometry.strokes)
+                    self.text[key].geometry = text.geometry
                 gpu = self.text[key]
                 opacity = root.opacity * placement.opacity * (text.opacity if text is not root else 1)
                 gpu.update(

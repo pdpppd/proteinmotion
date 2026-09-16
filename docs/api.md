@@ -1,6 +1,6 @@
 # API reference
 
-This reference covers the public authoring API in version 0.5.0. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which live in their corresponding modules.
+This reference covers the public authoring API in version 0.6.0. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which live in their corresponding modules.
 
 ## ProteinScene
 
@@ -37,6 +37,10 @@ Protein.from_trajectory(trajectory)
 | `cartoon(color="secondary")` | Helices, sheet arrows, and tubular coils |
 | `ribbon(color="rainbow", width=1.05)` | Continuous ribbon representation |
 | `ball_and_stick(atom_scale=0.30, bond_radius=0.14)` | Element-colored atoms and geometric bonds |
+| `surface(kind="ses", probe_radius=1.4, resolution=0.7, update="rebuild")` | Voxel molecular surface; see [surface options](styling.md) |
+| `set_color(color)` / `color_residues(color, chain=None, residues=None)` | Atom/residue tint across every representation; `None` clears it |
+| `set_opacity(value)` / `set_residue_opacity(value, chain=None, residues=None)` | Global or selected opacity in [0, 1] |
+| `hydrogen_bonds(**options)` / `electrostatics(charges="formal", **options)` | Live interaction analyses |
 | `center()` / `shift(vector)` / `rotate(angle, axis)` / `scale(factor)` | Configure the molecular transform |
 | `positions` | Current interpolated coordinates in the protein's local frame |
 | `set_positions(xyz)` | Set coordinates with unchanged topology |
@@ -44,7 +48,7 @@ Protein.from_trajectory(trajectory)
 | `with_secondary_structure(assignments)` | One `H/E/C` character per residue |
 | `animate` | Build fluent transform or opacity animations |
 
-Coordinates/radii are ångströms; angles are radians. Cartoon/ribbon color accepts `secondary`, `rainbow`, `chain`, or `#RRGGBB`. Ball-and-stick uses element colors.
+Coordinates/radii are ångströms; angles are radians. Cartoon/ribbon color accepts `secondary`, `rainbow`, `chain`, or `#RRGGBB`. Ball-and-stick uses element colors as its base palette. Residue overrides apply to every representation.
 
 ## Region and RegionHighlight
 
@@ -58,6 +62,8 @@ marker = region.highlight(style="box", color="#f2ba67", padding=1.5)
 Selections use PDB author residue numbers. Tuples are inclusive ranges; lists select explicit numbers. The chain and atom-name filters also accept lists. Empty selections raise an error. Explicit atom indices are zero-based.
 
 `region.atom_indices`, `region.residue_indices`, `region.positions`, and `region.world_positions` expose the selected atoms/residues and live coordinates. Indices are read-only. Unions require the same parent protein.
+
+`region.set_color(color)`, `region.set_opacity(value)` and their `.animate` equivalents style the selection. `region.distance_to(other, **options)` creates a live ruler. [Styling and surface guide](styling.md).
 
 Highlight styles are `sphere`, `box`, and `atoms`. All accept `color`, `opacity`, and `padding`; boxes also use `line_width`. Highlights follow their parent coordinates and transforms. Animate their opacity, not their transform. [More examples](regions.md).
 
@@ -86,6 +92,31 @@ Convenience methods: `region.callout(text, **options)`, `region.label(text=None,
 
 Annotations support `set_opacity()` and `.animate.set_opacity()`. Text/callouts support `move_to()`, `shift()` and animated equivalents. A single `ResidueLabel` supports `set_offset()` and `.animate.set_offset()` instead. `Write` and `Unwrite` operate on whole annotation objects; configure their child text styles before adding them to a scene. [Full guide and runnable example](text.md).
 
+## Distance and interaction analyses
+
+```python
+Distance(start_region, end_region, mode="3d", anchor="ca", space="model",
+         color="#f2ba67", label_color=None, font_size=27, precision=1,
+         unit="Å", prefix="", show_distance=True, style="dashed",
+         line_width=1.7, radius=0.09, dash_count=12, dash_ratio=0.6,
+         follow_opacity=True, opacity=1)
+HydrogenBonds(protein, donors=None, acceptors=None, max_distance=3.5,
+              min_angle=150, hydrogens="auto", donor_h_cutoff=1.3)
+Electrostatics(protein, charges="formal", dielectric=80, screening_length=8,
+               cutoff=12, min_energy=0.05,
+               exclude_same_residue=True, exclude_bonded=True)
+Electrostatics.from_pqr(protein, path, allow_extra=False, **options)
+charges_from_pqr(protein, path, allow_extra=False)
+InteractionHighlight(analysis, mode="3d", color=None,
+                     attractive_color="#58b8fa", repulsive_color="#ef7484",
+                     show_distances=False, max_pairs=100, region=None,
+                     **distance_options)
+```
+
+Options after required positional arguments (and `charges`) are keyword-only. `Distance.distance` evaluates live endpoint separation; labels convert to `unit="nm"` when requested. Analyses expose `.pairs` and `.highlight(**options)`. Immutable `Interaction` records contain atom indices, distance, kind, optional angle/energy/hydrogen and an `inferred_hydrogen` flag; `.as_dict()` exports one record.
+
+Electrostatics also provides `.pair_energy(a, b)` in kcal/mol and `.potential(points, softening=1.0, chunk_size=2048)` in kcal/mol/e. Charges must match selected atom order or exact PQR identities. Formal side-chain charges and virtual backbone H are illustrative approximations. See [distance units, methods, import rules and limitations](interactions.md).
+
 ## Camera
 
 ```python
@@ -104,7 +135,9 @@ self.play(self.camera.animate.zoom(1.3), run_time=1)
 | `Write(annotation)` / `Unwrite(annotation)` | Draw or erase vector glyphs and callout leaders |
 | `Rotate(protein, angle, axis=(0, 1, 0))` | Rotate around the molecular centroid |
 | `FadeIn(target)` / `FadeOut(target)` | Animate opacity with smooth transparency |
-| `Representation(protein, name)` | Transition to `cartoon`, `ribbon`, or `ball_and_stick` |
+| `Representation(protein, name)` | Transition to `cartoon`, `ribbon`, `ball_and_stick`, or `surface` |
+| `Colorize(target, color, residue_delay=0, reverse=False, easing="smooth")` | Fade a protein/region to a tint, or `None` to restore its palette |
+| `SetOpacity(target, opacity, residue_delay=0, reverse=False, easing="smooth")` | Fade selected atoms/residues, with optional N-to-C staggering |
 | `Morph(protein, target, align=True)` | Morph matching atom topology or ordered coordinate arrays |
 | `Deform(protein, function)` | Transform coordinates through a callable |
 | `Focus(camera, region, margin=1.25, aspect=16/9, follow=True)` | Animate camera focus; evaluate after molecular motion |
@@ -112,6 +145,8 @@ self.play(self.camera.animate.zoom(1.3), run_time=1)
 | `BackboneMorph(source, target, match=..., residue_delay=0.025)` | Contact-guided morph between different proteins |
 
 Default motion easing is quintic `smooth`. Trajectory playback uses a linear clip clock by default. `state_easing` changes the blend inside each adjacent model pair; `rate_func` changes progress through the whole clip. Built-ins include `linear`, `smooth`, `ease_in_out_sine`, and `there_and_back`.
+
+`Colorize` and `SetOpacity` use a linear clip clock and their own `easing` for residue transitions. Disjoint selections may run together; `run_time` must exceed their total residue start delay. `FadeIn`/`FadeOut` target whole proteins or annotations; use `SetOpacity` for regions.
 
 For `BackboneMorph`, use `motion_easing` for individual residue motion; its timeline must stay linear to preserve delays in seconds. See [matching options and limitations](morphing.md).
 

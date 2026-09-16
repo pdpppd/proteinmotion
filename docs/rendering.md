@@ -10,6 +10,9 @@
   counting both skins of a ribbon or bond. This follows the approach of
   [McGuire and Bavoil](https://www.jcgt.org/published/0002/02/09/) with bounded depth/opacity weights.
 - Vector text and callout leaders render in a separate overlay pass after molecular transparency. HarfBuzz/FontTools shape and tessellate cached glyphs; GPU uniforms control contour drawing and fills. Completed text skips the contour pass. Leaders follow projected 3D centroids and are not depth-occluded. See [text and labels](text.md).
+- Residue color/opacity tracks run in the molecular shader and update small clock uniforms. Atom styles carry across all representations. Geometry buffers remain cached during styling.
+- Surface meshes use CPU voxel fields, distance transforms and marching cubes. The default `update="rebuild"` updates the mesh when coordinates change; static surfaces reuse cached GPU triangles. Optional GPU deformation is approximate and can fold under large displacements. See [surface quality and update modes](styling.md).
+- Hydrogen-bond geometry and screened-Coulomb contacts use cached CPU spatial queries. Contact changes update a bounded pool of rulers; 3D rulers join the depth-tested molecular pass, while 2D rulers join the overlay. Distance text is an overlay in either mode. See [interaction methods and units](interactions.md).
 - Video export runs a Metal compute pass for limited-range BT.709 NV12 conversion,
   then feeds PyAV/VideoToolbox directly. NV12 readback uses 1.5 bytes/pixel instead of
   RGBA's 4. No raw-video subprocess pipe or CPU RGB-to-YUV conversion is required.
@@ -25,7 +28,7 @@
   IOSurface/CVPixelBuffer pipeline: staging buffers are still mapped and copied.
 - 4× MSAA smooths geometric edges; analytical sphere silhouettes do not get full
   per-sample antialiasing. No shadows, SSAO, ray tracing, refractive/transmissive materials,
-  MathTex/LaTeX, sequence alignment, or direct Manim Mobject integration in v0.5.
+  MathTex/LaTeX, sequence alignment, or direct Manim Mobject integration in v0.6.
 - Modern native GPUs are required. macOS requires Metal by default; other platforms
   can use native wgpu adapters but have not been verified in this delivery.
 

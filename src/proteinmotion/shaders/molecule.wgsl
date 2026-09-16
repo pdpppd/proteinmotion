@@ -8,8 +8,10 @@ struct Object {
     model: mat4x4<f32>,
     params: vec4<f32>, // tween, opacity, atom scale, bond radius
     style: vec4<f32>,  // cartoon proportion, ribbon width, object scale, reserved
+    appearance: vec4<f32>, // color clock, opacity clock
 };
 struct AtomState { position: vec4<f32>, guide: vec4<f32> };
+struct Appearance { before:vec4f, after:vec4f, timing:vec4f, alpha:vec4f };
 struct Control { motion: vec4<f32>, visibility: vec4<f32> };
 struct Segment {
     atoms: vec4<u32>,
@@ -26,6 +28,7 @@ struct Segment {
 @group(1) @binding(4) var<storage, read> bonds: array<vec2<u32>>;
 @group(1) @binding(5) var<storage, read> segments: array<Segment>;
 @group(1) @binding(6) var<storage, read> controls: array<Control>;
+@group(1) @binding(7) var<storage, read> appearance:array<Appearance>;
 
 fn safe_normal(v: vec3<f32>) -> vec3<f32> {
     return v * inverseSqrt(max(dot(v,v), 0.00000001));
@@ -38,10 +41,22 @@ fn atom_progress(i:u32) -> f32 {
     if c.z>1.5 { return ease(t); }
     return t;
 }
+fn appearance_progress(clock:f32, start:f32, span:f32, eased:f32) -> f32 {
+    let t=clamp((clock-start)/max(span,1e-8),0.0,1.0);
+    return select(t,ease(t),eased>0.5);
+}
+fn tint(i:u32, base:vec3f) -> vec3f {
+    let s=appearance[i];
+    let t=appearance_progress(object.appearance.x,s.timing.x,s.timing.y,s.timing.z);
+    let c=mix(s.before,s.after,t);
+    return base*(1.0-c.w)+c.xyz;
+}
 fn atom_opacity(i:u32) -> f32 {
     let c=controls[i].visibility;
     let t=ease(clamp((object.params.x-c.z)/max(c.w,0.00000001),0.0,1.0));
-    return mix(c.x,c.y,t);
+    let s=appearance[i];
+    let a=appearance_progress(object.appearance.y,s.alpha.z,s.alpha.w,s.timing.w);
+    return mix(c.x,c.y,t)*mix(s.alpha.x,s.alpha.y,a);
 }
 fn position(i: u32) -> vec3<f32> {
     return mix(state_a[i].position.xyz, state_b[i].position.xyz, atom_progress(i));
@@ -127,7 +142,7 @@ fn tangent(a:vec3<f32>,b:vec3<f32>,c:vec3<f32>,d:vec3<f32>,t:f32) -> vec3<f32> {
     out.p=world(center+offset*cap);
     out.clip=camera.vp*vec4<f32>(out.p,1.0);
     out.normal=world_normal(normal);
-    out.color=mix(s.color_a.xyz,s.color_b.xyz,t);
+    out.color=mix(tint(s.atoms.y,s.color_a.xyz),tint(s.atoms.z,s.color_b.xyz),t);
     out.opacity=mix(atom_opacity(s.atoms.y),atom_opacity(s.atoms.z),t);
     return out;
 }
@@ -149,7 +164,7 @@ fn tangent(a:vec3<f32>,b:vec3<f32>,c:vec3<f32>,d:vec3<f32>,t:f32) -> vec3<f32> {
     out.p=world(mix(a,b,t)+normal*object.params.w);
     out.clip=camera.vp*vec4<f32>(out.p,1.0);
     out.normal=world_normal(normal);
-    out.color=mix(atoms[pair.x].xyz,atoms[pair.y].xyz,t);
+    out.color=mix(tint(pair.x,atoms[pair.x].xyz),tint(pair.y,atoms[pair.y].xyz),t);
     // A bond disappears with its less-visible endpoint; no dangling half-bonds.
     out.opacity=min(atom_opacity(pair.x),atom_opacity(pair.y));
     return out;
@@ -189,7 +204,7 @@ struct Sphere {
     var out:Sphere;
     out.plane=center+(u*corners[vertex].x+v*corners[vertex].y)*bound;
     out.clip=camera.vp*vec4<f32>(out.plane,1.0);
-    out.center=center; out.radius=radius; out.color=atoms[instance].xyz;
+    out.center=center; out.radius=radius; out.color=tint(instance,atoms[instance].xyz);
     out.opacity=atom_opacity(instance);
     return out;
 }
@@ -235,5 +250,36 @@ struct TransparentSphere {
     out.depth=hit.depth;
     out.accumulation=blended.accumulation;
     out.revealage=blended.revealage;
+    return out;
+}
+
+@group(2) @binding(0) var<storage, read> mesh_reference:array<vec4f>;
+@vertex fn mesh_vertex(@location(0) point:vec3f, @location(1) normal:vec3f,
+                      @location(2) neighbors:vec4u, @location(3) weights:vec4f,
+                      @location(4) base:vec3f, @location(5) owner:u32) -> Surface {
+    var offset=vec3f(0.0);
+    var gradient=vec3f(0.0);
+    var g:array<vec3f,4>;
+    var delta:array<vec3f,4>;
+    for(var j=0u;j<4u;j++) {
+        let reference_point=mesh_reference[neighbors[j]].xyz;
+        let v=point-reference_point;
+        g[j]=-2.0*v/(dot(v,v)+4.0);
+        delta[j]=position(neighbors[j])-reference_point;
+        offset+=weights[j]*delta[j];
+        gradient+=weights[j]*g[j];
+    }
+    var jac=mat3x3f(vec3f(1,0,0),vec3f(0,1,0),vec3f(0,0,1));
+    for(var j=0u;j<4u;j++) {
+        let grad=weights[j]*(g[j]-gradient);
+        jac+=mat3x3f(delta[j]*grad.x,delta[j]*grad.y,delta[j]*grad.z);
+    }
+    let cofactor=mat3x3f(cross(jac[1],jac[2]),cross(jac[2],jac[0]),cross(jac[0],jac[1]));
+    var out:Surface;
+    out.p=world(point+offset);
+    out.clip=camera.vp*vec4f(out.p,1.0);
+    out.normal=world_normal(cofactor*normal);
+    out.color=tint(owner,base);
+    out.opacity=atom_opacity(owner);
     return out;
 }

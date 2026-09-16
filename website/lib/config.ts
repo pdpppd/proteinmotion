@@ -35,6 +35,22 @@ export const guides = [
       "Write vector text, name amino acids, and anchor callouts to moving regions.",
   },
   {
+    slug: "styling",
+    file: "styling.md",
+    title: "Colors & surfaces",
+    group: "AUTHORING",
+    description:
+      "Color residues, ease their opacity, and render moving molecular surfaces.",
+  },
+  {
+    slug: "interactions",
+    file: "interactions.md",
+    title: "Distances & interactions",
+    group: "AUTHORING",
+    description:
+      "Measure atoms and residues, highlight hydrogen bonds, and import charges for screened electrostatics.",
+  },
+  {
     slug: "morphing",
     file: "morphing.md",
     title: "Morphs & matching",
@@ -57,6 +73,14 @@ export const guides = [
     group: "EXAMPLES",
     description:
       "A runnable film with camera focus, highlights, and real NMR models.",
+  },
+  {
+    slug: "molecular-example",
+    file: "molecular-example.md",
+    title: "Molecular tools script",
+    group: "EXAMPLES",
+    description:
+      "Two complete films: styled surfaces and live molecular interaction rulers.",
   },
   {
     slug: "api",
@@ -91,6 +115,30 @@ export const guides = [
   },
 ];
 export const demos = [
+  {
+    id: "surfaces",
+    title: "Color is part of the story",
+    file: "surfaces",
+    label: "RESIDUE COLOR + MOVING SURFACES",
+    detail:
+      "Staggered color changes and local transparency carry from cartoon to atoms to a rebuilt solvent-excluded surface through ubiquitin NMR conformers.",
+    source: "examples/molecular_tools.py",
+    scene: "StylingAndSurface",
+    duration: "24.8 s",
+    pdb: "2K39",
+  },
+  {
+    id: "interactions",
+    title: "Measure the connections",
+    file: "interactions",
+    label: "HYDROGEN BONDS + SCREENED ELECTROSTATICS",
+    detail:
+      "Depth-tested 3D rulers and 2D overlay distances, geometric hydrogen bonds with virtual backbone H, and screened Coulomb contacts using illustrative formal charges.",
+    source: "examples/molecular_tools.py",
+    scene: "InteractionsAndDistances",
+    duration: "20.2 s",
+    pdb: "2K39",
+  },
   {
     id: "labels",
     title: "Give each region a voice",

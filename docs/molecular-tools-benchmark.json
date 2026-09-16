@@ -1,0 +1,56 @@
+{
+  "styling-and-surface": {
+    "frames": 1488,
+    "seconds": 33.69450041698292,
+    "fps": 44.16150949221401,
+    "adapter": {
+      "vendor": "",
+      "architecture": "",
+      "device": "Apple M3 Max",
+      "description": "",
+      "stackgroup_min_size": 4,
+      "stackgroup_max_size": 128,
+      "vendor_id": 0,
+      "device_id": 0,
+      "adapter_type": "IntegratedGPU",
+      "backend_type": "Metal"
+    },
+    "codec": "h264_videotoolbox",
+    "output": "../styling-and-surface.mp4",
+    "scene": "StylingAndSurface",
+    "duration": 24.8,
+    "width": 1920,
+    "height": 1080,
+    "output_fps": 60.0,
+    "build_seconds": 0.7816510410048068,
+    "version": "0.6.0",
+    "surface_update": "rebuild"
+  },
+  "interactions-and-distances": {
+    "frames": 1212,
+    "seconds": 8.45493816601811,
+    "fps": 143.34818022339206,
+    "adapter": {
+      "vendor": "",
+      "architecture": "",
+      "device": "Apple M3 Max",
+      "description": "",
+      "stackgroup_min_size": 4,
+      "stackgroup_max_size": 128,
+      "vendor_id": 0,
+      "device_id": 0,
+      "adapter_type": "IntegratedGPU",
+      "backend_type": "Metal"
+    },
+    "codec": "h264_videotoolbox",
+    "output": "../interactions-and-distances.mp4",
+    "scene": "InteractionsAndDistances",
+    "duration": 20.2,
+    "width": 1920,
+    "height": 1080,
+    "output_fps": 60.0,
+    "build_seconds": 0.970439416996669,
+    "version": "0.6.0",
+    "surface_update": null
+  }
+}

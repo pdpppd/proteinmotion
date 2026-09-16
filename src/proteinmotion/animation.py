@@ -195,17 +195,28 @@ class Representation(Animation):
 
     def __init__(self, protein, representation, **kwargs):
         super().__init__(protein, **kwargs)
-        names = {"cartoon": 0, "ribbon": 1, "ball_and_stick": 2}
+        names = {"cartoon": 0, "ribbon": 1, "ball_and_stick": 2, "surface": 3}
         if representation not in names:
             raise ValueError(f"Choose a representation from {list(names)}")
-        self.end = np.eye(3)[names[representation]]
+        self.end = np.eye(4)[names[representation]][:3]
+        self.surface_end = float(representation == "surface")
 
     def bind(self):
         super().bind()
         self.start = self.target.representation.copy()
+        self.surface_start = self.target.surface_opacity
+        if self.surface_end and self.target._surface_options is None:
+            from .surface import surface_options
+
+            self.target._surface_options = surface_options(reference=self.target.positions)
+
+        self.surface_options = self.target._surface_options
 
     def apply(self, alpha):
         self.target.representation = (1 - alpha) * self.start + alpha * self.end
+        self.target.surface_opacity = (1 - alpha) * self.surface_start + alpha * self.surface_end
+        if self.surface_end:
+            self.target._surface_options = self.surface_options
 
 
 class Animate(Animation):
@@ -250,6 +261,13 @@ class Animate(Animation):
         if factor <= 0:
             raise ValueError("Zoom must be positive")
         return self._op("zoom", factor)
+
+    def set_color(self, color, **kwargs):
+        if self.operations:
+            raise ValueError("Play color and transforms as separate concurrent animations")
+        from .styling import Colorize
+
+        return Colorize(self.target, color, **kwargs)
 
     def focus(self, region, *, margin=1.25, aspect=16 / 9, follow=True):
         if self.operations:

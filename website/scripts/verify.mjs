@@ -25,7 +25,7 @@ for (const file of files) {
   if (!html.includes('id="main"'))
     failures.push(`Missing main landmark: ${file}`);
   if (!html.includes("<h1")) failures.push(`Missing page title: ${file}`);
-  if (/\{\{(?:NMR|LABEL)_SOURCE\}\}/.test(html))
+  if (/\{\{(?:NMR|LABEL|MOLECULAR)_SOURCE\}\}/.test(html))
     failures.push("Example source placeholder was not expanded");
 }
 for (const [file, { html }] of documents) {

@@ -10,6 +10,7 @@ const snippet = `class MyFilm(ProteinScene):
         self.camera.frame(p)
 
         helix = p.select(residues=(23, 34))
+        self.play(Colorize(helix, "#50e0d0"), run_time=1.5)
         self.play(Write(helix.callout("α helix")))
         self.focus(helix, run_time=1.5)
         self.play(PlayTrajectory(p), run_time=8)`;
@@ -29,7 +30,7 @@ export default function Home() {
           </h1>
           <p className="mt-6 max-w-md text-[17px] leading-relaxed text-muted">
             Turn molecular structures into films. Compose cartoons, morphs,
-            trajectories, and animated labels with a small, expressive API.
+            surfaces, and measured interactions with a small, expressive API.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/docs/getting-started/" className="button-primary">
@@ -50,9 +51,13 @@ export default function Home() {
         className="grid grid-cols-2 gap-x-6 gap-y-6 border-y border-line py-7 md:grid-cols-4"
       >
         {[
-          ["01", "Molecular representations", "Cartoon, ribbon, ball & stick"],
-          ["02", "Motion with intent", "Easing, morphs, N-to-C delays"],
-          ["03", "A closer view", "Labels, callouts & 3D highlights"],
+          [
+            "01",
+            "Molecular representations",
+            "Cartoon, ribbon, atoms & surfaces",
+          ],
+          ["02", "Motion with intent", "Eased motion, color & opacity"],
+          ["03", "A closer view", "Labels, rulers & interactions"],
           ["04", "Real structural ensembles", "NMR models & lazy MD playback"],
         ].map(([n, title, detail]) => (
           <div key={n}>
@@ -78,7 +83,7 @@ export default function Home() {
             representations and a renderer built for native GPUs.
           </p>
           <Link
-            href="/docs/full-example/"
+            href="/docs/molecular-example/"
             className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-accent"
           >
             Read a complete script <ArrowRightIcon />
@@ -124,7 +129,7 @@ export default function Home() {
             </p>
           </div>
           <div>
-            <p className="font-mono text-4xl tracking-tight">67</p>
+            <p className="font-mono text-4xl tracking-tight">87</p>
             <p className="mt-3 text-xs leading-6 text-muted">
               Passing local tests
               <br />

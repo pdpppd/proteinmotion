@@ -62,5 +62,21 @@
     "height": 720,
     "fps": 30,
     "bytes": 719989
+  },
+  "surfaces": {
+    "source": "styling-and-surface.mp4",
+    "web_preview": "surfaces.mp4",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "bytes": 4906232
+  },
+  "interactions": {
+    "source": "interactions-and-distances.mp4",
+    "web_preview": "interactions.mp4",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "bytes": 3916776
   }
 }

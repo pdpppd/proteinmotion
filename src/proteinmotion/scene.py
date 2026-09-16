@@ -48,7 +48,7 @@ class ProteinScene:
         for anim in animations:
             if getattr(anim, "requires_linear_timeline", False) and rate_func not in (None, anim.rate_func):
                 raise ValueError(
-                    "BackboneMorph needs a linear clip clock for delays in seconds; use motion_easing"
+                    "Staggered animations need a linear clip clock for delays in seconds; use their per-residue easing"
                 )
             for target in anim.targets:
                 if isinstance(target, (Protein, Annotation)) and not any(
@@ -64,6 +64,7 @@ class ProteinScene:
                     used.add(key)
         for anim in animations:
             anim.run_time = float(run_time)
+            anim.start_time = self.duration
             anim.bind()
         ordered = tuple(sorted(animations, key=lambda a: bool(getattr(a, "late", False))))
         self._clips.append((self.duration, float(run_time), ordered, rate_func))

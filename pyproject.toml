@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "proteinmotion"
-version = "0.5.0"
+version = "0.6.0"
 description = "Programmatic protein animation with a Manim-inspired API and native Metal rendering"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
-dependencies = ["numpy>=1.26", "scipy>=1.12", "gemmi>=0.7,<0.8", "wgpu>=0.31,<0.33", "pillow>=10", "av>=18,<19", "fonttools>=4.55,<5", "uharfbuzz>=0.45,<1", "mapbox-earcut>=1.0,<3"]
+dependencies = ["numpy>=1.26", "scipy>=1.12", "gemmi>=0.7,<0.8", "wgpu>=0.31,<0.33", "pillow>=10", "av>=18,<19", "fonttools>=4.55,<5", "uharfbuzz>=0.45,<1", "mapbox-earcut>=1.0,<3", "scikit-image>=0.24,<0.27"]
 
 [project.urls]
 Homepage = "https://pdpppd.github.io/proteinmotion/"

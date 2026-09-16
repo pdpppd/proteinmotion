@@ -3,19 +3,19 @@ import { useState } from "react";
 import Video from "./Video";
 const views = [
   {
+    name: "Surfaces & color",
+    file: "surfaces",
+    caption: "Ubiquitin · 2K39 · residue styling + rebuilt SES",
+  },
+  {
+    name: "Interactions",
+    file: "interactions",
+    caption: "Ubiquitin · live rulers + screened Coulomb contacts",
+  },
+  {
     name: "Labels & callouts",
     file: "labels",
     caption: "Ubiquitin · 2K39 · vector writing + live labels",
-  },
-  {
-    name: "Regions & focus",
-    file: "regions",
-    caption: "Ubiquitin · 2K39 · live 3D annotations",
-  },
-  {
-    name: "Cartoon",
-    file: "nmr-cartoon",
-    caption: "Ubiquitin · 116 NMR conformers · core-aligned",
   },
   {
     name: "Ball & stick",

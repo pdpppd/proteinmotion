@@ -2,20 +2,22 @@
 
 **Protein animation, written in Python.**
 
-A small, Manim-inspired API for molecular films, with native Metal rendering on Apple silicon. Compose cartoons, ribbons, ball-and-stick models, contact-guided morphs, and real structural ensembles, and animated residue labels in a Python scene.
+A small, Manim-inspired API for molecular films, with native Metal rendering on Apple silicon. Compose cartoons, ribbons, ball-and-stick models, molecular surfaces, contact-guided morphs, real structural ensembles and animated residue labels in a Python scene.
 
 [![Checks](https://github.com/pdpppd/proteinmotion/actions/workflows/checks.yml/badge.svg)](https://github.com/pdpppd/proteinmotion/actions/workflows/checks.yml)
 [![Documentation](https://github.com/pdpppd/proteinmotion/actions/workflows/pages.yml/badge.svg)](https://pdpppd.github.io/proteinmotion/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-376e59)](https://www.python.org/)
 [![MIT license](https://img.shields.io/badge/license-MIT-376e59)](LICENSE)
 
-[**Documentation**](https://pdpppd.github.io/proteinmotion/) · [**Video gallery**](https://pdpppd.github.io/proteinmotion/gallery/) · [**API reference**](https://pdpppd.github.io/proteinmotion/docs/api/) · [**Labeling script**](examples/labels_and_callouts.py) · [**Complete NMR script**](examples/nmr_regions.py)
+[**Documentation**](https://pdpppd.github.io/proteinmotion/) · [**Video gallery**](https://pdpppd.github.io/proteinmotion/gallery/) · [**API reference**](https://pdpppd.github.io/proteinmotion/docs/api/) · [**Molecular tools script**](examples/molecular_tools.py) · [**Labeling script**](examples/labels_and_callouts.py) · [**Complete NMR script**](examples/nmr_regions.py)
 
 [![Ubiquitin rendered as a cartoon, ribbon, and ball-and-stick model](docs/assets/representations.png)](https://pdpppd.github.io/proteinmotion/gallery/)
 
 ## What you can make
 
-- **Molecular representations:** secondary-structure cartoons, ribbons, and element-colored ball-and-stick models, with depth cueing and smooth transparency.
+- **Molecular representations:** cartoons, ribbons, ball-and-stick and vdW/SAS/approximate SES surfaces, with depth cueing and smooth transparency.
+- **Residue styling:** colors and opacity across every representation, eased color fades, and configurable N-to-C staggering.
+- **Measured interactions:** live 2D/3D distance rulers, geometric hydrogen bonds, and screened Coulomb contacts with imported charges.
 - **Authored motion:** eased rotation, translation, camera movement, deformation, and morphing with deterministic forward/backward seeking.
 - **Different-protein morphs:** contact-map matching with configurable error bounds, staggered N-to-C movement, and fades for unmatched residues.
 - **Focused explanations:** live residue selections, camera tracking, and 3D sphere, box, or atom-halo highlights.
@@ -103,10 +105,37 @@ The text stays screen-facing while the leaders follow live 3D anchors. Glyph out
 
 [![Region callouts and vector text on a moving ubiquitin model](docs/assets/labels.png)](https://pdpppd.github.io/proteinmotion/gallery/#labels)
 
+## Color, surface and measure
+
+```python
+from proteinmotion import Colorize, SetOpacity, Distance, Electrostatics
+
+helix = protein.select(chain="A", residues=(23, 34))
+self.play(Colorize(helix, "#50e0d0", residue_delay=0.06), run_time=2)
+self.play(SetOpacity(helix, 0.3), run_time=1)
+self.play(Representation(protein, "surface"), run_time=1.2)
+
+ruler = Distance(protein.select(residues=23), protein.select(residues=34),
+                 mode="2d", style="dashed", prefix="Cα · ")
+self.play(Write(ruler), run_time=1.5)
+
+hb = protein.hydrogen_bonds(max_distance=3.5, min_angle=150)
+self.play(Write(hb.highlight(mode="3d", show_distances=True)), run_time=1.5)
+# For prepared charges matching the loaded atom identities:
+# field = Electrostatics.from_pqr(protein, "prepared.pqr", dielectric=80)
+# self.add(field.highlight(mode="2d", show_distances=True))
+```
+
+These snippets run inside a scene after loading `protein`. Surface meshes rebuild when coordinates change; rotations, styling and fades reuse the mesh. Hydrogen-bond detection can use explicit H or clearly flagged virtual backbone H. [Colors and surfaces](https://pdpppd.github.io/proteinmotion/docs/styling/) · [Distances and interactions](https://pdpppd.github.io/proteinmotion/docs/interactions/) · [Full runnable script](examples/molecular_tools.py).
+
+[![Residue-colored solvent-excluded ubiquitin surface](docs/assets/surface.png)](https://pdpppd.github.io/proteinmotion/gallery/#surfaces)
+
 ## Explore the examples
 
 | Example | What it demonstrates | Source |
 |---|---|---|
+| Colors and surfaces | Staggered residue colors, local transparency, rebuilt NMR surfaces | [molecular_tools.py](examples/molecular_tools.py) |
+| Distances and interactions | 3D/2D rulers, virtual backbone H bonds, screened Coulomb contacts | [molecular_tools.py](examples/molecular_tools.py) |
 | Labels and callouts | Vector writing, amino acid names, live leaders in cartoon and ball-and-stick | [labels_and_callouts.py](examples/labels_and_callouts.py) |
 | Writing study | Close-up outline-to-fill writing and erasing | [labels_and_callouts.py](examples/labels_and_callouts.py) |
 | Region tour | Focus, moving 3D highlights, NMR playback | [nmr_regions.py](examples/nmr_regions.py) |
@@ -116,6 +145,8 @@ The text stays screen-facing while the leaders follow live 3D anchors. Glyph out
 | Representation showcase | Cartoon, ribbon, atoms, morphs, and synthetic motion | [showcase.py](examples/showcase.py) |
 
 ```bash
+proteinmotion render examples/molecular_tools.py StylingAndSurface -o surface.mp4 --fps 60
+proteinmotion render examples/molecular_tools.py InteractionsAndDistances -o interactions.mp4 --fps 60
 proteinmotion render examples/labels_and_callouts.py ProteinLabels -o labels.mp4 --fps 60
 proteinmotion render examples/nmr_regions.py RegionTour -o regions.mp4 --fps 60
 proteinmotion render examples/nmr_regions.py NMRAtoms -o ensemble.mp4 --fps 60
@@ -129,13 +160,15 @@ Watch these in the [video gallery](https://pdpppd.github.io/proteinmotion/galler
 
 On the tested **Apple M3 Max**, the 24-second NMR cartoon exported at 1080p/60 fps in **3.69 seconds**. The annotated region tour exported in 4.52 seconds. These are single local runs including rendering/readback/encoding and excluding loading and scene construction, with potentially warm driver caches—not universal performance guarantees.
 
-**67 local tests pass**, including native Metal rendering, transparency, reproducible seeking, trajectory I/O, matching, and hardware encoding. All 4,326 frames of the three NMR examples and all 1,728 frames of the new text examples decoded successfully. The 18.8-second label film exported in 3.74 seconds at 1080p/60 fps. [Methods, raw measurements, and limits](https://pdpppd.github.io/proteinmotion/docs/validation/).
+**87 local tests pass**, including native Metal rendering, residue styling, surfaces, numerical interactions, reproducible seeking, trajectory I/O, matching and hardware encoding. All 4,326 frames of the three NMR examples and all 1,728 frames of the new text examples decoded successfully. The two v0.6 films add 2,700 successfully decoded frames: the 24.8-second rebuilt-surface film exported in 33.69 seconds and the 20.2-second interaction film in 8.45 seconds at 1080p/60 fps. Surface rebuilding during coordinate motion is CPU-bound. [Methods, raw measurements, and limits](https://pdpppd.github.io/proteinmotion/docs/validation/).
 
 ## Scientific and implementation limits
 
 Morphs and interpolated states are visual transitions, not energy-minimized pathways or MD simulations. NMR model order is not a physical time sequence. Contact matching is a bounded optimization; large-input results do not promise a global optimum. Ball-and-stick morphs translate whole matched residues and crossfade endpoint atom sets, without a side-chain atom correspondence.
 
-Prepare whole, unwrapped MD coordinates before loading. Secondary-structure assignments remain fixed during playback. Transparency is approximate weighted blending; there are no shadows, SSAO, or molecular solvent surfaces. Text is a screen overlay; MathTex/LaTeX, markup and automatic font fallback are not implemented. Other GPUs/platforms have not been verified. [Full rendering notes](https://pdpppd.github.io/proteinmotion/docs/rendering/).
+Prepare whole, unwrapped MD coordinates before loading. Secondary-structure assignments remain fixed during playback. Transparency is approximate weighted blending; there are no shadows or SSAO. Solvent-excluded surfaces are voxel approximations, and rebuilding moving surfaces costs CPU time. Fast surface deformation is suitable only for small displacements. Text is a screen overlay; MathTex/LaTeX, markup and automatic font fallback are not implemented. Other GPUs/platforms have not been verified. [Full rendering notes](https://pdpppd.github.io/proteinmotion/docs/rendering/).
+
+Hydrogen bonds use configurable geometry and limited chemical templates; inferred H is flagged. Screened Coulomb is an estimate, not a Poisson–Boltzmann solver or binding-energy calculation. Use prepared imported charges for your chemical state; the convenience formal-charge model is illustrative.
 
 ## Development
 

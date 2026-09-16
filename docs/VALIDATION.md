@@ -4,6 +4,25 @@ Tested on 16 September 2026 on the local **Apple M3 Max, 40 GPU cores, 64 GB RAM
 macOS 26.6.2, arm64 Python 3.12.8. The native adapter reports `backend_type=Metal`.
 wgpu 0.32.0, Gemmi 0.7.5, PyAV 18.1.0, NumPy 2.5.3, and MDAnalysis 2.10.0 were used.
 
+## Version 0.6: residue styling, surfaces and interactions
+
+The package now has **87 passing local tests**. Twenty added cases cover independent residue color/opacity tracks, stagger timing and backward seeking, all four GPU representations, closed single-atom vdW/SAS/SES geometry and outward normals, surface caching/rebuilding, Coulomb energy/potential against analytic references, strict PQR charge mapping, hydrogen-bond distance/angle rejection, live ruler units and anchors, real NMR virtual backbone H, 3D occlusion versus 2D overlays at 1×/4× MSAA, and bounded interaction rendering through state changes.
+
+Two films use **1920 × 1080, 60 fps, 4× MSAA, Metal and h264_videotoolbox**:
+
+| Example | Frames / duration | Export time | Throughput | Scene construction |
+|---|---:|---:|---:|---:|
+| Residue styling and rebuilt SES, 2K39 | 1,488 / 24.8 s | 33.695 s | **44.2 fps** | 0.782 s |
+| Hydrogen bonds, distances and charge contacts, 2K39 | 1,212 / 20.2 s | 8.455 s | **143.3 fps** | 0.970 s |
+
+These are single local end-to-end runs, including renderer setup, surface construction where needed, readback and hardware encoding, excluding scene construction/loading. Caches may be warm and the machine was not isolated from other work. All **2,700 encoded frames** decoded with the expected H.264 codec, dimensions, rate and frame count. Representative encoded color, transparency, surface and ruler frames were visually inspected. [Raw timings](molecular-tools-benchmark.json) · [Video checks](molecular-tools-video-verification.json).
+
+The surface uses a 1.4 Å probe and 0.5 Å voxel spacing. It rebuilds during coordinate changes, which dominates this export; static surfaces reuse GPU triangles for rotation and styling. The alternative fast deformation mode was visually unsuitable for large NMR conformer changes and is documented for small-displacement previews only. The default remains `update="rebuild"`.
+
+Hydrogen-bond examples use explicitly flagged virtual backbone H with D–A ≤ 3.5 Å and D–H–A ≥ 150°. Electrostatic examples use illustrative formal side-chain charges, dielectric 80 and screening length 8 Å. These checks validate the implemented geometry/formulas and rendering, not a force field or experimentally inferred interaction network. [Methods and limits](interactions.md) · [Complete film source](molecular-example.md).
+
+Scikit-image 0.26.0 was used for marching cubes. Its array-shape assignments emit NumPy 2.5 deprecation warnings in the mesh tests (55 warnings), alongside the two existing MDAnalysis warnings described below; all numerical and rendering assertions pass.
+
 ## Version 0.5: vector writing and live labels
 
 Native text uses HarfBuzz shaping, FontTools outlines and cached triangle/stroke geometry. `Write` draws glyph contours and then fills them with Manim-style lagged timing; `Unwrite` reverses it. Callout and amino-acid label anchors follow selected coordinates through camera motion, deformation, NMR state interpolation and transforms.
@@ -199,7 +218,7 @@ no claim that this is the fastest possible implementation of every workload.
 
 ## Verification
 
-`pytest`: **67 passed** for v0.5. Coverage includes:
+`pytest`: **87 passed** for v0.6; 67 were present in v0.5. Coverage includes:
 
 - Real ubiquitin mmCIF loading, helix/sheet annotations, alternate-location selection,
   multi-model PDB loading, model identity mismatch rejection, and chain gap splitting.
@@ -241,7 +260,7 @@ gallery and representative encoded video frames were visually inspected.
 
 ## Known limits
 
-See the README for supported formats and API examples. This is a standalone v0.5
+See the README for supported formats and API examples. This is a standalone v0.6
 package. In particular, it does not implement physically constrained morphing,
 automatic sequence alignment, per-frame DSSP, periodic unwrapping, bond-order chemistry,
 shadows/SSAO, refractive/transmissive materials, or direct Manim Mobject integration.

@@ -32,6 +32,12 @@ class Protein:
         self._controls[:, 7] = 1
         self._controls.flags.writeable = False
         self._metadata_override = None
+        from .styling import initial_appearance
+
+        self._appearance = initial_appearance(len(topology.atoms))
+        self._color_mix = self._opacity_mix = 1.0
+        self._surface_options = None
+        self.surface_opacity = 0.0
 
     def select(self, *, chain=None, residues=None, atoms=None):
         """Select PDB-numbered residues/atom names; the returned Region follows this protein."""
@@ -44,6 +50,16 @@ class Protein:
         from .annotations import ResidueLabels
 
         return ResidueLabels(self.select(chain=chain, residues=residues), **kwargs)
+
+    def hydrogen_bonds(self, **kwargs):
+        from .interactions import HydrogenBonds
+
+        return HydrogenBonds(self, **kwargs)
+
+    def electrostatics(self, charges="formal", **kwargs):
+        from .interactions import Electrostatics
+
+        return Electrostatics(self, charges, **kwargs)
 
     @classmethod
     def from_file(cls, path, **kwargs):
@@ -75,7 +91,9 @@ class Protein:
         c = self._controls
         t = np.clip((self._mix - c[:, 6]) / np.maximum(c[:, 7], 1e-8), 0, 1)
         t = t * t * t * (10 + t * (-15 + 6 * t))
-        return self.opacity * ((1 - t) * c[:, 4] + t * c[:, 5])
+        from .styling import current_opacities
+
+        return self.opacity * current_opacities(self) * ((1 - t) * c[:, 4] + t * c[:, 5])
 
     def _pair(self, a, b, alpha, key_a=None, key_b=None):
         self._a, self._b, self._mix = a, b, float(alpha)
@@ -125,8 +143,40 @@ class Protein:
         self.opacity = float(opacity)
         return self
 
+    def set_color(self, color):
+        from .styling import set_color
+
+        return set_color(self, color)
+
+    def color_residues(self, color, *, chain=None, residues=None):
+        self.select(chain=chain, residues=residues).set_color(color)
+        return self
+
+    def set_residue_opacity(self, opacity, *, chain=None, residues=None):
+        self.select(chain=chain, residues=residues).set_opacity(opacity)
+        return self
+
+    def surface(
+        self, *, kind="ses", probe_radius=1.4, resolution=0.7, color="secondary", update="rebuild", **kwargs
+    ):
+        from .surface import surface_options
+
+        self._surface_options = surface_options(
+            kind=kind,
+            probe_radius=probe_radius,
+            resolution=resolution,
+            update=update,
+            reference=self.positions,
+            **kwargs,
+        )
+        self.representation = np.zeros(3)
+        self.surface_opacity = 1.0
+        self.color_scheme = color
+        return self
+
     def cartoon(self, *, color="secondary"):
         self.representation = np.array([1.0, 0.0, 0.0])
+        self.surface_opacity = 0.0
         self.color_scheme = color
         return self
 
@@ -134,6 +184,7 @@ class Protein:
         if width <= 0:
             raise ValueError("Ribbon width must be positive")
         self.representation = np.array([0.0, 1.0, 0.0])
+        self.surface_opacity = 0.0
         self.color_scheme, self.ribbon_width = color, float(width)
         return self
 
@@ -141,6 +192,7 @@ class Protein:
         if atom_scale <= 0 or bond_radius <= 0:
             raise ValueError("Atom and bond radii must be positive")
         self.representation = np.array([0.0, 0.0, 1.0])
+        self.surface_opacity = 0.0
         self.atom_scale, self.bond_radius = float(atom_scale), float(bond_radius)
         return self
 
@@ -183,12 +235,20 @@ class Protein:
             ribbon_width=self.ribbon_width,
             controls=self._controls,
             metadata_override=self._metadata_override,
+            appearance=self._appearance,
+            color_mix=self._color_mix,
+            opacity_mix=self._opacity_mix,
+            surface_options=self._surface_options,
+            surface_opacity=self.surface_opacity,
         )
 
     def restore(self, s):
         self._pair(s["a"], s["b"], s["mix"], s["key_a"], s["key_b"])
         self._controls = s["controls"]
         self._metadata_override = s["metadata_override"]
+        self._appearance = s["appearance"]
+        self._color_mix, self._opacity_mix = s["color_mix"], s["opacity_mix"]
+        self._surface_options, self.surface_opacity = s["surface_options"], s["surface_opacity"]
         for k in ("position", "orientation", "representation"):
             setattr(self, k, s[k].copy())
         for k in ("size", "opacity", "color_scheme", "atom_scale", "bond_radius", "ribbon_width"):

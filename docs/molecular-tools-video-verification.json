@@ -1,0 +1,36 @@
+{
+  "styling-and-surface": {
+    "file": "styling-and-surface.mp4",
+    "width": 1920,
+    "height": 1080,
+    "codec": "h264",
+    "fps": 60.0,
+    "bytes": 40749238,
+    "decoded_frames": 1488,
+    "expected_frames": 1488,
+    "web_preview": {
+      "file": "surfaces.mp4",
+      "decoded_frames": 744,
+      "width": 1280,
+      "height": 720,
+      "fps": 30
+    }
+  },
+  "interactions-and-distances": {
+    "file": "interactions-and-distances.mp4",
+    "width": 1920,
+    "height": 1080,
+    "codec": "h264",
+    "fps": 60.0,
+    "bytes": 38042513,
+    "decoded_frames": 1212,
+    "expected_frames": 1212,
+    "web_preview": {
+      "file": "interactions.mp4",
+      "decoded_frames": 606,
+      "width": 1280,
+      "height": 720,
+      "fps": 30
+    }
+  }
+}

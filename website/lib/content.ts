@@ -24,6 +24,15 @@ export const readGuide = (file: string) =>
           "utf8",
         ) +
         "```",
+    )
+    .replace(
+      "{{MOLECULAR_SOURCE}}",
+      "```python\n" +
+        fs.readFileSync(
+          path.join(process.cwd(), "..", "examples/molecular_tools.py"),
+          "utf8",
+        ) +
+        "```",
     );
 export const searchData = () =>
   guides.map((g) => ({

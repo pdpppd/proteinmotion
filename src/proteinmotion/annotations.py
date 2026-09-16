@@ -142,9 +142,17 @@ class Text(Annotation):
         self.align, self._vertical_anchor = align, 0
         self.position = _point2(position, "position")
         self.set_opacity(opacity)
-        self.geometry = layout_text(
-            text, self.font_size, font, _positive(line_spacing, "line_spacing"), bool(ligatures)
-        )
+        self.line_spacing = _positive(line_spacing, "line_spacing")
+        self.ligatures = bool(ligatures)
+        self.geometry = layout_text(text, self.font_size, font, self.line_spacing, self.ligatures)
+
+    def set_text(self, text):
+        if not isinstance(text, str):
+            raise TypeError("Text content must be a string")
+        if text != self.text:
+            self.text = text
+            self.geometry = layout_text(text, self.font_size, self.font, self.line_spacing, self.ligatures)
+        return self
 
     @property
     def glyph_count(self):

@@ -89,6 +89,27 @@ class Region:
             self, style=style, color=color, opacity=opacity, padding=padding, line_width=line_width
         )
 
+    def set_color(self, color):
+        from .styling import set_color
+
+        return set_color(self, color)
+
+    def set_opacity(self, opacity):
+        from .styling import set_opacity
+
+        return set_opacity(self, opacity)
+
+    @property
+    def animate(self):
+        from .styling import RegionAnimate
+
+        return RegionAnimate(self)
+
+    def distance_to(self, other, **kwargs):
+        from .distances import Distance
+
+        return Distance(self, other, **kwargs)
+
     def callout(self, text, **kwargs):
         """Create a screen-fixed callout whose leader follows this region."""
         from .annotations import Callout
