@@ -85,7 +85,8 @@
     "width": 1280,
     "height": 720,
     "fps": 30,
-    "bytes": 4354026,
-    "decoded_frames": 690
+    "bytes": 4351418,
+    "decoded_frames": 690,
+    "package_version": "0.6.2"
   }
 }

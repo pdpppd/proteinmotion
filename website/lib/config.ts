@@ -1,7 +1,16 @@
 export const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "/proteinmotion";
 export const repo = "https://github.com/pdpppd/proteinmotion";
 export const site = "https://pdpppd.github.io/proteinmotion";
-export const asset = (path: string) => `${base}/${path.replace(/^\//, "")}`;
+const assetRevisions: Record<string, string> = {
+  "media/alpha-helix.mp4": "0.6.2",
+  "media/alpha-helix.jpg": "0.6.2",
+  "downloads/alpha-helix.png": "0.6.2",
+};
+export const asset = (path: string) => {
+  const clean = path.replace(/^\//, "");
+  const revision = assetRevisions[clean];
+  return `${base}/${clean}${revision ? `?v=${revision}` : ""}`;
+};
 export const guides = [
   {
     slug: "getting-started",

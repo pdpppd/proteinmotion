@@ -1,8 +1,16 @@
 # Validation and performance
 
-Tested on 16 September 2026 on the local **Apple M3 Max, 40 GPU cores, 64 GB RAM**,
+Tested on 16–17 September 2026 on the local **Apple M3 Max, 40 GPU cores, 64 GB RAM**,
 macOS 26.6.2, arm64 Python 3.12.8. The native adapter reports `backend_type=Metal`.
 wgpu 0.32.0, Gemmi 0.7.5, PyAV 18.1.0, NumPy 2.5.3, and MDAnalysis 2.10.0 were used.
+
+## Version 0.6.2: clean ball-and-stick fades
+
+Covalent cylinders are clipped at the analytic surfaces of their endpoint spheres in both opaque and transparent passes. The clipping uses the current GPU-interpolated positions and transformed atom radii. It removes internal sticks that became visible when the alpha-helix zoom started fading residues; bond-only annotation rulers keep their full endpoints.
+
+**97 local tests pass.** Six added native GPU cases (1× and 4× MSAA) compare transparent atom cores with and without attached bonds, cover unequal atom sizes, transforms, global and residue opacity, overlapping/coincident endpoints, and ensure bond-only annotations retain their full lengths. The shaft between atoms remains visible.
+
+The alpha-helix film and web preview were re-rendered. The 1,381-frame 1080p/60 fps export took **7.12 seconds (194.0 fps)** on the local M3 Max using Metal and VideoToolbox; all full-resolution and preview frames decoded successfully. Frames around the 8.4-second fade were visually inspected. This is one local run with potentially warm shader caches, not a controlled comparison with prior timings. [Current render report](alpha-helix-hbonds-report.json).
 
 ## Version 0.6.1: an alpha-helix hydrogen-bond diagnostic
 
@@ -10,7 +18,7 @@ A fixed idealized 16-residue backbone with explicit amide H recovers exactly **1
 
 Four added tests bring the suite to **91 passing tests**. They independently check the fixture's φ/ψ angles, the complete pair set, a reversed-H negative control, an extended-backbone negative control, explicit/virtual endpoints, transformed anchors, native rendering and backward seeking. The existing 1UBQ test now checks six helix contacts at 150° and all eight at a declared 140° cutoff, documenting the two borderline angles rather than forcing them into the result.
 
-The 1080p/60 fps Metal/VideoToolbox film contains **1,381 frames** (23.02 seconds encoded); every frame decoded successfully. A local export took **19.48 seconds**, with other work running, so this is not an isolated performance benchmark. [Test guide](alpha-helix.md) · [Measured pairs](alpha-helix-hbonds.csv) · [Render and geometry report](alpha-helix-hbonds-report.json).
+The 1080p/60 fps Metal/VideoToolbox film contains **1,381 frames** (23.02 seconds encoded); every frame decoded successfully. The original v0.6.1 export took **19.48 seconds**, with other work running, so this is not an isolated performance benchmark. [Test guide](alpha-helix.md) · [Measured pairs](alpha-helix-hbonds.csv) · [Render and geometry report](alpha-helix-hbonds-report.json).
 
 ## Version 0.6: residue styling, surfaces and interactions
 
@@ -226,7 +234,7 @@ no claim that this is the fastest possible implementation of every workload.
 
 ## Verification
 
-`pytest`: **91 passed** for v0.6.1; 87 were present in v0.6 and 67 in v0.5. Coverage includes:
+`pytest`: **97 passed** for v0.6.2; 91 were present in v0.6.1, 87 in v0.6 and 67 in v0.5. Coverage includes:
 
 - Real ubiquitin mmCIF loading, helix/sheet annotations, alternate-location selection,
   multi-model PDB loading, model identity mismatch rejection, and chain gap splitting.

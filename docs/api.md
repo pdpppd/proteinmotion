@@ -1,6 +1,6 @@
 # API reference
 
-This reference covers the public authoring API in version 0.6.1. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which live in their corresponding modules.
+This reference covers the public authoring API in version 0.6.2. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which live in their corresponding modules.
 
 ## ProteinScene
 

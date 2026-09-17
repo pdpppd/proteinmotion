@@ -7,7 +7,7 @@ struct Camera {
 struct Object {
     model: mat4x4<f32>,
     params: vec4<f32>, // tween, opacity, atom scale, bond radius
-    style: vec4<f32>,  // cartoon proportion, ribbon width, object scale, reserved
+    style: vec4<f32>,  // cartoon proportion, ribbon width, object scale, draw atoms
     appearance: vec4<f32>, // color clock, opacity clock
 };
 struct AtomState { position: vec4<f32>, guide: vec4<f32> };
@@ -147,7 +147,17 @@ fn tangent(a:vec3<f32>,b:vec3<f32>,c:vec3<f32>,d:vec3<f32>,t:f32) -> vec3<f32> {
     return out;
 }
 
-@vertex fn bond_vertex(@builtin(vertex_index) vertex:u32, @builtin(instance_index) instance:u32) -> Surface {
+struct Bond {
+    @builtin(position) clip: vec4<f32>,
+    @location(0) p: vec3<f32>,
+    @location(1) normal: vec3<f32>,
+    @location(2) color: vec3<f32>,
+    @location(3) opacity: f32,
+    @location(4) @interpolate(flat) sphere_a: vec4<f32>,
+    @location(5) @interpolate(flat) sphere_b: vec4<f32>,
+};
+
+@vertex fn bond_vertex(@builtin(vertex_index) vertex:u32, @builtin(instance_index) instance:u32) -> Bond {
     let pair=bonds[instance];
     let a=position(pair.x); let b=position(pair.y);
     let dir=safe_normal(b-a);
@@ -160,14 +170,42 @@ fn tangent(a:vec3<f32>,b:vec3<f32>,c:vec3<f32>,d:vec3<f32>,t:f32) -> vec3<f32> {
     let t=ti[corner];
     let angle=f32(vertex/6u+si[corner])*6.28318530718/12.0;
     let normal=u*cos(angle)+v*sin(angle);
-    var out:Surface;
-    out.p=world(mix(a,b,t)+normal*object.params.w);
+    // Remove the cylinder buried in each atom, even when the atoms are transparent.
+    // Rulers without atom spheres retain their full center-to-center length.
+    let radii=vec2<f32>(atoms[pair.x].w,atoms[pair.y].w)*object.params.z*object.style.w;
+    let offsets=sqrt(max(radii*radii-vec2<f32>(object.params.w*object.params.w),vec2<f32>(0.0)));
+    let length=distance(a,b);
+    let exposed=max(length-offsets.x-offsets.y,0.0);
+    let along=offsets.x+t*exposed;
+    let color_t=clamp(along/max(length,1e-8),0.0,1.0);
+    var out:Bond;
+    out.p=world(a+dir*along+normal*object.params.w);
     out.clip=camera.vp*vec4<f32>(out.p,1.0);
     out.normal=world_normal(normal);
-    out.color=mix(tint(pair.x,atoms[pair.x].xyz),tint(pair.y,atoms[pair.y].xyz),t);
+    out.color=mix(tint(pair.x,atoms[pair.x].xyz),tint(pair.y,atoms[pair.y].xyz),color_t);
+    out.sphere_a=vec4<f32>(world(a),radii.x*object.style.z);
+    out.sphere_b=vec4<f32>(world(b),radii.y*object.style.z);
     // A bond disappears with its less-visible endpoint; no dangling half-bonds.
-    out.opacity=min(atom_opacity(pair.x),atom_opacity(pair.y));
+    out.opacity=select(0.0,min(atom_opacity(pair.x),atom_opacity(pair.y)),exposed>1e-8);
     return out;
+}
+
+fn inside_bond_atom(in:Bond) -> bool {
+    // A polygonal ring's chords dip inside the analytic sphere. Clip those last
+    // fragments exactly, so both opaque and faded junctions share the same surface.
+    let a=in.p-in.sphere_a.xyz; let b=in.p-in.sphere_b.xyz;
+    return dot(a,a)<in.sphere_a.w*in.sphere_a.w || dot(b,b)<in.sphere_b.w*in.sphere_b.w;
+}
+
+@fragment fn bond_fragment(in:Bond) -> @location(0) vec4<f32> {
+    if opacity(in.opacity)<1.0 || inside_bond_atom(in) { discard; }
+    return shade(in.p,in.normal,in.color);
+}
+
+@fragment fn bond_transparent(in:Bond) -> TransparentPixel {
+    let alpha=opacity(in.opacity);
+    if alpha<=0.0 || alpha>=1.0 || inside_bond_atom(in) { discard; }
+    return transparent(shade(in.p,in.normal,in.color).rgb,alpha,in.p);
 }
 
 @fragment fn surface_fragment(in:Surface) -> @location(0) vec4<f32> {

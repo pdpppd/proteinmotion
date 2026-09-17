@@ -116,7 +116,7 @@ class _MoleculeGPU:
                 cartoon / max(cartoon + ribbon, 1e-8),
                 protein.ribbon_width,
                 protein.size,
-                0.0,
+                float(getattr(protein, "_draw_atoms", True)),
             ]
             u[24:28] = [protein._color_mix, protein._opacity_mix, 0, 0]
             queue.write_buffer(self.uniforms[i], 0, u)
@@ -224,7 +224,7 @@ class Renderer:
             )
 
         self.sphere_pipeline = pipeline("sphere_vertex", "sphere_fragment")
-        self.bond_pipeline = pipeline("bond_vertex")
+        self.bond_pipeline = pipeline("bond_vertex", "bond_fragment")
         self._ribbon_vertex_buffers = [
             {
                 "array_stride": 8,
@@ -298,7 +298,7 @@ class Renderer:
         d = self.device
         self.transparency_pipelines = (
             self._pipeline("ribbon_vertex", "surface_transparent", self._ribbon_vertex_buffers, True),
-            self._pipeline("bond_vertex", "surface_transparent", transparent=True),
+            self._pipeline("bond_vertex", "bond_transparent", transparent=True),
             self._pipeline("sphere_vertex", "sphere_transparent", transparent=True),
         )
         for fmt in ("rgba16float", "r16float"):

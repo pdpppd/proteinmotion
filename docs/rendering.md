@@ -9,6 +9,10 @@
   The targets are reused. Swept surfaces accumulate their exterior face once to avoid
   counting both skins of a ribbon or bond. This follows the approach of
   [McGuire and Bavoil](https://www.jcgt.org/published/0002/02/09/) with bounded depth/opacity weights.
+- Ball-and-stick cylinders stop at the surfaces of their endpoint atoms. GPU clipping
+  removes their buried portions before both opaque and transparent shading, so residue
+  fades do not reveal sticks inside the balls. The clipping follows animated positions
+  and atom sizes; distance and interaction rulers retain their specified endpoints.
 - Vector text and callout leaders render in a separate overlay pass after molecular transparency. HarfBuzz/FontTools shape and tessellate cached glyphs; GPU uniforms control contour drawing and fills. Completed text skips the contour pass. Leaders follow projected 3D centroids and are not depth-occluded. See [text and labels](text.md).
 - Residue color/opacity tracks run in the molecular shader and update small clock uniforms. Atom styles carry across all representations. Geometry buffers remain cached during styling.
 - Surface meshes use CPU voxel fields, distance transforms and marching cubes. The default `update="rebuild"` updates the mesh when coordinates change; static surfaces reuse cached GPU triangles. Optional GPU deformation is approximate and can fold under large displacements. See [surface quality and update modes](styling.md).

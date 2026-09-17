@@ -21,6 +21,8 @@ The backbone is constructed with φ = −57°, ψ = −47° and trans peptide bo
 
 The film draws **gold dashed H···O segments** and keeps covalent N–H bonds solid. It first shows the entire network, then isolates O5···H–N9 and labels the two different distances. Short bond lines do not carry inline numbers; the measurements sit beside the close-up so a label does not hide the bond.
 
+The zoom begins at 8.4 seconds and fades the surrounding residues. In v0.6.2, covalent sticks are clipped at each atom surface before blending, so the fade no longer exposes cylinders inside the balls. This applies automatically to global and residue-wise opacity; no scene-code changes are needed.
+
 [All measured pairs as CSV](alpha-helix-hbonds.csv) · [Geometry and render report](alpha-helix-hbonds-report.json)
 
 ## Run it

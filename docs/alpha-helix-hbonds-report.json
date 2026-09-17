@@ -1,7 +1,7 @@
 {
   "frames": 1381,
-  "seconds": 19.47747945797164,
-  "fps": 70.90239797094442,
+  "seconds": 7.11988062504679,
+  "fps": 193.96392618463662,
   "adapter": {
     "vendor": "",
     "architecture": "",
@@ -29,7 +29,7 @@
     "donor_hydrogen_acceptor_min_degrees": 150
   },
   "scene_duration": 23.000000000000004,
-  "scene_construction_seconds": 0.14761479198932648,
+  "scene_construction_seconds": 0.12955195899121463,
   "output_fps": 60,
   "width": 1920,
   "height": 1080,
@@ -156,11 +156,14 @@
     }
   ],
   "verification": {
-    "decoded_frames": 1381,
     "codec": "h264",
     "width": 1920,
     "height": 1080,
-    "fps": 60,
-    "encoded_duration_seconds": 23.016666666666666
-  }
+    "fps": 60.0,
+    "encoded_duration_seconds": 23.016666666666666,
+    "decoded_frames": 1381
+  },
+  "package_version": "0.6.2",
+  "rendered_date": "2026-09-17",
+  "bond_geometry": "Covalent sticks clipped at endpoint atom surfaces before opacity blending"
 }
