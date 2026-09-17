@@ -85,3 +85,5 @@ proteinmotion render examples/feature_showcase.py FeatureShowcase --fps 60 -o sh
 ```
 
 See the [feature demo](showcase.md) or [NMR example](full-example.md). The repository contains the input structures for these examples. The release package includes the ubiquitin starter structure.
+
+The [reference manual](https://pdpppd.github.io/proteinmotion/reference/) lists classes, functions, parameters, and methods by module.

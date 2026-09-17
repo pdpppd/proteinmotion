@@ -71,3 +71,13 @@ A pull request should explain the behavior change and relevant checks. Record th
 The AI agent skill source is `skills/proteinmotion-movies`. Its six resource files are mapped into the wheel by `pyproject.toml`; keep that mapping in sync when adding a skill resource. Run the skill-creator validator when changing its instructions. The starter scene is shared by the skill and `proteinmotion init`, so maintain it once.
 
 Build with `python -m build` (the wheel is built from the sdist). Install that wheel into a fresh environment, change out of the checkout, and run `python -I /path/to/repo/scripts/check_installed_package.py --render` on a native GPU. CI runs the same installed-resource check without rendering. Distribute the wheel, source archive, skill ZIP and checksums as versioned GitHub Release assets. Publish versioned release assets after the release checks pass.
+
+### Reference manual
+
+The manual reads signatures, defaults, inheritance, and source locations from the Python files. Descriptions and example links are maintained in `docs/reference/catalog.json`. After changing either, regenerate the reference data:
+
+```bash
+python3 scripts/build_reference.py
+```
+
+The generator uses Python’s standard library. The website build checks that the generated data matches the source and that every package export has a reference entry. Describe new parameters and methods in the catalog before building.

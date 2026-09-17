@@ -38,7 +38,7 @@ export const readGuide = (file: string) =>
 export const searchData = () =>
   guides.map((g) => ({
     title: g.title,
-    slug: g.slug,
+    href: `/docs/${g.slug}/`,
     description: g.description,
     text: readGuide(g.file)
       .replace(/[`#*|]/g, "")

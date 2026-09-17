@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   mkdir,
@@ -7,6 +8,11 @@ import {
   readFile,
 } from "node:fs/promises";
 import { resolve } from "node:path";
+execFileSync(
+  process.env.PYTHON ?? "python3",
+  ["../scripts/build_reference.py", "--check"],
+  { stdio: "inherit" },
+);
 const target = resolve("public/downloads");
 await mkdir(target, { recursive: true });
 for (const filename of await readdir("../docs")) {

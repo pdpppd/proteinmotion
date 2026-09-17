@@ -6,7 +6,7 @@ import {
   MagnifyingGlassIcon,
   ArrowRightIcon,
 } from "@radix-ui/react-icons";
-type Item = { title: string; slug: string; description: string; text: string };
+type Item = { title: string; href: string; description: string; text: string };
 export default function Search({ items }: { items: Item[] }) {
   const modal = useRef<HTMLDialogElement>(null);
   const [query, setQuery] = useState("");
@@ -29,10 +29,26 @@ export default function Search({ items }: { items: Item[] }) {
   const results = items
     .filter((item) =>
       terms.every((term) =>
-        (item.title + " " + item.text).toLowerCase().includes(term),
+        (item.title + " " + item.description + " " + item.text)
+          .toLowerCase()
+          .includes(term),
       ),
     )
-    .slice(0, 8);
+    .sort((a, b) => {
+      const needle = query.toLowerCase().trim();
+      const score = (title: string) => {
+        const value = title.toLowerCase();
+        return value === needle
+          ? 3
+          : value.startsWith(needle)
+            ? 2
+            : value.includes(needle)
+              ? 1
+              : 0;
+      };
+      return terms.length ? score(b.title) - score(a.title) : 0;
+    })
+    .slice(0, 12);
   return (
     <>
       <button
@@ -89,8 +105,8 @@ export default function Search({ items }: { items: Item[] }) {
             results.map((item) => (
               <Link
                 onClick={close}
-                key={item.slug}
-                href={`/docs/${item.slug}/`}
+                key={item.href}
+                href={item.href}
                 className="group flex items-center justify-between rounded-lg px-3 py-3 hover:bg-paper focus:bg-paper"
               >
                 <div>

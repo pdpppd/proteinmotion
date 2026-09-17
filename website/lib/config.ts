@@ -122,7 +122,7 @@ export const guides = [
   {
     slug: "api",
     file: "api.md",
-    title: "API reference",
+    title: "API quick reference",
     group: "REFERENCE",
     description: "The public Python API, parameters, and command-line tools.",
   },

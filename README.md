@@ -7,7 +7,7 @@ ProteinMotion is a Python package for protein animation. Load a structure or tra
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-376e59)](https://www.python.org/)
 [![MIT license](https://img.shields.io/badge/license-MIT-376e59)](LICENSE)
 
-[Documentation](https://pdpppd.github.io/proteinmotion/) · [Video examples](https://pdpppd.github.io/proteinmotion/gallery/) · [API reference](https://pdpppd.github.io/proteinmotion/docs/api/) · [Releases](https://github.com/pdpppd/proteinmotion/releases)
+[Documentation](https://pdpppd.github.io/proteinmotion/) · [Video examples](https://pdpppd.github.io/proteinmotion/gallery/) · [Reference manual](https://pdpppd.github.io/proteinmotion/reference/) · [Releases](https://github.com/pdpppd/proteinmotion/releases)
 
 [![Calmodulin and troponin C animation](docs/showcase.png)](https://pdpppd.github.io/proteinmotion/gallery/#showcase)
 

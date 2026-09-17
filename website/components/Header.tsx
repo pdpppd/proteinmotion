@@ -2,6 +2,7 @@ import Link from "next/link";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import Search from "./Search";
 import { searchData } from "@/lib/content";
+import { referenceSearch } from "@/lib/reference";
 import { repo } from "@/lib/config";
 export default function Header() {
   return (
@@ -32,12 +33,18 @@ export default function Header() {
             Docs
           </Link>
           <Link
-            href="/gallery/"
+            href="/reference/"
             className="text-sm text-muted transition hover:text-ink"
+          >
+            Reference
+          </Link>
+          <Link
+            href="/gallery/"
+            className="hidden text-sm text-muted transition hover:text-ink sm:block"
           >
             Gallery
           </Link>
-          <Search items={searchData()} />
+          <Search items={[...searchData(), ...referenceSearch()]} />
           <a
             href={repo}
             aria-label="ProteinMotion on GitHub"

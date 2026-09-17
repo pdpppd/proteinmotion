@@ -44,6 +44,12 @@ export default async function Guide({
   const { html, toc } = compile(readGuide(guide.file));
   const menu = (
     <nav aria-label="Documentation">
+      <Link
+        href="/reference/"
+        className="mb-5 block rounded-md border border-line px-3 py-3 text-sm font-medium text-accent hover:bg-accent-soft"
+      >
+        Reference manual →
+      </Link>
       {guides.map((g, i) => (
         <div key={g.slug}>
           {(i === 0 || g.group !== guides[i - 1].group) && (

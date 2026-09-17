@@ -237,3 +237,60 @@
     animation-duration: 0.01ms !important;
   }
 }
+
+@layer components {
+  .reference-title {
+    @apply mb-5 mt-4 break-words text-3xl font-medium leading-tight tracking-tight sm:text-4xl;
+  }
+  .reference-intro {
+    @apply my-5 max-w-[85ch] text-sm leading-7;
+    overflow-wrap: anywhere;
+  }
+  .reference-intro a {
+    @apply text-accent underline decoration-accent/35 underline-offset-4;
+  }
+  .reference-intro code {
+    @apply font-mono text-xs;
+  }
+  .reference-heading {
+    @apply mb-5 mt-12 scroll-mt-28 text-2xl font-medium tracking-tight;
+  }
+  .reference-subheading {
+    @apply mb-4 mt-7 text-base font-medium;
+  }
+  .reference-table {
+    @apply my-5 w-full overflow-x-auto;
+  }
+  .reference-table table {
+    @apply w-full border-collapse text-left text-xs leading-6;
+  }
+  .reference-table th {
+    @apply border-b-2 border-line px-3 py-3 font-semibold;
+  }
+  .reference-table td {
+    @apply border-b border-line px-3 py-3 align-top;
+  }
+  .reference-table td:first-child {
+    min-width: 155px;
+  }
+  .reference-table td:last-child {
+    min-width: 230px;
+  }
+  .reference-table code {
+    @apply font-mono text-[11px];
+    overflow-wrap: anywhere;
+  }
+  .reference-member {
+    @apply my-10 scroll-mt-28 border-t border-line pt-8;
+  }
+  .reference-nav a {
+    @apply rounded py-1.5 text-xs leading-5 hover:text-accent;
+  }
+  .reference-nav details a {
+    @apply block;
+    overflow-wrap: anywhere;
+  }
+  .reference-nav a[aria-current="page"] {
+    @apply font-medium text-accent underline underline-offset-4;
+  }
+}

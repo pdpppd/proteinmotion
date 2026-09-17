@@ -1,0 +1,1009 @@
+{
+  "modules": {
+    "scene": {
+      "title": "Scenes",
+      "description": "Build a timeline, evaluate frames, and export videos.",
+      "guide": "scenes"
+    },
+    "protein": {
+      "title": "Proteins",
+      "description": "Load structures, choose representations, and change coordinates or appearance.",
+      "guide": "scenes"
+    },
+    "camera": {
+      "title": "Camera",
+      "description": "Frame proteins and regions, orbit, zoom, and set depth cueing.",
+      "guide": "regions"
+    },
+    "animation": {
+      "title": "Animation",
+      "description": "Move objects, change representations, and interpolate coordinates.",
+      "guide": "scenes"
+    },
+    "styling": {
+      "title": "Color and opacity",
+      "description": "Animate atom and residue colors and transparency.",
+      "guide": "styling"
+    },
+    "annotations": {
+      "title": "Text and labels",
+      "description": "Write text, label amino acids, and connect labels to regions.",
+      "guide": "text"
+    },
+    "regions": {
+      "title": "Selections and highlights",
+      "description": "Select atoms and residues and mark regions in 3D.",
+      "guide": "regions"
+    },
+    "trajectory": {
+      "title": "Trajectories",
+      "description": "Read and align NMR ensembles, NumPy frames, and MD trajectories.",
+      "guide": "trajectories"
+    },
+    "matching": {
+      "title": "Contact matching",
+      "description": "Match ordered Cα subsets and save residue correspondences.",
+      "guide": "morphing"
+    },
+    "backbone": {
+      "title": "Backbone morphs",
+      "description": "Move matched residues and fade unmatched parts between structures.",
+      "guide": "morphing"
+    },
+    "distances": {
+      "title": "Distances",
+      "description": "Measure atoms or residues with 2D or 3D lines.",
+      "guide": "interactions"
+    },
+    "interactions": {
+      "title": "Molecular interactions",
+      "description": "Compute and display hydrogen bonds and screened Coulomb interactions.",
+      "guide": "interactions"
+    },
+    "rates": {
+      "title": "Rate functions",
+      "description": "Map animation progress to eased progress.",
+      "guide": "scenes"
+    },
+    "renderer": {
+      "title": "Rendering",
+      "description": "Render frames directly with a reusable GPU renderer.",
+      "guide": "rendering"
+    }
+  },
+  "parameters": {
+    "width": "Image width in pixels.",
+    "height": "Image height in pixels.",
+    "fps": "Video frames per second; must be positive.",
+    "background": "Background color as a hex string or RGB values.",
+    "msaa": "Multisample count: 1 or 4.",
+    "target": "Object to animate or use as a destination. The supported object type depends on the operation.",
+    "protein": "Protein object to read or animate.",
+    "proteins": "Protein or annotation objects to add or render.",
+    "animations": "Animation objects to run together.",
+    "run_time": "Clip duration in seconds; must be positive.",
+    "rate_func": "Callable that maps progress in [0, 1] to a finite value in [0, 1].",
+    "duration": "Hold duration in seconds; must be nonnegative.",
+    "time": "Timeline position in seconds.",
+    "output": "Output file path.",
+    "renderer": "Existing Renderer to reuse; None creates and closes one for this frame.",
+    "codec": "FFmpeg encoder name; auto selects hardware H.264 on macOS when available.",
+    "bitrate": "Target video bitrate, such as \"20M\".",
+    "progress": "Print frame progress and render timing.",
+    "topology": "Atom identities, residues, bonds, and chains in a Topology object.",
+    "xyz": "Finite coordinates with shape (atoms, 3), in ångströms.",
+    "trajectory": "Trajectory with the same atom identities and order; None uses the protein’s trajectory.",
+    "chain": "Author chain ID or a collection of IDs; None selects all chains.",
+    "chains": "Author chain ID or a collection of IDs; None loads all chains.",
+    "residues": "Author residue number, inclusive (first, last) tuple, or list of individual numbers.",
+    "atoms": "Atom name or list of names, such as \"CA\"; None selects all atom names.",
+    "path": "Input or output file path, as specified by the operation.",
+    "kwargs": "Additional keyword options described below or in the linked constructor.",
+    "vector": "Finite 3D translation vector in ångströms.",
+    "angle": "Rotation angle in radians.",
+    "axis": "Nonzero 3D rotation axis; it is normalized internally.",
+    "factor": "Positive scale or zoom factor.",
+    "opacity": "Opacity in [0, 1], from transparent to opaque.",
+    "color": "Hex color or RGB values. For tint setters, None restores the representation’s base palette.",
+    "kind": "Surface type: \"vdw\", \"sas\", or \"ses\".",
+    "probe_radius": "Solvent probe radius in ångströms.",
+    "resolution": "Surface grid spacing in ångströms; smaller values increase detail and cost.",
+    "update": "\"rebuild\" recalculates the surface as coordinates change; \"deform\" moves the reference mesh.",
+    "max_voxels": "Maximum surface grid cells; increase this limit for large structures or finer grids.",
+    "atom_scale": "Multiplier applied to element van der Waals radii for ball-and-stick atoms.",
+    "bond_radius": "Covalent bond cylinder radius in ångströms.",
+    "assignments": "One \"H\", \"E\", or \"C\" code per topology residue for helix, sheet, or coil.",
+    "s": "State returned by snapshot().",
+    "state": "State returned by snapshot().",
+    "margin": "Positive framing margin; larger values leave more space around the target.",
+    "aspect": "Image width divided by height.",
+    "follow": "Track the selection’s center after the focus completes.",
+    "theta": "Change in horizontal camera angle, in radians.",
+    "phi": "Change in vertical camera angle, in radians.",
+    "alpha": "Eased animation progress in [0, 1].",
+    "align": "Align the destination to the source before interpolation.",
+    "atom_map": "One unique target atom index per source atom; used with a Protein destination.",
+    "function": "Callable receiving a copy of the coordinates and returning an array of the same shape.",
+    "start": "Starting model index or ruler endpoint, as specified by the constructor.",
+    "end": "Ending model index or ruler endpoint, as specified by the constructor.",
+    "state_easing": "Callable controlling interpolation within each adjacent pair of trajectory frames.",
+    "region": "Region selection attached to a protein.",
+    "representation": "\"cartoon\", \"ribbon\", \"ball_and_stick\", or \"surface\".",
+    "residue_delay": "Delay in seconds between successive residue starts.",
+    "reverse": "Reverse residue or glyph order.",
+    "easing": "Per-residue interpolation: \"smooth\" or \"linear\".",
+    "value": "Value to assign; the supported range depends on the property.",
+    "text": "Text to display.",
+    "font_size": "Font size in pixels at a 1080-pixel image height.",
+    "font": "Bundled \"regular\" or \"semibold\", or a path to a TTF/OTF font.",
+    "position": "Image coordinates (x, y), with (0, 0) at the top-left and (1, 1) at the bottom-right.",
+    "line_spacing": "Line spacing multiplier.",
+    "ligatures": "Enable font ligatures during text shaping.",
+    "corner": "\"UL\", \"UR\", \"DL\", or \"DR\" for an image corner.",
+    "buff": "Padding from the image edge in normalized image units.",
+    "camera": "Camera used to project or frame objects.",
+    "offset": "Offset (x, y) in design pixels at 1080p for residue labels; normalized image units for text shifts.",
+    "subtitle": "Optional second line of text.",
+    "subtitle_color": "Subtitle color.",
+    "line_color": "Callout line color; None uses the main text color.",
+    "line_width": "Line width in design pixels at 1080p for overlays; ångströms for 3D highlight boxes.",
+    "tip": "Callout endpoint marker: \"dot\", \"arrow\", or \"none\".",
+    "clamp": "Keep callout text inside the image bounds.",
+    "follow_opacity": "Multiply annotation opacity by its selected atom opacity.",
+    "format": "Automatic residue name style: \"three_letter\" or \"one_letter\".",
+    "include_chain": "Include the chain identifier in automatic residue names.",
+    "offsets": "Map residue numbers or (chain, number, insertion_code) keys to label offsets.",
+    "avoid_overlap": "Adjust labels in the group to reduce overlap.",
+    "lag_ratio": "Delay between glyph starts relative to glyph duration; None chooses a value from glyph count.",
+    "stroke_width": "Glyph outline width in design pixels at 1080p.",
+    "atom_indices": "Nonempty collection of zero-based atom indices.",
+    "style": "Highlight shape or line style; allowed values are specified by the constructor.",
+    "padding": "Extra highlight size in ångströms. None selects a default for the highlight style.",
+    "other": "Another Region from the same protein for a union, or an endpoint Region for a distance.",
+    "frames": "Array or random-access sequence with shape (states, atoms, 3).",
+    "units": "Input coordinate units: \"angstrom\" or \"nm\". Frames are returned in ångströms.",
+    "index": "Zero-based frame index.",
+    "topology_file": "Topology file accepted by MDAnalysis.",
+    "trajectory_file": "Coordinate trajectory file accepted by MDAnalysis.",
+    "selection": "MDAnalysis atom selection expression.",
+    "stride": "Read every nth frame; a positive integer.",
+    "reference": "Reference coordinates for alignment; None uses the first frame.",
+    "indices": "Atom indices used for the rigid fit; None uses all atoms.",
+    "source": "Source Protein.",
+    "destination": "Destination Protein.",
+    "source_indices": "Strictly increasing zero-based source topology residue indices.",
+    "target_indices": "Strictly increasing zero-based target topology residue indices.",
+    "source_keys": "Source residue identity tuples stored for validation.",
+    "target_keys": "Target residue identity tuples stored for validation.",
+    "report": "Dictionary with matching statistics, search status, and optimality information.",
+    "source_chain": "Source chain ID; required if several chains contain Cα atoms.",
+    "target_chain": "Target chain ID; required if several chains contain Cα atoms.",
+    "cutoff": "Distance cutoff in ångströms.",
+    "softness": "Width of the soft contact transition in ångströms.",
+    "max_contact_error": "Maximum discrepancy between matched soft contacts, in [0, 1].",
+    "search_seconds": "Branch-and-bound time budget in seconds; preparation is additional.",
+    "max_candidates": "Candidate correspondence limit; None searches all candidates up to the safety limit.",
+    "match": "ContactMatch correspondence; None computes one using match_options.",
+    "fade_out": "Normalized progress interval for fading unmatched source residues.",
+    "fade_in": "Normalized progress interval for fading unmatched destination residues.",
+    "motion_easing": "Per-residue motion: \"smooth\" or \"linear\".",
+    "match_options": "Options passed to match_backbones() when match is None.",
+    "mode": "\"3d\" draws lines within the model; \"2d\" draws lines over the image.",
+    "anchor": "\"ca\" uses the Cα of a single residue when available; \"centroid\" averages selected coordinates.",
+    "space": "\"model\" uses local coordinates; \"world\" includes display transforms.",
+    "label_color": "Distance text color; None inherits the line color.",
+    "precision": "Number of decimal places in a distance label, from 0 to 6.",
+    "unit": "Displayed distance unit: \"Å\", \"nm\", or an empty suffix. The distance property uses ångströms.",
+    "prefix": "Text placed before the distance value.",
+    "show_distance": "Display the distance value at the line midpoint.",
+    "radius": "3D line cylinder radius in ångströms.",
+    "dash_count": "Number of line segments.",
+    "dash_ratio": "Filled fraction of each dashed segment.",
+    "donors": "Donor Region or atom indices; None uses standard amino-acid templates.",
+    "acceptors": "Acceptor Region or atom indices; None uses standard amino-acid templates.",
+    "max_distance": "Maximum donor–acceptor distance in ångströms.",
+    "min_angle": "Minimum donor–hydrogen–acceptor angle in degrees.",
+    "hydrogens": "\"explicit\", \"auto\", or \"backbone\"; controls the use of loaded or inferred hydrogens.",
+    "donor_h_cutoff": "Maximum donor–hydrogen assignment distance in ångströms.",
+    "pair": "Interaction record returned by this analysis.",
+    "charges": "\"formal\" side-chain templates or one charge per atom, in elementary charge units.",
+    "dielectric": "Positive relative dielectric constant.",
+    "screening_length": "Positive exponential screening length in ångströms; None disables screening.",
+    "min_energy": "Minimum absolute pair energy to include, in kcal/mol.",
+    "exclude_same_residue": "Exclude pairs within the same residue.",
+    "exclude_bonded": "Exclude directly bonded pairs.",
+    "allow_extra": "Permit additional PQR records after every protein atom has an exact match.",
+    "a": "Zero-based first atom index.",
+    "b": "Zero-based second atom index.",
+    "distance": "Distance in ångströms.",
+    "energy": "Pair energy in kcal/mol, or None for a hydrogen bond.",
+    "hydrogen": "Explicit hydrogen atom index, or None.",
+    "inferred_hydrogen": "Whether the hydrogen position was inferred.",
+    "points": "Coordinates with shape (points, 3), in model ångströms.",
+    "softening": "Plummer softening length in ångströms.",
+    "chunk_size": "Number of potential sample points processed together.",
+    "analysis": "HydrogenBonds or Electrostatics analysis.",
+    "attractive_color": "Color for negative electrostatic pair energy.",
+    "repulsive_color": "Color for positive electrostatic pair energy.",
+    "show_distances": "Display distance labels on interaction lines.",
+    "max_pairs": "Maximum number of interaction lines displayed, from 1 to 2000.",
+    "endpoints": "\"donor_acceptor\" or \"hydrogen_acceptor\" for hydrogen-bond line endpoints.",
+    "line_options": "Additional Distance style options.",
+    "t": "Animation progress in [0, 1].",
+    "require_metal": "Require the Metal backend. None requires Metal on macOS and requests a high-performance adapter elsewhere.",
+    "readback_format": "\"rgba\" for image arrays or \"nv12\" for video encoding.",
+    "exc_type": "Exception type supplied by the context manager.",
+    "exc_value": "Exception instance supplied by the context manager.",
+    "traceback": "Traceback supplied by the context manager.",
+    "args": "Exception information supplied by the context manager."
+  },
+  "members": {
+    "construct": {
+      "description": "Override this method to define the scene with add(), play(), wait(), and camera setup.",
+      "returns": "None"
+    },
+    "add": {
+      "description": "Add objects at the current timeline position and capture their initial state.",
+      "returns": "The scene."
+    },
+    "play": {
+      "description": "Run animations together, then advance the timeline by run_time seconds.",
+      "returns": "The scene.",
+      "notes": "Animations that write the same object property concurrently raise ValueError. Create a new animation object for each play() call."
+    },
+    "wait": {
+      "description": "Extend the timeline while holding the current state.",
+      "returns": "The scene."
+    },
+    "build": {
+      "description": "Call construct() once and prepare the timeline.",
+      "returns": "The scene."
+    },
+    "seek": {
+      "description": "Evaluate the scene at a time clamped to its duration. Supports forward and backward seeks.",
+      "returns": "List of visible objects."
+    },
+    "render_frame": {
+      "description": "Render an RGBA frame and optionally save it as an image.",
+      "returns": "uint8 array with shape (height, width, 4)."
+    },
+    "render": "Render the current scene or frame with the selected output settings.",
+    "preview": {
+      "description": "Open an interactive preview window. Requires the preview extra.",
+      "returns": "None"
+    },
+    "from_file": {
+      "description": "Load PDB or mmCIF coordinates and retain all models with matching atom identities.",
+      "returns": "Protein",
+      "notes": "Keyword options: chains=None, include_water=False, include_hydrogens=False. Other hetero atoms are retained."
+    },
+    "from_trajectory": {
+      "description": "Create a protein from the trajectory’s topology and first frame.",
+      "returns": "Protein"
+    },
+    "select": {
+      "description": "Select atoms by author chain, residue number, and atom name.",
+      "returns": "Region",
+      "notes": "A residue tuple is an inclusive range. A list selects individual numbers. Empty selections raise ValueError."
+    },
+    "label_residues": {
+      "description": "Create labels for the selected residues. Extra options go to ResidueLabels.",
+      "returns": "ResidueLabels"
+    },
+    "hydrogen_bonds": {
+      "description": "Create a hydrogen-bond analysis. Options go to HydrogenBonds.",
+      "returns": "HydrogenBonds"
+    },
+    "electrostatics": {
+      "description": "Create a screened Coulomb analysis. Options go to Electrostatics.",
+      "returns": "Electrostatics"
+    },
+    "positions": {
+      "description": "Current atom coordinates in the protein’s local coordinate frame.",
+      "returns": "Array with shape (selected atoms, 3), in ångströms."
+    },
+    "atom_progress": "Current interpolation fraction for each atom.",
+    "atom_opacities": "Current per-atom opacity, including global opacity and residue fades.",
+    "set_positions": {
+      "description": "Replace coordinates while preserving atom identities and topology.",
+      "returns": "The protein."
+    },
+    "copy": {
+      "description": "Copy the protein’s current state for independent animation; topology and trajectory are shared.",
+      "returns": "Protein"
+    },
+    "center": {
+      "description": "Move the molecular centroid to the world origin.",
+      "returns": "The protein."
+    },
+    "shift": {
+      "description": "Translate the object by an offset.",
+      "returns": "The object or animation builder."
+    },
+    "rotate": {
+      "description": "Rotate around the molecular centroid.",
+      "returns": "The protein or animation builder."
+    },
+    "scale": {
+      "description": "Scale around the molecular centroid.",
+      "returns": "The protein or animation builder."
+    },
+    "set_opacity": {
+      "description": "Set or animate opacity in [0, 1].",
+      "returns": "The object or animation builder."
+    },
+    "set_color": {
+      "description": "Apply a tint across all representations. None restores the base palette.",
+      "returns": "The object or a Colorize animation."
+    },
+    "color_residues": {
+      "description": "Apply a tint to the selected residues in every representation.",
+      "returns": "The protein."
+    },
+    "set_residue_opacity": {
+      "description": "Set opacity on the selected residues.",
+      "returns": "The protein."
+    },
+    "surface": {
+      "description": "Show a van der Waals, solvent-accessible, or voxel solvent-excluded surface.",
+      "returns": "The protein.",
+      "notes": "Additional option: max_voxels=8000000 limits the grid size. Configure surface settings before the first play() call. The ses surface is a voxel approximation.",
+      "parameters": {
+        "color": "Base palette: \"secondary\", \"rainbow\", \"chain\", or a fixed color."
+      }
+    },
+    "cartoon": {
+      "description": "Show helices, sheet arrows, and coils as a cartoon.",
+      "returns": "The protein.",
+      "parameters": {
+        "color": "Base palette: \"secondary\", \"rainbow\", \"chain\", or a fixed color."
+      }
+    },
+    "ribbon": {
+      "description": "Show a continuous backbone ribbon.",
+      "returns": "The protein.",
+      "parameters": {
+        "width": "Ribbon width in ångströms.",
+        "color": "Base palette: \"secondary\", \"rainbow\", \"chain\", or a fixed color."
+      }
+    },
+    "ball_and_stick": {
+      "description": "Show element-colored atom spheres and covalent bond cylinders.",
+      "returns": "The protein."
+    },
+    "with_secondary_structure": {
+      "description": "Assign helix, sheet, and coil labels before adding the protein to a scene.",
+      "returns": "The protein."
+    },
+    "animate": "Create a builder for fluent animation calls. Pass the result to scene.play().",
+    "model_matrix": "Current 4 × 4 transform from local to world coordinates.",
+    "snapshot": {
+      "description": "Capture the current state for deterministic timeline evaluation.",
+      "returns": "State dictionary."
+    },
+    "restore": {
+      "description": "Restore a state produced by snapshot().",
+      "returns": "None"
+    },
+    "frame": "Frame the supplied protein objects immediately.",
+    "focus": {
+      "description": "Frame a protein or region and optionally track its moving center.",
+      "returns": "The camera, scene, or Focus animation."
+    },
+    "update_tracking": {
+      "description": "Update the camera target from the tracked region while keeping zoom fixed.",
+      "returns": "None"
+    },
+    "orbit": {
+      "description": "Change horizontal and vertical camera angles.",
+      "returns": "The camera or animation builder."
+    },
+    "zoom": {
+      "description": "Divide camera distance by factor. Values greater than 1 zoom in.",
+      "returns": "The camera or animation builder."
+    },
+    "eye": "Current camera position in world coordinates.",
+    "matrix": {
+      "description": "Compute the view-projection matrix for the given image aspect ratio.",
+      "returns": "4 × 4 array."
+    },
+    "bind": {
+      "description": "Capture starting values when the scene schedules the animation.",
+      "returns": "None",
+      "notes": "Called by ProteinScene.play(). An animation instance can be bound once."
+    },
+    "targets": "Objects whose state this animation changes.",
+    "apply": {
+      "description": "Evaluate the animation at eased progress alpha. Called by the timeline.",
+      "returns": "None"
+    },
+    "move_to": {
+      "description": "Set or animate text position in normalized image coordinates.",
+      "returns": "The annotation or animation builder."
+    },
+    "text_progress": "Current reveal progress for glyphs and annotation lines.",
+    "set_text": {
+      "description": "Replace text and rebuild its shaped glyphs before adding it to the scene.",
+      "returns": "The Text object."
+    },
+    "glyph_count": "Number of shaped glyphs used for writing animation.",
+    "to_corner": {
+      "description": "Place text near an image corner.",
+      "returns": "The Text object."
+    },
+    "layout": {
+      "description": "Project text and line geometry for the renderer at the current frame.",
+      "returns": "AnnotationLayout containing glyph placements and line paths.",
+      "parameters": {
+        "progress": "Optional reveal progress in [0, 1]; None uses the annotation’s current progress."
+      }
+    },
+    "set_offset": {
+      "description": "Set or animate a residue label’s offset from its projected atom.",
+      "returns": "The label or animation builder."
+    },
+    "position": "Translation of the parent protein in world coordinates.",
+    "world_positions": "Selected atom coordinates after the parent’s display transform.",
+    "highlight": {
+      "description": "Create a 3D region marker or styled interaction lines.",
+      "returns": "RegionHighlight or InteractionHighlight."
+    },
+    "distance_to": {
+      "description": "Create a ruler to another region. Extra options go to Distance.",
+      "returns": "Distance"
+    },
+    "callout": {
+      "description": "Create a label connected by a line to this region. Extra options go to Callout.",
+      "returns": "Callout"
+    },
+    "label": {
+      "description": "Create one amino-acid label. Extra options go to ResidueLabel.",
+      "returns": "ResidueLabel"
+    },
+    "__or__": {
+      "description": "Combine selections from the same protein with region_a | region_b.",
+      "returns": "Region"
+    },
+    "__len__": {
+      "description": "Return the number of frames with len(trajectory).",
+      "returns": "int"
+    },
+    "from_npy": {
+      "description": "Open a NumPy trajectory using memory mapping.",
+      "returns": "Trajectory"
+    },
+    "from_mdanalysis": {
+      "description": "Read MD formats lazily with MDAnalysis. Requires the md extra.",
+      "returns": "Trajectory",
+      "notes": "Preprocess periodic boundaries before loading. Selected atoms must be grouped by residue."
+    },
+    "aligned": {
+      "description": "Create a trajectory that removes rigid translation and rotation from each frame.",
+      "returns": "Trajectory"
+    },
+    "from_pairs": {
+      "description": "Create an explicit correspondence from at least three increasing residue-index pairs.",
+      "returns": "ContactMatch"
+    },
+    "load": {
+      "description": "Load a saved JSON correspondence. BackboneMorph validates it against the structures.",
+      "returns": "ContactMatch"
+    },
+    "save": {
+      "description": "Save residue correspondences, identities, and the report as JSON.",
+      "returns": "None"
+    },
+    "distance": "Current endpoint distance in ångströms, regardless of the label unit.",
+    "pairs": "Tuple of Interaction records recomputed when coordinates or analysis settings change.",
+    "hydrogen_position": {
+      "description": "Return the explicit or inferred hydrogen position for a detected pair.",
+      "returns": "3D coordinates in model ångströms."
+    },
+    "from_pqr": {
+      "description": "Load exact-identity PQR charges and create an electrostatic analysis.",
+      "returns": "Electrostatics"
+    },
+    "pair_energy": {
+      "description": "Evaluate screened Coulomb energy for two atom indices.",
+      "returns": "Energy in kcal/mol."
+    },
+    "potential": {
+      "description": "Sum the electrostatic potential from all charges at sample points.",
+      "returns": "Array in kcal/mol per elementary charge.",
+      "notes": "Uses Plummer softening and includes all charges, independently of the pair cutoff."
+    },
+    "as_dict": {
+      "description": "Convert the immutable interaction record to a dictionary.",
+      "returns": "dict"
+    },
+    "draw": {
+      "description": "Draw a GPU frame without copying pixels to the CPU.",
+      "returns": "None"
+    },
+    "enqueue": {
+      "description": "Submit a frame and retrieve the oldest completed readback when the pipeline is full.",
+      "returns": "Frame array, or None while the readback pipeline fills."
+    },
+    "drain": {
+      "description": "Yield all remaining queued frame arrays in submission order.",
+      "returns": "Iterator of frame arrays."
+    },
+    "close": {
+      "description": "Release GPU buffers and renderer resources.",
+      "returns": "None"
+    },
+    "__enter__": {
+      "description": "Enter a with Renderer(...) context.",
+      "returns": "The renderer."
+    },
+    "__exit__": {
+      "description": "Close renderer resources on context exit.",
+      "returns": "None"
+    }
+  },
+  "entries": {
+    "scene.ProteinScene": {
+      "description": "Define a protein animation as a sequence of play() and wait() calls.",
+      "example": "motion",
+      "notes": "Subclass ProteinScene and implement construct(). Configure initial geometry, styles, and camera pose before the first play() or wait(). Concurrent animations can change separate properties.",
+      "attributes": {
+        "camera": "Camera used by the scene.",
+        "duration": "Total timeline duration in seconds.",
+        "width, height": "Output dimensions in pixels.",
+        "fps": "Frames per second."
+      },
+      "members": {
+        "render": {
+          "description": "Export the timeline to a video file.",
+          "returns": "Dictionary containing frames, seconds, fps, adapter, codec, and output. Here fps is render throughput."
+        },
+        "focus": {
+          "description": "Animate camera focus using the scene’s output aspect ratio.",
+          "returns": "The scene."
+        }
+      }
+    },
+    "scene.Scene": {
+      "description": "Alias for ProteinScene.",
+      "alias": "scene.ProteinScene"
+    },
+    "protein.Protein": {
+      "description": "A molecular structure with fixed atom identities, coordinates, and display settings.",
+      "example": "representations",
+      "notes": "Use from_file() for PDB/mmCIF or from_trajectory() for coordinate ensembles. Distances and radii use ångströms; rotation angles use radians. Immediate setters return the protein for chaining.",
+      "attributes": {
+        "topology": "Atoms, residues, covalent bonds, and chain segments.",
+        "trajectory": "Coordinate states associated with this protein.",
+        "position": "World translation as a 3-vector.",
+        "orientation": "3 × 3 rotation matrix.",
+        "size": "Positive uniform scale factor.",
+        "opacity": "Global opacity in [0, 1]."
+      },
+      "members": {
+        "animate": {
+          "description": "Create a builder for protein transforms, opacity, and color animation.",
+          "returns": "Animate"
+        }
+      }
+    },
+    "camera.Camera": {
+      "description": "A perspective camera with orbit, zoom, framing, and depth cueing.",
+      "example": "region-focus",
+      "notes": "Each scene creates its own camera at scene.camera. Use frame() for initial setup and Focus or scene.focus() for animated camera movement.",
+      "attributes": {
+        "target": "Look-at point in world coordinates.",
+        "distance": "Distance from the camera to its target, initially 70 Å.",
+        "theta, phi": "Horizontal and vertical angles in radians.",
+        "fov": "Vertical field of view in radians; initially 38 degrees.",
+        "depth_cue": "Distance fog strength; 0 disables it.",
+        "radius": "Framing radius used to choose clipping planes."
+      },
+      "members": {
+        "frame": {
+          "description": "Frame the supplied proteins or regions immediately and stop previous tracking.",
+          "returns": "The camera."
+        },
+        "focus": {
+          "description": "Frame a protein or region immediately and optionally track its center.",
+          "returns": "The camera."
+        },
+        "animate": {
+          "description": "Create a builder for orbit, zoom, and focus animations.",
+          "returns": "Animate"
+        }
+      }
+    },
+    "animation.Animation": {
+      "description": "Base class for animations evaluated by the scene timeline.",
+      "notes": "Subclass Animation to define a custom animation. Declare the channels it changes, capture starting values in bind(), and implement apply(alpha). The scene rejects simultaneous writes to the same channel.",
+      "attributes": {
+        "channels": "Set of state channels written by the animation.",
+        "target": "Primary target object.",
+        "rate_func": "Progress easing callable."
+      }
+    },
+    "animation.Animate": {
+      "description": "Build a fluent protein or camera animation through the .animate property.",
+      "example": "motion",
+      "notes": "Protein operations include shift(), rotate(), scale(), and set_opacity(). Camera operations include orbit() and zoom(). set_color() returns a separate Colorize animation; focus() returns a Focus animation. Place color and transforms in separate arguments to play()."
+    },
+    "animation.Rotate": {
+      "description": "Rotate a protein around its molecular centroid.",
+      "example": "motion",
+      "forward_parameters": [
+        "animation.Animation",
+        [
+          "rate_func"
+        ]
+      ]
+    },
+    "animation.Morph": {
+      "description": "Interpolate matching atoms to a protein or coordinate array.",
+      "example": "deformation",
+      "parameters": {
+        "target": "Destination Protein or coordinates with the same shape as the source."
+      },
+      "forward_parameters": [
+        "animation.Animation",
+        [
+          "rate_func"
+        ]
+      ],
+      "notes": "Protein inputs match atoms by chain, residue number, insertion code, residue name, and atom name. atom_map can supply an explicit one-to-one mapping. Raw arrays use their given atom order. Alignment uses matching Cα atoms when at least three exist."
+    },
+    "animation.Deform": {
+      "description": "Interpolate coordinates toward the result of a user-supplied function.",
+      "example": "deformation",
+      "forward_parameters": [
+        "animation.Animation",
+        [
+          "rate_func"
+        ]
+      ],
+      "notes": "The function runs when the animation is scheduled. It must return finite coordinates with the original shape. This operation creates an illustrative shape change."
+    },
+    "animation.PlayTrajectory": {
+      "description": "Interpolate through coordinate states in a trajectory.",
+      "example": "nmr-states",
+      "parameters": {
+        "start": "Starting frame index; may be fractional.",
+        "end": "Ending frame index; None uses the last frame."
+      },
+      "notes": "Trajectory topology must match the protein. rate_func controls progress through the clip; state_easing controls interpolation between each pair of frames. Deposited NMR model order represents structural variation rather than measured time."
+    },
+    "animation.Focus": {
+      "description": "Animate the camera to a protein or selected region.",
+      "example": "region-focus",
+      "forward_parameters": [
+        "animation.Animation",
+        [
+          "rate_func"
+        ]
+      ],
+      "notes": "Evaluated after molecular movement in the same play() call. follow=True keeps tracking the region center after the focus finishes."
+    },
+    "animation.FadeIn": {
+      "description": "Fade a protein or annotation from transparent to its current opacity.",
+      "example": "motion",
+      "notes": "Set the desired final opacity before creating the animation. For atom or residue selections, use SetOpacity."
+    },
+    "animation.FadeOut": {
+      "description": "Fade a protein or annotation to zero opacity.",
+      "example": null,
+      "notes": "For atom or residue selections, use SetOpacity."
+    },
+    "animation.Representation": {
+      "description": "Transition between cartoon, ribbon, ball-and-stick, and surface.",
+      "example": "representations",
+      "forward_parameters": [
+        "animation.Animation",
+        [
+          "rate_func"
+        ]
+      ]
+    },
+    "styling.Colorize": {
+      "description": "Animate a tint on a whole protein or a selected region.",
+      "example": "color-change",
+      "forward_parameters": [
+        "styling._AppearanceAnimation",
+        [
+          "residue_delay",
+          "reverse",
+          "easing"
+        ]
+      ],
+      "parameters": {
+        "target": "Protein or Region to style."
+      },
+      "notes": "Residues start in topology order from N to C. run_time must exceed (residue count − 1) × residue_delay. Use easing for each residue transition; the clip clock stays linear. Disjoint atom selections can animate together."
+    },
+    "styling.SetOpacity": {
+      "description": "Animate transparency on a whole protein or a selected region.",
+      "example": "opacity",
+      "forward_parameters": [
+        "styling._AppearanceAnimation",
+        [
+          "residue_delay",
+          "reverse",
+          "easing"
+        ]
+      ],
+      "parameters": {
+        "target": "Protein or Region to style."
+      },
+      "notes": "Residues start in topology order from N to C. run_time must exceed (residue count − 1) × residue_delay. Use easing for each residue transition; the clip clock stays linear. Disjoint atom selections can animate together."
+    },
+    "styling.RegionAnimate": {
+      "description": "Create styling animations through region.animate.",
+      "notes": "set_color() returns Colorize; set_opacity() returns SetOpacity. Their keyword options include residue_delay, reverse, and easing."
+    },
+    "annotations.Annotation": {
+      "description": "Base class for text and lines drawn over the image.",
+      "notes": "Image positions use normalized coordinates. Opacity ranges from 0 to 1. Subclasses supply geometry through layout()."
+    },
+    "annotations.Text": {
+      "description": "Draw shaped vector text over the protein image.",
+      "example": "writing",
+      "parameters": {
+        "align": "Horizontal alignment: \"left\", \"center\", or \"right\"."
+      },
+      "notes": "Positions use normalized image coordinates. Font sizes use pixels at a 1080-pixel image height and scale with the rendered height. Text supports Unicode, ligatures, and TTF/OTF fonts."
+    },
+    "annotations.Callout": {
+      "description": "Connect an image label to a selected region with a line.",
+      "example": "callout",
+      "notes": "The label uses a fixed image position. Its line follows the selected region as coordinates or the camera move."
+    },
+    "annotations.ResidueLabel": {
+      "description": "Label one amino acid at its projected Cα position.",
+      "example": "residue-labels",
+      "notes": "If the residue has no Cα, the label uses the selected atoms’ centroid. The selection must contain exactly one residue. Additional style options go to Callout.",
+      "parameters": {
+        "text": "Custom text, or None to use the residue name and author number."
+      },
+      "forward_parameters": [
+        "annotations.Callout",
+        [
+          "subtitle",
+          "font",
+          "color",
+          "subtitle_color",
+          "line_color",
+          "line_width",
+          "tip",
+          "clamp",
+          "follow_opacity",
+          "opacity"
+        ]
+      ],
+      "members": {
+        "move_to": {
+          "description": "This inherited method raises ValueError because residue labels follow their atoms. Set label offsets to change placement.",
+          "returns": ""
+        },
+        "shift": {
+          "description": "This inherited method raises ValueError because residue labels follow their atoms. Set label offsets to change placement.",
+          "returns": ""
+        }
+      }
+    },
+    "annotations.ResidueLabels": {
+      "description": "Label several residues and adjust their positions to reduce overlap.",
+      "example": "residue-labels",
+      "notes": "Options in kwargs go to ResidueLabel. Overlap adjustment applies within this group. Review label positions in the rendered scene. Residues without a Cα are skipped.",
+      "forward_parameters": [
+        "annotations.ResidueLabel",
+        [
+          "format",
+          "include_chain",
+          "font_size",
+          "offset"
+        ]
+      ],
+      "members": {
+        "move_to": {
+          "description": "This inherited method raises ValueError because residue labels follow their atoms. Set label offsets to change placement.",
+          "returns": ""
+        },
+        "shift": {
+          "description": "This inherited method raises ValueError because residue labels follow their atoms. Set label offsets to change placement.",
+          "returns": ""
+        }
+      }
+    },
+    "annotations.Write": {
+      "description": "Draw text outlines and then fill the glyphs.",
+      "example": "writing",
+      "notes": "Works on text, callouts, residue labels, rulers, and interaction lines. Timing follows Manim’s MIT-licensed writing animation. lag_ratio=None chooses a delay based on the glyph count.",
+      "parameters": {
+        "target": "Annotation to draw: Text, Callout, ResidueLabel, ResidueLabels, Distance, or InteractionHighlight."
+      }
+    },
+    "annotations.Unwrite": {
+      "description": "Erase glyph fills and then their outlines.",
+      "example": "writing",
+      "notes": "Uses the Write constructor. Glyphs disappear from last to first by default; reverse=True changes that order.",
+      "parameters": {
+        "target": "Annotation to draw: Text, Callout, ResidueLabel, ResidueLabels, Distance, or InteractionHighlight."
+      }
+    },
+    "annotations.AnnotationAnimate": {
+      "description": "Build position, offset, and opacity animations for annotations.",
+      "notes": "Use annotation.animate. Text and Callout support move_to() and shift(); ResidueLabel supports set_offset(). All support set_opacity()."
+    },
+    "regions.Region": {
+      "description": "A selection of atoms that follows its parent protein’s coordinates.",
+      "example": "region-focus",
+      "attributes": {
+        "protein": "Parent Protein object.",
+        "atom_indices": "Read-only, sorted atom indices.",
+        "residue_indices": "Read-only topology residue indices represented in the selection."
+      },
+      "notes": "Create selections with protein.select(). Combine regions from the same protein with the | operator. Residue numbers in select() use PDB author numbering; atom_indices are zero-based.",
+      "members": {
+        "highlight": {
+          "description": "Create a sphere, box, or atom highlight around the selection.",
+          "returns": "RegionHighlight"
+        },
+        "animate": {
+          "description": "Create a builder for residue color and opacity animations.",
+          "returns": "RegionAnimate"
+        }
+      }
+    },
+    "regions.RegionHighlight": {
+      "description": "Draw a sphere, wire box, or atom halos around a region.",
+      "example": "highlights",
+      "parameters": {
+        "style": "\"sphere\", \"box\", or \"atoms\".",
+        "opacity": "Opacity in [0, 1]. None uses 0.9 for a box and 0.18 otherwise.",
+        "padding": "Extra size in ångströms. None uses 0.3 for atoms and 2.0 otherwise.",
+        "line_width": "Box edge radius in ångströms."
+      },
+      "notes": "The highlight follows the region’s coordinates and parent transform. Animate its opacity; apply movement to the parent protein. Highlight geometry describes a region boundary.",
+      "members": {
+        "copy": {
+          "description": "Create another region.highlight() for independent styling. Calling copy() raises ValueError.",
+          "returns": ""
+        }
+      }
+    },
+    "trajectory.Trajectory": {
+      "description": "A random-access sequence of coordinate frames in ångströms.",
+      "example": "nmr-states",
+      "attributes": {
+        "topology": "Optional Topology shared by all frames.",
+        "n_atoms": "Number of atoms per frame."
+      },
+      "notes": "All frames must have the same atom count and order. len(trajectory) gives the frame count. Input nanometer coordinates are converted to ångströms when read.",
+      "members": {
+        "frame": {
+          "description": "Read a single coordinate frame.",
+          "returns": "float32 array with shape (atoms, 3), in ångströms."
+        }
+      }
+    },
+    "matching.ContactMatch": {
+      "description": "Store an ordered residue correspondence and its search report.",
+      "notes": "Use match_backbones() or from_pairs() to create a correspondence. Both residue-index arrays are read-only. save() and load() preserve correspondence and validation identities."
+    },
+    "matching.match_backbones": {
+      "description": "Find the largest ordered residue match under a contact-error limit.",
+      "example": "gallery-morph",
+      "returns": "ContactMatch",
+      "parameters": {
+        "target": "Destination Protein."
+      },
+      "notes": "For equally sized matches, the search minimizes contact-map discrepancy. Check the report for full-space, candidate-restricted, or time-limited optimality. Each input must resolve to one chain with at least three Cα atoms. The shorter chain supports at most 800 Cα residues; full candidate search supports at most 30,000 pairings."
+    },
+    "backbone.BackboneMorph": {
+      "description": "Move matched backbone residues in order and fade unmatched residues.",
+      "example": "gallery-morph",
+      "notes": "Each matched residue moves for run_time − (matched count − 1) × residue_delay seconds. Unmatched source and destination residues use fade_out and fade_in intervals. Both proteins’ geometry, transforms, and opacity belong to this animation. In ball-and-stick mode, atoms translate with their residue Cα and the atom sets crossfade. Side-chain atoms use their original residue geometry."
+    },
+    "distances.Distance": {
+      "description": "Draw a distance line between two atom or residue selections.",
+      "example": "distances",
+      "parameters": {
+        "start": "Region for the first endpoint.",
+        "end": "Region for the second endpoint.",
+        "style": "\"dashed\" or \"solid\"."
+      },
+      "notes": "Single-atom selections use that atom. A single-residue selection uses its Cα when available; larger selections use a centroid. In 3D mode, atoms can hide the line. Labels are drawn over the image. Use space=\"world\" for endpoints on separate proteins, and preserve a shared coordinate frame for physical distances."
+    },
+    "interactions.HydrogenBonds": {
+      "description": "Detect hydrogen bonds from donor–acceptor distance and hydrogen geometry.",
+      "example": "hydrogen-bonds",
+      "notes": "Pairs pass when 1.5 Å < D–A ≤ max_distance and D–H–A ≥ min_angle. Default templates cover standard amino acids. auto uses loaded hydrogens first and can infer backbone amide hydrogens. Use include_hydrogens=True when loading explicit H. For protonation-dependent or nonstandard groups, supply prepared coordinates and donor/acceptor selections.",
+      "members": {
+        "highlight": {
+          "description": "Create styled hydrogen-bond lines. Options go to InteractionHighlight.",
+          "returns": "InteractionHighlight"
+        }
+      }
+    },
+    "interactions.Electrostatics": {
+      "description": "Compute screened Coulomb pair energies and electrostatic potential.",
+      "example": "charge-contacts",
+      "notes": "Energy units are kcal/mol; potential units are kcal/mol per elementary charge. Formal charge templates illustrate charged side chains. Import atom charges for a prepared protonation state. This model uses a uniform dielectric and exponential screening.",
+      "members": {
+        "highlight": {
+          "description": "Create styled electrostatic contact lines. Options go to InteractionHighlight.",
+          "returns": "InteractionHighlight"
+        }
+      }
+    },
+    "interactions.Interaction": {
+      "description": "An immutable record for one detected molecular interaction.",
+      "parameters": {
+        "kind": "\"hydrogen_bond\", \"attractive\", or \"repulsive\".",
+        "angle": "D–H–A angle in degrees, or None for electrostatics."
+      }
+    },
+    "interactions.InteractionHighlight": {
+      "description": "Draw selected hydrogen-bond or electrostatic contact lines.",
+      "example": "hydrogen-bonds",
+      "notes": "Hydrogen-bond labels use donor–acceptor distance by default. endpoints=\"hydrogen_acceptor\" uses H···acceptor positions and distances. Electrostatic contacts use different colors for attraction and repulsion. Additional line options go to Distance.",
+      "parameters": {
+        "region": "Optional Region that filters pairs touching the selection.",
+        "color": "Fixed line color, or None to use the interaction-specific colors."
+      }
+    },
+    "interactions.charges_from_pqr": {
+      "description": "Match PQR charges to the protein’s atom identities.",
+      "returns": "Float array with one charge per protein atom, in elementary charge units.",
+      "notes": "Matching uses exact chain, residue number, insertion code, residue name, and atom name. Missing or duplicate records raise ValueError. allow_extra=True permits unmatched PQR atoms after every protein atom has a charge."
+    },
+    "rates.linear": {
+      "description": "Return progress unchanged.",
+      "returns": "float",
+      "notes": "Pass this function as rate_func to play() or an animation. Progress t is in [0, 1]."
+    },
+    "rates.smooth": {
+      "description": "Apply quintic easing with zero endpoint speed and acceleration.",
+      "returns": "float",
+      "notes": "Pass this function as rate_func to play() or an animation. Progress t is in [0, 1]."
+    },
+    "rates.ease_in_out_sine": {
+      "description": "Apply sinusoidal easing that starts and ends slowly.",
+      "returns": "float",
+      "notes": "Pass this function as rate_func to play() or an animation. Progress t is in [0, 1]."
+    },
+    "rates.there_and_back": {
+      "description": "Move smoothly from 0 to 1 and back to 0 over one clip.",
+      "returns": "float",
+      "notes": "Pass this function as rate_func to play() or an animation. Progress t is in [0, 1]."
+    },
+    "renderer.Renderer": {
+      "description": "Render protein and annotation objects with a reusable GPU renderer.",
+      "notes": "Use a with block to release resources. draw() submits GPU work without readback. render() returns one completed frame. enqueue() and drain() overlap GPU rendering and CPU encoding.",
+      "attributes": {
+        "adapter_info": "GPU adapter and backend information."
+      },
+      "members": {
+        "render": {
+          "description": "Draw one frame and wait for its pixel readback.",
+          "returns": "RGBA uint8 array or NV12 array, according to readback_format.",
+          "parameters": {
+            "background": "Three RGB floats in [0, 1], such as scene.background."
+          }
+        },
+        "draw": {
+          "description": "Draw a GPU frame without copying pixels to the CPU.",
+          "returns": "None",
+          "parameters": {
+            "background": "Three RGB floats in [0, 1], such as scene.background."
+          }
+        },
+        "enqueue": {
+          "description": "Submit a frame and retrieve the oldest completed readback when the pipeline is full.",
+          "returns": "Frame array, or None while the readback pipeline fills.",
+          "parameters": {
+            "background": "Three RGB floats in [0, 1], such as scene.background."
+          }
+        }
+      }
+    }
+  }
+}
