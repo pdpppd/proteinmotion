@@ -147,13 +147,6 @@ export const guides = [
     group: "PROJECT",
     description: "Set up development tools, build the website, and run checks.",
   },
-  {
-    slug: "writing-guide",
-    file: "writing-guide.md",
-    title: "Writing guide",
-    group: "PROJECT",
-    description: "Conventions for clear technical documentation.",
-  },
 ];
 export const demos = [
   {

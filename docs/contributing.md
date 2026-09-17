@@ -42,8 +42,6 @@ The build exports static HTML into `website/out/`. `PAGES_BASE_PATH` defaults to
 
 `npm run verify` checks exported pages, internal links, fragment targets, and media references. Browser checks should cover desktop/mobile layout, search, code copying, video controls, and reduced motion.
 
-Follow the [writing guide](writing-guide.md) when editing page text, headings, captions, and metadata.
-
 ## Publishing
 
 The Pages workflow builds on pull requests and pushes. Only `main` pushes or a manual workflow run from `main` deploy. GitHub Pages must use **GitHub Actions** as its source. The workflow uploads the static export and deploys it with the official Pages actions. GitHub Pages serves the exported static files.
