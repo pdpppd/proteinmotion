@@ -4,13 +4,13 @@ Tested on 16–17 September 2026 on the local **Apple M3 Max, 40 GPU cores, 64 G
 macOS 26.6.2, arm64 Python 3.12.8. The native adapter reports `backend_type=Metal`.
 wgpu 0.32.0, Gemmi 0.7.5, PyAV 18.1.0, NumPy 2.5.3, and MDAnalysis 2.10.0 were used.
 
-## Version 0.7: installable authoring tools and Codex skill
+## Version 0.7: package installation and AI agent skill
 
 **107 local tests pass.** Six new CPU cases cover starter movies with paths containing spaces, rendering-scene construction outside the checkout, overwrite protection, skill installation under a configured Codex directory, idempotent installation, explicit updates preserving unrelated files, symlink rejection, and CLI entry points.
 
-The wheel built from the source distribution was installed into a fresh environment with `md` and `preview` extras. An isolated Python process outside the checkout verified the installed module location, all shader/font/license resources, and the complete bundled skill. The installed CLI created a self-contained movie project and installed the skill to a temporary destination. A 60-frame, 640×360 native Metal/VideoToolbox movie rendered from the installed package and every frame decoded successfully. The same resource/CLI check now runs in CI without requiring a GPU.
+The wheel built from the source distribution was installed into a fresh environment with `md` and `preview` extras. An isolated Python process outside the checkout verified the installed module location, all shader/font/license resources, and the complete bundled skill. The installed CLI created a self-contained movie project and installed the skill to a temporary destination. A 60-frame, 640×360 native Metal/VideoToolbox movie rendered from the installed package and every frame decoded successfully. CI also runs the installed-resource and CLI checks.
 
-The `proteinmotion-movies` skill passed the skill-creator validator and an independent authoring trial: a 10-second 640×360, 30 fps ubiquitin movie with residue selection, a representation transition and a Cα distance ruler. All 300 frames decoded. The trial identified a sizing ambiguity; the skill now explicitly documents 1080p design pixels for text, label offsets and 2D line widths. [Skill guide](codex-skill.md) · [Install the release](getting-started.md).
+The `proteinmotion-movies` skill passed the skill-creator validator and an independent authoring trial: a 10-second 640×360, 30 fps ubiquitin movie with residue selection, a representation transition and a Cα distance ruler. All 300 frames decoded. The trial identified a sizing ambiguity; the skill now explicitly documents 1080p design pixels for text, label offsets and 2D line widths. [Skill guide](agent-skill.md) · [Install the release](getting-started.md).
 
 ## Version 0.6.3: continuous feature tour and stable fade endpoints
 
@@ -18,9 +18,9 @@ The homepage film now uses one camera and a single timeline: calmodulin stays on
 
 The GPU quintic easing function now mirrors its upper half, like the CPU implementation. This avoids floating-point cancellation near opacity 1 that could send apparently opaque cartoon fragments through the transparency pass and cause a brightness pop. Four new native GPU cases cover cartoon and ball-and-stick fades at 1×/4× MSAA and nonzero timeline offsets. All four fail against the previous shader and pass with the fix. **101 local tests pass.**
 
-The continuous film contains **6,030 frames / 100.5 seconds** at 1920×1080, 60 fps and 4× MSAA. It exported in **23.54 seconds (256.2 fps)** using Metal and VideoToolbox on the local M3 Max. This is one end-to-end run including renderer initialization, surfaces, readback and hardware encoding; caches may be warm. It has different content from earlier films and is not a controlled performance comparison. The 720p web preview retains **60 fps**. All frames of both encodes decoded successfully; representative frames and the transition around 20 seconds were inspected.
+The continuous film contains **6,030 frames / 100.5 seconds** at 1920×1080, 60 fps and 4× MSAA. It exported in **23.54 seconds (256.2 fps)** using Metal and VideoToolbox on the local M3 Max. This is one end-to-end run including renderer initialization, surfaces, readback and hardware encoding; caches may be warm. Its content differs from the earlier videos, so the timings describe separate workloads. The 720p web preview retains **60 fps**. All frames of both encodes decoded successfully; representative frames and the transition around 20 seconds were inspected.
 
-The MD-reader demonstration now uses 25 deposited **1CFC calmodulin NMR conformers**, mapped by exact identity to all **1,130 protein heavy atoms** in the displayed 1CLL topology. Six nonprotein atoms are hidden during playback. Atom identities and every XTC frame were compared with the mapped source, with maximum coordinate error **0.00501 Å** (XTC quantization). Only states 1–3 are played, slowly; these are not MD simulation frames or a physical time series. [Film, chapter guide and source](showcase.md) · [Measured render, continuity and input report](showcase-report.json).
+The MD-reader demonstration now uses 25 deposited **1CFC calmodulin NMR conformers**, mapped by exact identity to all **1,130 protein heavy atoms** in the displayed 1CLL topology. Six nonprotein atoms are hidden during playback. Atom identities and every XTC frame were compared with the mapped source, with maximum coordinate error **0.00501 Å** (XTC quantization). The video interpolates slowly through states 1–3 to display NMR structural variation. [Film, chapter guide and source](showcase.md) · [Measured render, continuity and input report](showcase-report.json).
 
 ## Version 0.6.2: clean ball-and-stick fades
 
@@ -28,15 +28,15 @@ Covalent cylinders are clipped at the analytic surfaces of their endpoint sphere
 
 **97 local tests pass.** Six added native GPU cases (1× and 4× MSAA) compare transparent atom cores with and without attached bonds, cover unequal atom sizes, transforms, global and residue opacity, overlapping/coincident endpoints, and ensure bond-only annotations retain their full lengths. The shaft between atoms remains visible.
 
-The alpha-helix film and web preview were re-rendered. The 1,381-frame 1080p/60 fps export took **7.12 seconds (194.0 fps)** on the local M3 Max using Metal and VideoToolbox; all full-resolution and preview frames decoded successfully. Frames around the 8.4-second fade were visually inspected. This is one local run with potentially warm shader caches, not a controlled comparison with prior timings. [Current render report](alpha-helix-hbonds-report.json).
+The alpha-helix film and web preview were re-rendered. The 1,381-frame 1080p/60 fps export took **7.12 seconds (194.0 fps)** on the local M3 Max using Metal and VideoToolbox; all full-resolution and preview frames decoded successfully. Frames around the 8.4-second fade were visually inspected. This is a single local run with potentially warm shader caches. Earlier timings used separate runs. [Current render report](alpha-helix-hbonds-report.json).
 
 ## Version 0.6.1: an alpha-helix hydrogen-bond diagnostic
 
-A fixed idealized 16-residue backbone with explicit amide H recovers exactly **12 of 12 expected O(i)···H–N(i+4) contacts**, without supplying a sequence-offset rule to the detector. The new `endpoints="hydrogen_acceptor"` option draws H···A and optionally labels that distance; the default donor–acceptor display remains available. The example separates the full network from an annotated single-bond close-up so numbers cannot obscure the short dashed bonds.
+A fixed idealized 16-residue backbone with explicit amide H recovers exactly **12 of 12 expected O(i)···H–N(i+4) contacts**, using the geometry criteria alone. The new `endpoints="hydrogen_acceptor"` option draws H···A and optionally labels that distance; the default donor–acceptor display remains available. The example separates the full network from an annotated single-bond close-up with distance labels beside the short dashed bonds.
 
 Four added tests bring the suite to **91 passing tests**. They independently check the fixture's φ/ψ angles, the complete pair set, a reversed-H negative control, an extended-backbone negative control, explicit/virtual endpoints, transformed anchors, native rendering and backward seeking. The existing 1UBQ test now checks six helix contacts at 150° and all eight at a declared 140° cutoff, documenting the two borderline angles rather than forcing them into the result.
 
-The 1080p/60 fps Metal/VideoToolbox film contains **1,381 frames** (23.02 seconds encoded); every frame decoded successfully. The original v0.6.1 export took **19.48 seconds**, with other work running, so this is not an isolated performance benchmark. [Test guide](alpha-helix.md) · [Measured pairs](alpha-helix-hbonds.csv) · [Render and geometry report](alpha-helix-hbonds-report.json).
+The 1080p/60 fps Metal/VideoToolbox film contains **1,381 frames** (23.02 seconds encoded); every frame decoded successfully. The original v0.6.1 export took **19.48 seconds**, with other work running on the same machine. [Test guide](alpha-helix.md) · [Measured pairs](alpha-helix-hbonds.csv) · [Render and geometry report](alpha-helix-hbonds-report.json).
 
 ## Version 0.6: residue styling, surfaces and interactions
 
@@ -49,15 +49,15 @@ Two films use **1920 × 1080, 60 fps, 4× MSAA, Metal and h264_videotoolbox**:
 | Residue styling and rebuilt SES, 2K39 | 1,488 / 24.8 s | 33.695 s | **44.2 fps** | 0.782 s |
 | Hydrogen bonds, distances and charge contacts, 2K39 | 1,212 / 20.2 s | 8.455 s | **143.3 fps** | 0.970 s |
 
-These are single local end-to-end runs, including renderer setup, surface construction where needed, readback and hardware encoding, excluding scene construction/loading. Caches may be warm and the machine was not isolated from other work. All **2,700 encoded frames** decoded with the expected H.264 codec, dimensions, rate and frame count. Representative encoded color, transparency, surface and ruler frames were visually inspected. [Raw timings](molecular-tools-benchmark.json) · [Video checks](molecular-tools-video-verification.json).
+These are single local end-to-end runs, including renderer setup, surface construction where needed, readback and hardware encoding, excluding scene construction/loading. Caches may be warm, and other processes were running on the machine. All **2,700 encoded frames** decoded with the expected H.264 codec, dimensions, rate and frame count. Representative encoded color, transparency, surface and ruler frames were visually inspected. [Raw timings](molecular-tools-benchmark.json) · [Video checks](molecular-tools-video-verification.json).
 
 The surface uses a 1.4 Å probe and 0.5 Å voxel spacing. It rebuilds during coordinate changes, which dominates this export; static surfaces reuse GPU triangles for rotation and styling. The alternative fast deformation mode was visually unsuitable for large NMR conformer changes and is documented for small-displacement previews only. The default remains `update="rebuild"`.
 
-Hydrogen-bond examples use explicitly flagged virtual backbone H with D–A ≤ 3.5 Å and D–H–A ≥ 150°. Electrostatic examples use illustrative formal side-chain charges, dielectric 80 and screening length 8 Å. These checks validate the implemented geometry/formulas and rendering, not a force field or experimentally inferred interaction network. [Methods and limits](interactions.md) · [Complete film source](molecular-example.md).
+Hydrogen-bond examples use explicitly flagged virtual backbone H with D–A ≤ 3.5 Å and D–H–A ≥ 150°. Electrostatic examples use illustrative formal side-chain charges, dielectric 80 and screening length 8 Å. These checks compare the implemented geometry and formulas with their expected values and verify the rendered output. [Methods and limits](interactions.md) · [Complete film source](molecular-example.md).
 
 Scikit-image 0.26.0 was used for marching cubes. Its array-shape assignments emit NumPy 2.5 deprecation warnings in the mesh tests (55 warnings), alongside the two existing MDAnalysis warnings described below; all numerical and rendering assertions pass.
 
-## Version 0.5: vector writing and live labels
+## Version 0.5: text animation and labels
 
 Native text uses HarfBuzz shaping, FontTools outlines and cached triangle/stroke geometry. `Write` draws glyph contours and then fills them with Manim-style lagged timing; `Unwrite` reverses it. Callout and amino-acid label anchors follow selected coordinates through camera motion, deformation, NMR state interpolation and transforms.
 
@@ -72,9 +72,9 @@ These are single local runs including initialization, rendering, readback and ha
 
 Eleven new tests cover kerning/ligatures, Greek glyphs, empty text, contour holes/islands, automatic author-number labels, insertion codes, configurable writing/erasing, timeline conflicts, live anchors, viewport clipping, opacity inheritance, label placement and scaling. Native GPU checks run at 1×/4× sampling and verify contour-to-fill progression, glyph staggering/reversal, open letter counters, continuous fades, transparency composition, reproducible backward seeking and unchanged glyph buffers across frames.
 
-Text is a screen overlay, not depth-occluded geometry. There is no LaTeX/MathTex, markup, font fallback or general collision-free placement. See the [text guide](text.md) for precise behavior and limitations.
+Text is drawn over the protein image. The [text guide](text.md) describes supported fonts, placement options, and current limitations.
 
-## Version 0.4: regions and a real NMR ensemble
+## Version 0.4: regions and NMR playback
 
 The new example loads [PDB 2K39](https://www.rcsb.org/structure/2K39), an RDC-derived
 solution NMR ensemble of ubiquitin. All **116 deposited models** have matching
@@ -84,8 +84,7 @@ mmCIF is included, with its checksum and derived coordinate summary in the
 [ensemble report](nmr-ensemble-report.json).
 
 The overview movies visit all 116 models in deposited order, using quintic easing
-between adjacent states. Deposited model order is not physical time; the transitions
-are visual interpolations, not MD or inferred molecular pathways. The region tour
+between adjacent states to show structural variation. The region tour
 uses subsets of those states, first focusing on residues 23–34 with gold sphere/box
 annotations, then following residues 71–76 with cyan halos and a box.
 
@@ -131,8 +130,7 @@ Each contains 690 frames / 11.5 s. Native Metal plus VideoToolbox export measure
 | Cartoon | 1.841 s | **374.8 fps** | 0.022 s |
 
 These are individual local runs, including renderer initialization and encoding,
-excluding loading/matching. Shader/driver caches may already be warm; these are not
-cold-start or repeated statistical benchmarks. Matching reuses the saved JSON.
+excluding loading/matching. Shader and driver caches may already be warm. Matching reuses the saved JSON.
 Every encoded frame in both movies decoded successfully. Representative decoded
 fade frames were inspected. See [raw timing data](smooth-transparency-benchmark.json)
 and [video checks](smooth-transparency-video-verification.json).
@@ -142,9 +140,9 @@ opaque occlusion of a transparent atom, reversed transparent-object draw order, 
 single-surface bond fading. All run with both 1× and 4× sampling. The opaque fast path
 is checked before transparency allocation, and returning to full opacity reproduces
 the original frame. Transparent depth/color ordering remains an approximation;
-the renderer does not implement refraction or exact per-pixel fragment sorting.
+overlapping fragments use weighted blending.
 
-## Version 0.2: real larger structures and different-protein morph
+## Version 0.2: large structures and protein morphs
 
 All three new movies were rendered at **1920 × 1080, 60 fps, 4× MSAA** through
 native Metal and `h264_videotoolbox` with software encoding disabled:
@@ -160,22 +158,21 @@ rendering, full-frame readback, hardware encoding, and file finalization. They e
 scene construction and loading. Construction took 0.021 s, 0.072 s, and 4.222 s,
 respectively; the GroEL complex preparation includes bond inference and orientation.
 The morph uses a saved correspondence, so matching is also excluded from export.
-The figures are single local runs, not repeated or isolated peak benchmarks.
+Each measurement comes from a single local run.
 
 The GroEL/GroES example uses actual [1AON](https://www.rcsb.org/structure/1AON)
 coordinates and changes from a rotating cartoon to ball-and-stick. Counts exclude
-water and hydrogens. Missing/unresolved residues are not invented; 8,015 is the count
-of modeled Cα atoms, not the total deposited sequence length.
+water and hydrogens. The 8,015 Cα atoms correspond to residues with coordinates in the deposited model.
 
 The morph uses [1CLL](https://www.rcsb.org/structure/1CLL) chain A and
 [1NCX](https://www.rcsb.org/structure/1NCX) chain A. The saved mapping contains
 **114 monotone residue pairs**, covering 79.17% of the source and 70.37% of the target.
 Contact parameters: cutoff 8 Å, softness 1.5 Å, maximum pairwise error 0.30.
 Observed RMS error: **0.0274571**; maximum: **0.2936199**. A proper rigid fit has
-Cα RMSD 7.0586 Å; contact similarity does not imply one rigid domain arrangement.
+Cα RMSD 7.0586 Å. The contact match therefore includes differences in domain arrangement.
 
 The search considered 3,611 candidate pairings and stopped at its 15 s search budget
-(16.354 s including seed/graph preparation). **Global optimality was not proved.**
+(16.354 s including seed/graph preparation). **The search returned a feasible match; optimality remains unproved.**
 The known feasible count is 114; the conservative global count upper bound is 144.
 The 114 pairs are reproducible from the saved JSON rather than depending on wall-clock
 search termination. At a configurable 25 ms residue delay, motion proceeds from N to C;
@@ -198,8 +195,7 @@ their less-visible endpoint. The original cartoon example remains available.
 
 The **690-frame, 1920 × 1080, 60 fps** H.264 export took **2.626 s (262.7 fps)** on
 the same M3 Max/Metal/VideoToolbox backend, with scene construction taking another
-0.022 s. Matching is reused from JSON. This is one local measurement, not a repeated
-performance estimate. Every encoded frame decoded successfully, and dimensions,
+0.022 s. Matching is reused from JSON. This is one local measurement. Every encoded frame decoded successfully, and dimensions,
 frame rate and frame count match the request. A decoded midpoint frame was inspected.
 Raw records: [timing](ball-and-stick-morph-benchmark.json) and
 [video validation](ball-and-stick-video-verification.json).
@@ -216,7 +212,7 @@ At 1920 × 1080 with 4× MSAA:
 | Warm ball-and-stick rotation, replicated scale test | 60,200 | 188 fps |
 | Complete showcase export, including encoding | 602 | **316 fps** |
 
-The delivered demo contains **1,230 frames / 20.5 seconds at 60 fps**, H.264,
+The original demo contains **1,230 frames / 20.5 seconds at 60 fps**, H.264,
 1920 × 1080, limited-range BT.709. Export took **3.898 seconds** using
 `h264_videotoolbox` with software encoding disabled. The scene includes all three
 representations, rotations, camera movement, easing, morphing, deformation, and a
@@ -225,20 +221,15 @@ synthetic 61-state trajectory.
 The render-only tests measure 180 frames after shader compilation and initial uploads;
 they include Python submission and synchronize completion with a final one-pixel
 readback. They exclude full-frame readback, encoding, file loading, and initial geometry
-preparation. The scale test repeats ubiquitin in a spatial grid inside one GPU object;
-it is not a biological assembly or a large MD trajectory benchmark. Cartoon rendering
-draws the 7,600-residue backbone rather than all 60,200 atoms as spheres.
+preparation. The scale test repeats ubiquitin in a spatial grid inside one GPU object. It measures rendering with duplicated geometry. Cartoon rendering draws the resulting 7,600-residue backbone.
 
-These are individual local measurements on a machine with other workloads, not
-isolated, repeated statistical benchmarks. Geometry, camera framing, screen coverage,
-disk/frame decoding, and system load change results. No universal or peak-performance
-claim is made. [Raw timing data](benchmark.json) and `examples/benchmark.py` are included.
+These are individual measurements on a machine with other workloads. Geometry, camera framing, image coverage, frame decoding, and system load affect the results. [Raw timing data](benchmark.json) and `examples/benchmark.py` are included.
 
 ## Export optimization
 
 An early RGBA-to-FFmpeg subprocess implementation measured only 21.4 fps for the
 same output dimensions. Profiling separated rendering/readback from encoding and IPC.
-The delivered exporter instead:
+The current exporter:
 
 1. Renders through native Metal.
 2. Converts the resolved RGBA texture to NV12 in a Metal compute shader.
@@ -247,12 +238,11 @@ The delivered exporter instead:
 
 This reduces readback from 4 to 1.5 bytes per pixel and removes CPU color conversion
 and the raw-video pipe. It still copies data from mapped staging memory into the
-encoder; a future IOSurface/CVPixelBuffer bridge could remove those copies. There is
-no claim that this is the fastest possible implementation of every workload.
+encoder. An IOSurface/CVPixelBuffer bridge could remove those copies in a future implementation.
 
 ## Verification
 
-`pytest`: **97 passed** for v0.6.2; 91 were present in v0.6.1, 87 in v0.6 and 67 in v0.5. Coverage includes:
+`pytest`: **107 passed** for v0.7.0, including 101 from v0.6.3 and 97 from v0.6.2. Coverage includes:
 
 - Real ubiquitin mmCIF loading, helix/sheet annotations, alternate-location selection,
   multi-model PDB loading, model identity mismatch rejection, and chain gap splitting.
@@ -278,7 +268,7 @@ no claim that this is the fastest possible implementation of every workload.
   complementary visibility, unmatched fade intervals, backward seeking, validation
   of timing/crossing correspondences, and subsequent ordinary morph behavior.
 - Native GPU morph endpoint coverage and replay; stable endpoint/control buffer keys
-  during staggered playback, confirming geometry is not uploaded again each frame.
+  during staggered playback, confirming that frames reuse the geometry buffers.
 - Real calmodulin/troponin C ball-and-stick morphs: whole-residue translations preserve
   internal atom offsets, all atoms inherit their residue's motion/fade timing, Cα paths
   coincide, and GPU endpoint images and backward seeks reproduce exactly.
@@ -292,18 +282,12 @@ Ruff checks and formatting pass. Source distribution and wheel builds are includ
 the packaged shaders are exercised by a wheel-install smoke check. The rendered
 gallery and representative encoded video frames were visually inspected.
 
-## Known limits
+## Current limitations
 
-See the README for supported formats and API examples. This is a standalone v0.6
-package. In particular, it does not implement physically constrained morphing,
-automatic sequence alignment, per-frame DSSP, periodic unwrapping, bond-order chemistry,
-shadows/SSAO, refractive/transmissive materials, or direct Manim Mobject integration.
-Other operating systems and GPUs have not been verified. Cartoon orientation guides
-are still constructed on the CPU once per loaded coordinate state; very large MD
-systems may become bound by frame decoding or that preparation step.
-Contact-guided morphs support cartoon/ribbon/ball-and-stick, one selected chain per endpoint, and
-order-preserving correspondences. The matcher is bounded and does not promise a global
-optimum on large cases. Fades use approximate blended transparency; intermediate backbone shapes are
-visual interpolations without bond-length or collision constraints.
-Ball-and-stick uses residue-wise translation and crossfades the endpoint atom sets;
-there is no side-chain atom correspondence or physical all-atom transition model.
+Rendering and hardware export are tested on Apple silicon Macs. Other platform configurations remain untested. Backbone orientation guides are built on the CPU for each new state; large trajectories can be limited by this work or frame decoding.
+
+Morphs interpolate coordinates, with residue order preserved in contact-guided matches. Bond lengths and atomic clashes can change during a morph. Ball-and-stick morphs move each residue as a group and crossfade the two atom sets. The matching report records whether the search completed and proved optimality.
+
+Secondary structure stays fixed during playback. Prepare periodic boundaries before loading trajectories. Bond connectivity is estimated from geometry. Transparency uses approximate weighted blending.
+
+See [rendering](rendering.md), [morphing](morphing.md), and [trajectory preparation](trajectories.md) for the method details and supported inputs.

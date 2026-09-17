@@ -1,56 +1,59 @@
-# Rendering and limits
+# Rendering
 
-- Python controls the scene/timeline. wgpu-native compiles WGSL shaders to Metal.
-- Interpolation, spline evaluation, ribbon sweeps, sphere intersections, lighting,
-  and depth cueing run on the GPU. Rotation-only frames update small uniform buffers.
-- Opaque frames retain one geometry pass. On the first fade, the renderer lazily
-  allocates RGBA16F accumulation and R16F transmittance targets. Transparent fragments
-  use a second geometry pass against opaque depth, then a per-sample GPU composite.
-  The targets are reused. Swept surfaces accumulate their exterior face once to avoid
-  counting both skins of a ribbon or bond. This follows the approach of
-  [McGuire and Bavoil](https://www.jcgt.org/published/0002/02/09/) with bounded depth/opacity weights.
-- Ball-and-stick cylinders stop at the surfaces of their endpoint atoms. GPU clipping
-  removes their buried portions before both opaque and transparent shading, so residue
-  fades do not reveal sticks inside the balls. The clipping follows animated positions
-  and atom sizes; distance and interaction rulers retain their specified endpoints.
-- Vector text and callout leaders render in a separate overlay pass after molecular transparency. HarfBuzz/FontTools shape and tessellate cached glyphs; GPU uniforms control contour drawing and fills. Completed text skips the contour pass. Leaders follow projected 3D centroids and are not depth-occluded. See [text and labels](text.md).
-- Residue color/opacity tracks run in the molecular shader and update small clock uniforms. Atom styles carry across all representations. Geometry buffers remain cached during styling.
-- Surface meshes use CPU voxel fields, distance transforms and marching cubes. The default `update="rebuild"` updates the mesh when coordinates change; static surfaces reuse cached GPU triangles. Optional GPU deformation is approximate and can fold under large displacements. See [surface quality and update modes](styling.md).
-- Hydrogen-bond geometry and screened-Coulomb contacts use cached CPU spatial queries. Contact changes update a bounded pool of rulers; 3D rulers join the depth-tested molecular pass, while 2D rulers join the overlay. Distance text is an overlay in either mode. See [interaction methods and units](interactions.md).
-- Video export runs a Metal compute pass for limited-range BT.709 NV12 conversion,
-  then feeds PyAV/VideoToolbox directly. NV12 readback uses 1.5 bytes/pixel instead of
-  RGBA's 4. No raw-video subprocess pipe or CPU RGB-to-YUV conversion is required.
-- Keyframe uploads rebuild backbone orientation guides on the CPU once per new state.
-  Bond discovery uses a spatial index at load time. Bonds are geometric covalent-radius
-  estimates; bond orders, aromaticity, and explicit topology connectivity are not modeled.
-- Ribbons split at chain changes, absent alpha carbons, and initial CA gaps >4.8 Å.
-  Topology/chain connectivity stays fixed throughout playback.
-- GPU memory is bounded by atom count, screen resolution, and two coordinate states,
-  rather than trajectory length. Large atom counts remain limited by adapter binding
-  limits and shader/fragment throughput. CPU frame decoding, guide construction,
-  GPU readback, and encoder throughput can dominate export. This is not a zero-copy
-  IOSurface/CVPixelBuffer pipeline: staging buffers are still mapped and copied.
-- 4× MSAA smooths geometric edges; analytical sphere silhouettes do not get full
-  per-sample antialiasing. No shadows, SSAO, ray tracing, refractive/transmissive materials,
-  MathTex/LaTeX, sequence alignment, or direct Manim Mobject integration in v0.6.
-- Modern native GPUs are required. macOS requires Metal by default; other platforms
-  can use native wgpu adapters but have not been verified in this delivery.
+Python defines the scene and animation timeline. The GPU renders the molecular geometry, text, and annotations. On macOS, wgpu-native compiles the shaders for Metal, and VideoToolbox encodes the video.
 
-See [validation and benchmarks](VALIDATION.md) for the actual checks and timings.
+## GPU rendering
+
+Coordinate interpolation, backbone curves, ribbons, spheres, lighting, and depth cueing run on the GPU. Rotation and styling reuse geometry buffers and update small parameter buffers.
+
+Residue color and opacity apply across representations. A separate pass draws text and callout lines over the protein image. Text geometry is cached after layout. Callout lines update to follow the selected coordinates. See [text and labels](text.md).
+
+The renderer uses 4× multisample antialiasing (MSAA) to smooth geometry edges. Sphere silhouettes use analytical intersections and receive partial antialiasing. Current rendering limits include shadows, screen-space ambient occlusion, ray tracing, and refractive materials.
+
+## Transparency
+
+Opaque objects draw first and record their depth. Transparent objects then accumulate color and transmittance in floating-point buffers. A final GPU pass combines these buffers with the opaque image.
+
+This is weighted blended order-independent transparency, based on [McGuire and Bavoil](https://www.jcgt.org/published/0002/02/09/). It approximates the ordering of overlapping transparent objects. The renderer allocates the extra buffers at the first fade and reuses them afterward.
+
+Ball-and-stick bonds end at their atom surfaces. This hides the part of each cylinder inside an atom during both opaque rendering and fades. The clipping updates with atom positions and sizes. Distance and interaction lines keep their specified endpoints.
+
+## Surfaces and interactions
+
+Surface meshes are built on the CPU from voxel fields using distance transforms and marching cubes. The default `update="rebuild"` creates a new mesh when coordinates change. Rotation, color, and opacity changes reuse the mesh. Rebuilding a moving surface can take most of the export time.
+
+The optional `update="deform"` mode moves a reference mesh on the GPU. Use it for small displacements; large changes can fold or tear the mesh. See [surface settings](styling.md).
+
+Hydrogen-bond and screened Coulomb calculations use CPU spatial queries. Results are cached until coordinates or analysis settings change. Their 3D lines are drawn with the molecular geometry; 2D lines and all distance text are drawn over the image. See [interaction methods](interactions.md).
+
+## Coordinates and connectivity
+
+GPU playback holds two coordinate states at a time. New states require a CPU update of backbone orientation guides. GPU memory use depends on atom count and image size, so trajectory length primarily affects loading and playback time.
+
+Bond detection uses covalent radii and a spatial index when the structure loads. The current method estimates connectivity from geometry; bond order, aromaticity, and explicit topology bonds are outside its scope.
+
+Ribbons split at chain changes, missing Cα atoms, and initial Cα gaps greater than 4.8 Å. Connectivity and secondary-structure assignments stay fixed during playback.
+
+Morphs and state playback interpolate coordinates. They illustrate structural changes. Use simulation trajectories and an appropriate analysis method when interpreting molecular dynamics.
+
+## Video export
+
+A Metal compute pass converts each frame to limited-range BT.709 NV12. PyAV sends the result to VideoToolbox for encoding. NV12 transfers 1.5 bytes per pixel, compared with 4 for RGBA. The current export path maps and copies GPU staging buffers before encoding.
+
+Large scenes can be limited by GPU buffer size, geometry and pixel processing, CPU frame decoding, or encoder speed. See [tests and benchmarks](VALIDATION.md) for measured results and their conditions.
+
+## Platforms
+
+Rendering and hardware export are tested on Apple silicon Macs. macOS uses Metal by default. The backend can select native wgpu adapters on other platforms, but those configurations remain untested.
+
+ProteinMotion exports images and videos as a standalone package. Use the exported files when composing a larger Manim scene or editing a video.
 
 ## Structure provenance
 
-MIT license for this package. Manim animation timing and bundled Source Sans 3 fonts retain their upstream [licenses and attribution](https://github.com/pdpppd/proteinmotion/blob/main/THIRD_PARTY.md). Dependencies keep their respective licenses. The included
-structures are PDB [1UBQ](https://www.rcsb.org/structure/1UBQ) (ubiquitin),
-[1CLL](https://www.rcsb.org/structure/1CLL) (calmodulin),
-[1NCX](https://www.rcsb.org/structure/1NCX) (troponin C),
-[1AON](https://www.rcsb.org/structure/1AON) (GroEL/GroES), and
-[2K39](https://www.rcsb.org/structure/2K39) (ubiquitin NMR ensemble), downloaded as
-mmCIF files from RCSB. The original showcase trajectory is a synthetic deformation
-of ubiquitin, explicitly not MD data. The NMR example uses deposited 2K39 models.
+The package uses the MIT license. Manim animation timing and bundled Source Sans 3 fonts retain their upstream [licenses and attribution](https://github.com/pdpppd/proteinmotion/blob/main/THIRD_PARTY.md).
 
-Design references: [Manim scenes](https://docs.manim.community/en/stable/reference/manim.scene.scene.Scene.html),
-[wgpu native backends](https://wgpu-py.readthedocs.io/en/stable/backends.html),
-[Gemmi structure I/O](https://gemmi.readthedocs.io/en/stable/mol.html),
-[MDAnalysis trajectory readers](https://docs.mdanalysis.org/stable/documentation_pages/coordinates/init.html),
-and [PyAV video generation](https://pyav.org/docs/stable/cookbook/numpy.html#generating-video).
+The example data include RCSB mmCIF files for [1UBQ](https://www.rcsb.org/structure/1UBQ) (ubiquitin), [1CLL](https://www.rcsb.org/structure/1CLL) and [1CFC](https://www.rcsb.org/structure/1CFC) (calmodulin), [1NCX](https://www.rcsb.org/structure/1NCX) (troponin C), [1AON](https://www.rcsb.org/structure/1AON) (GroEL/GroES), and [2K39](https://www.rcsb.org/structure/2K39) (ubiquitin NMR ensemble).
+
+The original showcase uses a synthetic ubiquitin deformation. The NMR examples interpolate deposited models. The feature demo stores mapped 1CFC NMR coordinates in an XTC file to demonstrate the trajectory reader. The [feature demo guide](showcase.md) records the mapping and animation settings.
+
+Implementation references: [Manim scenes](https://docs.manim.community/en/stable/reference/manim.scene.scene.Scene.html), [wgpu backends](https://wgpu-py.readthedocs.io/en/stable/backends.html), [Gemmi structure I/O](https://gemmi.readthedocs.io/en/stable/mol.html), [MDAnalysis trajectory readers](https://docs.mdanalysis.org/stable/documentation_pages/coordinates/init.html), and [PyAV video generation](https://pyav.org/docs/stable/cookbook/numpy.html#generating-video).

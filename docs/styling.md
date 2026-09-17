@@ -1,6 +1,6 @@
 # Residue colors and surfaces
 
-Color and opacity belong to the selected atoms, so the same styling carries across cartoon, ribbon, ball-and-stick and surface representations. The examples below go inside `ProteinScene.construct()` unless they only configure a protein.
+Apply color and opacity to a protein or a selected region. The settings carry across cartoon, ribbon, ball-and-stick, and surface views. Put the animation examples below inside `ProteinScene.construct()`.
 
 ## Choose and color residues
 
@@ -15,11 +15,11 @@ strand.set_color("#f2ba67")
 p.select(residues=(71, 76)).set_opacity(0.2)
 ```
 
-Select the whole residue to color its atoms, bonds and backbone together. `atoms="CA"` styles only the selected Cα atoms and their associated cartoon/ribbon samples. Residue numbers are inclusive PDB author numbers, not array offsets. A list selects discrete residues; a tuple selects a range.
+Select a whole residue to color its atoms, bonds, and backbone. Adding `atoms="CA"` colors the Cα atoms and the associated cartoon or ribbon segments. Residue numbers use PDB author numbering. A tuple selects an inclusive range; a list selects individual residues.
 
 `p.set_color(color)` applies an override to the whole protein. `p.color_residues(color, chain="A", residues=[8, 44, 70])` is a convenience method. Pass `None` to `set_color()` to clear an override and recover the representation's base palette. Base palettes include `secondary`, `rainbow`, `chain` and a hex color for cartoon/ribbon/surface; ball-and-stick starts with element colors.
 
-Overrides replace the base color completely. Bonds interpolate endpoint colors, cartoon/ribbon colors interpolate along backbone segments, and surfaces interpolate vertex colors whose ownership is assigned to the nearest atom. Residue boundaries are therefore blended rather than hard segmentation edges.
+A color override replaces the base color. Colors blend along bonds and backbone segments. Surface vertices take colors from their nearest atoms, and colors blend between vertices. This gives a gradual change at residue boundaries.
 
 ## Animate a color change
 
@@ -39,7 +39,9 @@ self.play(Colorize(helix, None), run_time=1)  # Fade back to the base palette.
 
 `Colorize(target, color, residue_delay=0, reverse=False, easing="smooth")` accepts a protein or region. With a zero delay, every selected residue changes together. A positive delay is the start-time gap in **seconds**, following topology residue order from N to C within each chain. `reverse=True` reverses that order. Atoms in one residue share its timing.
 
-The last residue must have time to finish: `run_time > (number_of_selected_residues - 1) * residue_delay`. Each residue uses the remaining span and ends before the clip ends. `easing="smooth"` is a quintic ease-in/ease-out; `"linear"` is also available. Keep the outer scene clock linear for these clips; passing a nonlinear `rate_func` to `play()` is rejected because it would change delays expressed in seconds.
+Set `run_time > (number_of_selected_residues - 1) * residue_delay` so every residue has time to change color. Each transition lasts the remaining duration after the last residue has started.
+
+Use `easing="smooth"` for a gradual start and stop, or `"linear"` for a constant rate. Keep the `play()` clock linear; a nonlinear `rate_func` raises an error because it would change the delays in seconds.
 
 Disjoint selections can animate concurrently. Color and opacity can animate on the same selection together. Two animations writing the same color or opacity channel on overlapping atoms raise an error. Coordinates, camera motion and styling can run together, with reproducible backward seeking.
 
@@ -56,9 +58,9 @@ self.play(helix.animate.set_opacity(1), run_time=0.8)
 self.play(p.animate.set_opacity(1), run_time=0.8)
 ```
 
-`SetOpacity` has the same delay, reverse and easing options as `Colorize`. It changes selected atom/residue opacity. `p.set_opacity()` and `p.animate.set_opacity()` change a separate global multiplier. Their product also includes any morph visibility. Restoring global opacity does not erase local fades; use `SetOpacity(region, 1)` to restore those.
+`SetOpacity` uses the same delay, order, and easing options as `Colorize`. It changes the opacity of selected atoms. `p.set_opacity()` and `p.animate.set_opacity()` apply a separate multiplier to the whole protein. The final opacity combines both settings and any morph fades. Use `SetOpacity(region, 1)` to restore a local fade.
 
-Fades use smooth weighted blended transparency, including per-residue surface fades. There is no screen-door dithering. Transparent fragments retain approximate depth/color ordering rather than exact sorted blending or refractive glass. A hidden atom hides its connecting bond; surviving bonds use the lower endpoint opacity. Labels follow selected opacity unless configured with `follow_opacity=False`.
+Fades use weighted blended transparency with approximate depth ordering. Bonds use the lower opacity of their two atoms, so hiding either atom hides the bond. Labels fade with their selection unless you set `follow_opacity=False`.
 
 ## Render a molecular surface
 
@@ -81,9 +83,9 @@ All distances above are ångströms. `resolution` is voxel spacing: a smaller va
 | `"sas"` | Union of spheres expanded by `probe_radius`; solvent-accessible surface |
 | `"ses"` | Approximate solvent-excluded envelope from voxel dilation, cavity filling and distance-transform erosion |
 
-The SES implementation is a voxel approximation, not an exact analytic rolling-probe surface. Enclosed inaccessible cavities are filled; results depend on grid spacing. Marching cubes extracts the final mesh, and its normals are shaded on Metal. See the [distance-transform surface method](https://doi.org/10.1371/journal.pone.0008140) for the underlying dilation/erosion idea and [scikit-image marching cubes](https://scikit-image.org/docs/stable/api/skimage.measure.html#skimage.measure.marching_cubes) for mesh extraction.
+The solvent-excluded surface (SES) is calculated on a voxel grid. Enclosed inaccessible cavities are filled, and grid spacing affects the result. Marching cubes extracts the mesh for GPU rendering. See the [distance-transform surface method](https://doi.org/10.1371/journal.pone.0008140) and [scikit-image marching cubes](https://scikit-image.org/docs/stable/api/skimage.measure.html#skimage.measure.marching_cubes) for the underlying methods.
 
-`max_voxels` bounds grid size and raises a useful error instead of allocating an arbitrarily large grid. It is not a total RAM limit: distance fields, mesh arrays and extraction scratch memory also use memory. Increase the spacing for large assemblies.
+`max_voxels` limits the number of grid cells. A larger grid raises an error. Distance fields, mesh arrays, and mesh extraction also require memory. Increase `resolution` to use fewer cells for a large assembly.
 
 ### Switch representations
 
@@ -104,14 +106,14 @@ Surface settings and residue styles persist across transitions. Calling a repres
 
 With the default `update="rebuild"`, changed coordinates produce a new mesh. This keeps the surface attached to moving atoms through NMR, MD and ordinary `Morph`/`Deform` animations. CPU voxel construction and mesh extraction can dominate export during coordinate motion. Rotation, camera movement, color and opacity changes reuse the mesh and render on the GPU.
 
-`update="deform"` is an optional fast preview: one reference mesh follows four neighboring atoms per vertex through GPU skinning. It is suitable only for small displacements. Large conformer changes can fold or tear the mesh; solvent topology and cavities do not update. Use `rebuild` for those changes. Neither mode turns a visual interpolation into a physical simulation.
+`update="deform"` keeps one reference mesh and moves each vertex with four nearby atoms on the GPU. Use this mode for small displacements. Large changes can fold or tear the mesh, and cavities retain their original shape. Use `update="rebuild"` for larger coordinate changes.
 
-For a contact-guided morph between **different topologies**, continue to use cartoon, ribbon or ball-and-stick. The surface builder does not recompute a solvent boundary around just the currently visible subset of atoms; fading residues hides their surface patches. It is not a general surface correspondence algorithm.
+For contact-guided morphs between different protein topologies, use cartoon, ribbon, or ball-and-stick. Surface opacity hides patches assigned to fading atoms. The surface boundary is still calculated from the full atom set, which limits its use for this type of morph.
 
-## Try the film
+## Run the example
 
 ```bash
 proteinmotion render examples/molecular_tools.py StylingAndSurface -o styling-and-surface.mp4 --fps 60
 ```
 
-The film colors two ubiquitin regions, fades the rest, changes representation, draws a live Cα ruler and rebuilds a surface through NMR conformers. [Watch the rendered example](https://pdpppd.github.io/proteinmotion/gallery/#surfaces), read the [complete script](molecular-example.md), or continue to [distances and interactions](interactions.md).
+The example colors two ubiquitin regions, fades the rest, changes representation, adds a Cα distance label, and rebuilds a surface through NMR conformations. [Watch the video](https://pdpppd.github.io/proteinmotion/gallery/#surfaces) or read the [complete script](molecular-example.md).

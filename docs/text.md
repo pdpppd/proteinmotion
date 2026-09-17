@@ -1,8 +1,8 @@
 # Text, labels, and callouts
 
-Write vector text into your molecular films, label individual amino acids, and draw leaders that follow live regions. All overlays render in the native GPU pipeline, including interactive preview and video export.
+Add text, amino acid names, and labels for selected regions. A callout connects a label to a region with a line. These annotations work in preview windows, still images, and exported videos.
 
-Watch the [label film and writing study](https://pdpppd.github.io/proteinmotion/gallery/#labels), or run the [complete script](labels_and_callouts.py).
+Watch the [label and text animation examples](https://pdpppd.github.io/proteinmotion/gallery/#labels), or run the [complete script](labels_and_callouts.py).
 
 ## Manim-style writing
 
@@ -15,7 +15,7 @@ self.wait(1)
 self.play(Unwrite(title), run_time=1.5)
 ```
 
-`Write` traces each glyph's actual outline, then brings in its fill as the outline thins. Neighboring glyphs start with staggered timing. This reproduces Manim's two-stage writing behavior, not a character-by-character text replacement. `Unwrite` reverses the reveal, erasing the last glyph first by default.
+`Write` draws each letter’s outline, then fills it in as the outline fades. Letters start in sequence. `Unwrite` erases the text, starting with the last letter by default.
 
 | Option | Meaning |
 |---|---|
@@ -26,9 +26,11 @@ self.play(Unwrite(title), run_time=1.5)
 | `reverse=True` | Reverse the order of the shaped glyphs |
 | `rate_func=linear` | Default writing clock; pass `smooth` for easing across the whole animation |
 
-A lag of 0.1 starts each glyph one tenth of an individual glyph's animation duration after its predecessor. The total remains `run_time`. Whitespace does not take a slot; a ligature is one glyph. Text and annotation objects are added automatically when first animated. Set their style before adding them or compiling their timeline.
+A `lag_ratio` of 0.1 starts each glyph one tenth of a glyph’s animation duration after the previous one. The total animation lasts `run_time` seconds. Spaces are skipped; a ligature counts as one glyph.
 
-The animation timing is adapted from MIT-licensed Manim. The renderer uses HarfBuzz shaping, FontTools outlines, cached vector triangles and GPU contour strokes. It does not require a Manim or Pango installation. [Licenses and exact upstream source](https://github.com/pdpppd/proteinmotion/blob/main/THIRD_PARTY.md).
+Animating a text or annotation object adds it to the scene. Set its style before adding it or calling `play()`.
+
+The animation timing comes from MIT-licensed Manim. ProteinMotion renders the text using HarfBuzz, FontTools, and its GPU renderer. See the [source attribution and licenses](https://github.com/pdpppd/proteinmotion/blob/main/THIRD_PARTY.md).
 
 ## Place text
 
@@ -41,9 +43,13 @@ self.play(title.animate.move_to((0.10, 0.15)), run_time=1)
 self.play(title.animate.set_opacity(0.4), run_time=0.5)
 ```
 
-Positions are normalized screen coordinates: `(0, 0)` is top-left and `(1, 1)` is bottom-right. Font size, outline width and residue-label offsets scale with render height, so changing from 1080p to 720p preserves the composition. `align="left"|"center"|"right"` positions the text block relative to its anchor. `to_corner` accepts `UL`, `UR`, `DL`, or `DR`.
+Positions use fractions of the image width and height: `(0, 0)` is the top-left corner and `(1, 1)` is the bottom-right. Font sizes, outline widths, and residue-label offsets use pixels at a 1080-pixel image height. They scale with the output height.
 
-Use `\n` for explicit line breaks and `line_spacing=1.3` to control baseline spacing. There is no automatic wrapping. The bundled fonts are Source Sans 3 `"regular"` and `"semibold"`; `font="/path/to/font.ttf"` or an `.otf` path selects another font. Kerning and ligatures are enabled. Set `ligatures=False` if you want separate glyphs for combinations such as “fi”. Unsupported characters raise an error rather than silently rendering empty boxes.
+Set `align` to `"left"`, `"center"`, or `"right"` to align the text at its position. `to_corner` accepts `UL`, `UR`, `DL`, or `DR`.
+
+Use `\n` to add line breaks. Set `line_spacing=1.3` to control the space between lines. Text wrapping is manual.
+
+The bundled fonts are Source Sans 3 `"regular"` and `"semibold"`. To use another font, pass its `.ttf` or `.otf` path. Kerning and ligatures are enabled by default. Use `ligatures=False` to draw combinations such as “fi” as separate glyphs. A character missing from the selected font raises an error.
 
 ## Point to a region
 
@@ -60,11 +66,17 @@ self.focus(helix, margin=1.8, run_time=1.5)
 self.play(PlayTrajectory(protein), run_time=8)
 ```
 
-`Callout(region, text, ...)` is the equivalent constructor. The text stays at its screen position while the leader endpoint follows the selected atoms' 3D centroid. Select `atoms="CA"` for the backbone centroid or omit the atom filter to include all selected atoms. The anchor updates after coordinate interpolation, deformation, transforms and camera tracking, including interactive orbit/zoom.
+`Callout(region, text, ...)` creates the same annotation. The label stays at the specified image position. A line connects it to the center of the selected atoms and updates as the protein or camera moves.
 
-During `Write`, the leader draws first and overlaps the start of the lettering. Tips can be `"dot"`, `"arrow"`, or `"none"`. `line_color` overrides the leader color; `subtitle_color` controls the smaller second line. Callout text is clamped to the viewport by default (`clamp=False` disables this). Targets outside the view frustum hide the entire callout.
+Select `atoms="CA"` to use the Cα atoms for the center. Omit the atom filter to use all selected atoms.
 
-By default, `follow_opacity=True` makes the annotation follow the mean atom opacity in its selection, including unmatched-residue fades. Set it to `False` to keep a note visible when the parent fades. Callouts remain bound to the original region's atom identities; a different-protein morph does not automatically reassign the label to its target protein.
+`Write` starts drawing the line before the lettering. Choose `"dot"`, `"arrow"`, or `"none"` for the line tip. `line_color` sets the line color; `subtitle_color` sets the second line of text.
+
+Callout text stays within the image by default. Set `clamp=False` to allow it outside the image. The callout is hidden when its target leaves the camera view.
+
+`follow_opacity=True` makes the annotation fade with the average opacity of its selected atoms. Set it to `False` to keep the label visible when the protein fades.
+
+A callout remains attached to its original selection. After a morph to a different protein, create a callout for the target selection.
 
 ## Label amino acids
 
@@ -85,19 +97,25 @@ self.play(Write(labels, lag_ratio=0.08), run_time=2)
 
 The direct constructors are `ResidueLabel(region, text=None, ...)` and `ResidueLabels(region, ...)`. Names include the chain, amino-acid name, PDB author number and insertion code. Set `format="one_letter"` for `A · L 8`, `include_chain=False` to hide the chain, or supply custom text to a single label.
 
-Offsets are relative to the projected Cα atom in 1080p design pixels. Use `set_offset()` or `label.animate.set_offset()` to move a single residue label. Use a `Callout` when you want a fixed screen position instead. A label on a single residue without a Cα uses the selected centroid; groups skip residues without Cα atoms.
+A residue label’s offset is measured from its Cα position, using pixels at a 1080-pixel image height. Use `set_offset()` or `label.animate.set_offset()` to move it. Use a `Callout` for a fixed image position.
 
-`ResidueLabels` tries several offsets to reduce overlap inside its own group. Set `avoid_overlap=False` to disable this. Entries in `offsets` are fixed and bypass automatic placement. Dictionary keys can be residue numbers or `(chain, number, insertion_code)` tuples. Automatic placement is deterministic at each frame but can switch positions as models move; explicit offsets are preferable for a carefully composed film.
+For a single residue that lacks a Cα atom, the label uses the center of the selection. Label groups skip residues that lack Cα atoms.
+
+`ResidueLabels` tries several positions to reduce overlap within the group. Set `avoid_overlap=False` to use fixed placement. You can also supply an `offsets` dictionary, keyed by residue number or `(chain, number, insertion_code)`. Those entries use the supplied positions.
+
+Automatic placement can move a label as the structure changes. Use explicit offsets when you need stable label positions throughout a video.
 
 ## Rendering details and limits
 
-Text stays upright and renders as an overlay after molecular transparency. Leaders and text remain readable even when their anchors are behind other atoms; they are not depth-occluded. Combine them with a depth-tested 3D `highlight()` to show spatial context.
+Text and callout lines are drawn over the protein image. Atoms and surfaces behind or in front of a selected region leave its label visible. Add a 3D `highlight()` to show the region’s position within the structure.
 
-Glyph shaping and tessellation happen once per cached text layout, not on every frame. Writing updates small GPU uniforms; only the moving leaders need tiny geometry updates. Completed text skips the contour pass. All output passes through the existing Metal → NV12 → VideoToolbox export path. An 18.8-second, 1080p/60 fps label film exported in 3.74 seconds on the tested M3 Max (single run, excluding scene construction). [Validation and measurements](VALIDATION.md).
+The renderer caches the text geometry. During `Write`, the GPU controls how much of each outline and fill is visible. Moving callout lines update each frame. See [rendering](rendering.md) for the implementation and [benchmarks](VALIDATION.md) for measured export times.
 
-This is a focused text/annotation API, not a complete Manim text engine. It does not yet provide MathTex/LaTeX, Pango markup, per-word styles inside one object, font fallback, emoji/color fonts, full mixed-direction paragraph layout or automatic text wrapping. Static TrueType/OpenType outline fonts are supported; arbitrary overlapping/self-intersecting custom glyph outlines have not been verified. Overlap avoidance considers labels within one group, not the molecular silhouette or all scene objects.
+Supported fonts use static TrueType or OpenType outlines. Current limitations include LaTeX/MathTex, markup, styles within a single text object, automatic font fallback, color emoji, mixed-direction paragraphs, and automatic wrapping. Custom glyphs with overlapping or self-intersecting outlines remain untested.
 
-## Complete runnable film
+Overlap avoidance checks labels within one group. Check the rendered frames for collisions with the protein and other scene objects.
+
+## Complete example
 
 The source checkout includes the required 2K39 data file.
 

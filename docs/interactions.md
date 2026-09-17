@@ -1,6 +1,6 @@
 # Distances and interactions
 
-Attach live rulers to atoms or residues, then use the same line styling for hydrogen bonds and screened electrostatic contacts. Coordinates and distances are evaluated from the current model state, so annotations follow trajectory playback and deformation.
+Draw a line between two atoms or residues and label its distance. Use the same line styles to highlight hydrogen bonds and electrostatic contacts. Measurements update as the coordinates change.
 
 ## Measure between residues or atoms
 
@@ -23,7 +23,7 @@ A whole single-residue selection uses its Cα by default, if one exists. A one-a
 
 | Option | Default | Meaning |
 |---|---|---|
-| `mode` | `"3d"` | Depth-tested cylinders in the actual scene, or `"2d"` overlay leaders |
+| `mode` | `"3d"` | 3D lines that atoms can hide, or `"2d"` lines drawn over the image |
 | `space` | `"model"` | Physical coordinate distance, ignoring display transforms; `"world"` includes them |
 | `style` | `"dashed"` | Dashed or solid line |
 | `color`, `label_color` | gold, inherits line | Independent line and text colors |
@@ -35,15 +35,17 @@ A whole single-residue selection uses its Cα by default, if one exists. A one-a
 | `follow_opacity` | `True` | Fade with the less-visible endpoint |
 | `opacity` | `1` | Additional annotation opacity multiplier |
 
-The number sits in a gap at the line's midpoint and updates as the coordinates move. Labels are screen-facing overlays in **both** modes. In 3D mode only the line is depth-tested; opaque atoms and surfaces can occlude it. In 2D mode both line and text stay above the protein, like a callout. A ruler hides when either endpoint leaves the viewport. This version does not automatically resolve collisions between multiple ruler captions.
+The distance appears at the line’s midpoint and updates as the atoms move. In 3D mode, atoms and surfaces can hide the line. In 2D mode, the line is drawn over the protein image. The text is drawn over the image in both modes.
 
-Use `space="world"` for endpoints on different protein objects. World distances measure scene geometry and are physical only if the objects share a common coordinate frame and scale. Rotating or scaling a display model does not affect the default same-protein model-space measurement.
+A ruler is hidden when either endpoint leaves the image. Check label placement when using several rulers; captions can overlap.
+
+Use `space="world"` for endpoints on different protein objects. This includes object translation, rotation, and scale. Interpret the result as a physical distance only when the objects share a coordinate frame and scale. The default `space="model"` measures within one protein’s coordinates, independently of display transforms.
 
 `Write`, `Unwrite`, `FadeIn`, `FadeOut` and `.animate.set_opacity()` work on a ruler. The line draws before the text fills. [Text animation options](text.md).
 
 ## Alpha-helix diagnostic
 
-Start with the [controlled alpha-helix test](alpha-helix.md) to see the full i→i+4 network with visible amide hydrogens. It recovers all 12 expected contacts without a sequence-offset rule, and distinguishes H···O from N···O distances.
+The [alpha-helix example](alpha-helix.md) shows all 12 expected i→i+4 hydrogen bonds in an idealized backbone. Visible hydrogens and separate H···O and N···O measurements show which atoms each line connects.
 
 ## Compute hydrogen bonds
 
@@ -70,7 +72,7 @@ self.play(Write(bonds), run_time=1.5)
 
 `p.hydrogen_bonds(**options)` is equivalent. `.pairs` returns immutable `Interaction` records: zero-based donor/acceptor atom indices `a`/`b`, donor–acceptor distance in Å, D–H–A angle in degrees, an explicit hydrogen index when available, and an `inferred_hydrogen` flag. The default labels show **donor–acceptor** distance. Set `hb.highlight(endpoints="hydrogen_acceptor", ...)` to draw H···acceptor lines and label that distance instead; `Interaction.distance` remains donor–acceptor distance. `hb.hydrogen_position(pair)` returns the explicit or virtual H position in model Å.
 
-Detection requires `1.5 Å < D–A ≤ max_distance` and `D–H–A ≥ min_angle`. Defaults are **3.5 Å and 150°**, both configurable. Donor and acceptor in the same residue are excluded. Multiple qualifying hydrogens for one D–A pair collapse to the most linear angle. These are geometric criteria; there is no hydrogen-bond energy calculation. The angle/distance definitions follow the conventional [hydrogen-bond analysis](https://docs.mdanalysis.org/2.9.0/documentation_pages/analysis/hydrogenbonds.html), with our explicitly chosen distance cutoff.
+A pair passes detection when `1.5 Å < D–A ≤ max_distance` and `D–H–A ≥ min_angle`. The defaults are **3.5 Å and 150°**. Donors and acceptors must belong to different residues. If several hydrogens qualify for one pair, the detector keeps the most linear angle. Detection uses geometry only. The definitions follow [MDAnalysis hydrogen-bond analysis](https://docs.mdanalysis.org/2.9.0/documentation_pages/analysis/hydrogenbonds.html), with the distance cutoff given here.
 
 ### Explicit and missing hydrogens
 
@@ -82,9 +84,11 @@ Detection requires `1.5 Å < D–A ≤ max_distance` and `D–H–A ≥ min_angl
 
 Load explicit H with `Protein.from_file(path, include_hydrogens=True)`. Explicit hydrogens are assigned to the nearest candidate donor in the same residue within `donor_h_cutoff=1.3 Å` (and farther than 0.4 Å). Adjust that cutoff for longer donor–H bonds, such as sulfur–H.
 
-Virtual backbone H sits 1.01 Å from N along the outward bisector of its bonds to the preceding peptide carbonyl C and its own Cα. Inference requires same-chain peptide connectivity and skips proline, terminal/missing geometry and invalid bond lengths. This is an approximate geometry construction, not protonation or hydrogen placement by a force field. Missing side-chain hydrogens are never invented.
+An inferred backbone H is placed 1.01 Å from N along the outward bisector of the bonds to the preceding carbonyl C and the residue’s Cα. This construction requires a connected peptide backbone. It skips proline, terminal or missing geometry, and invalid bond lengths.
 
-Default donor/acceptor templates cover common standard amino-acid groups. Histidine tautomerism, unusual protonation, ligands, waters and nonstandard residues require appropriate `donors=` / `acceptors=` selections and explicit hydrogens. Selections may be `Region` objects or integer atom-index arrays. Do not interpret a missing inferred bond as evidence that no interaction exists.
+Inference is limited to backbone amide hydrogens. Supply prepared coordinates for protonation-dependent analyses and side-chain hydrogens.
+
+The default donor and acceptor templates cover common standard amino-acid groups. For histidine tautomers, unusual protonation, ligands, water, or nonstandard residues, supply explicit hydrogens and suitable `donors=` and `acceptors=` selections. These can be `Region` objects or integer atom-index arrays. A missing contact can reflect missing atoms or a geometry cutoff.
 
 ## Screened Coulomb electrostatics
 
@@ -115,7 +119,7 @@ Charges are in elementary charges, distance and screening length in Å, dielectr
 
 `.pairs` lists charged-atom contacts within `cutoff` whose `abs(energy) >= min_energy`, sorted strongest first. By default it excludes same-residue pairs and directly bonded atoms. It does not implement a force field's full 1–3/1–4 exclusion/scaling rules. `.pair_energy(a, b)` computes a specified pair directly, without the display cutoff/filter. Coincident charges raise an error there and are omitted from the contact list.
 
-These estimates are not Poisson–Boltzmann/APBS, PME, binding free energies or a complete electrostatic model. There is no automatic dielectric boundary, pH/protonation assignment, ion distribution or solvent response. Choosing charge, dielectric and screening parameters is part of preparing the visualization.
+This model estimates pairwise interactions for supplied charges in a uniform dielectric with exponential screening. Prepare the charges, dielectric, and screening length for the visualization. Calculations that require solvent boundaries, ion distributions, or binding free energies need a separate electrostatics method.
 
 ### Import prepared charges
 
@@ -130,11 +134,13 @@ field = Electrostatics.from_pqr(
 # field = Electrostatics(p, charges=charges_in_topology_order)
 ```
 
-PQR charges are matched by **chain, author residue number, insertion code, residue name and atom name**, rather than line order. Missing, duplicate or nonfinite charges raise an error. Extra PQR atoms also raise an error by default so omitted hydrogen charges cannot silently disappear. `allow_extra=True` explicitly permits an intentionally selected subset. Chain-less PQR files require a matching chain-less topology. Imported radii and coordinates do not replace the displayed model; only charges are imported.
+PQR charges are matched by **chain, author residue number, insertion code, residue name, and atom name**. Missing, duplicate, or nonfinite charges raise an error. Extra PQR atoms also raise an error by default. Use `allow_extra=True` when you intentionally load a subset.
+
+A PQR file with no chain field requires a topology with empty chain IDs. The import reads charges only; the displayed coordinates and radii come from the protein model.
 
 `charges_from_pqr(p, path, allow_extra=False)` returns the mapped array separately. Whitespace-delimited standard PQR records with or without a chain field are supported.
 
-For a quick illustration, `charges="formal"` places −1 across the Asp/Glu carboxyl oxygens and +1 across the Lys/Arg charged side-chain atoms. This is the default convenience model. It omits histidine, termini, pKa effects and force-field partial charges. The example film labels these charges as illustrative; use an imported prepared model for your intended chemical state.
+`charges="formal"` is the default example charge model. It distributes −1 over Asp/Glu carboxyl oxygens and +1 over Lys/Arg charged side-chain atoms. It is limited to those groups. Use prepared charges when histidine, termini, protonation, or force-field partial charges matter.
 
 ### Evaluate potential at points
 
@@ -143,15 +149,19 @@ For a quick illustration, `charges="formal"` places −1 across the Asp/Glu carb
 values = field.potential(points, softening=1.0, chunk_size=2048)
 ```
 
-Potential is in **kcal/mol per elementary charge**. This sums all nonzero charges without the pair-display cutoff. It uses the softened distance `sqrt(r² + softening²)` in both the inverse-distance and screening factors. Set `softening=0` for unsmoothed points away from charges; evaluation directly at a charge then raises an error. The CPU calculation is chunked to bound its distance matrix. Potential values are returned for your own analysis or color mapping; this API does not automatically paint a surface potential texture.
+Potential is in **kcal/mol per elementary charge**. The calculation sums all nonzero charges and uses `sqrt(r² + softening²)` in the distance and screening terms. `softening=0` gives the unsmoothed value away from charges; evaluation directly at a charge then raises an error.
+
+The CPU calculation processes points in chunks to limit matrix size. The returned array can be used for analysis or for a color map you define.
 
 ## Style and animate interaction highlights
 
 Both analyses provide `.highlight(...)` using the same `Distance` line/font options. Use `show_distances=True` on the group (the singular `show_distance` is for an individual ruler). A uniform `color` overrides attraction/repulsion colors. `label_color` can independently override text color. `follow_opacity=False` keeps lines visible when you dim the model.
 
-`region=selection` retains contacts with **either** endpoint in that region. `max_pairs` bounds the displayed set and the reusable GPU slot pool; it defaults to 100. `.visible_pairs` and `.total_pairs` are refreshed when the annotation is evaluated. Hydrogen bonds are ordered by atom indices, electrostatic contacts by absolute energy. Contacts update during coordinate motion; crossing a detection threshold can make a line appear or disappear immediately. There is no automatic contact-lifetime smoothing.
+`region=selection` includes contacts with either endpoint in the region. `max_pairs` limits the displayed contacts and allocated GPU slots; its default is 100. `.visible_pairs` and `.total_pairs` update when the annotation is evaluated.
 
-Interactions and mesh building run on the CPU; resulting lines, text and surfaces render through Metal. Analysis results are cached while coordinates and settings remain unchanged, so rotation or styling alone does not rerun the calculation. Preprocess periodic boundaries before loading a trajectory.
+Hydrogen bonds are ordered by atom index. Electrostatic contacts are ordered by absolute energy. A line appears or disappears as a contact crosses the detection threshold.
+
+Interaction calculations and surface construction run on the CPU. Metal renders the resulting lines, text, and surfaces. Results are cached until coordinates or analysis settings change. Prepare whole, unwrapped molecules before loading a periodic trajectory.
 
 ## Run the example
 
@@ -159,4 +169,4 @@ Interactions and mesh building run on the CPU; resulting lines, text and surface
 proteinmotion render examples/molecular_tools.py InteractionsAndDistances -o interactions-and-distances.mp4 --fps 60
 ```
 
-The film compares 3D and 2D hydrogen-bond rulers through ubiquitin NMR conformers, then focuses on a screened electrostatic contact using clearly labeled formal charges. [Watch it](https://pdpppd.github.io/proteinmotion/gallery/#interactions) or read the [complete script](molecular-example.md).
+The example compares 3D and 2D hydrogen-bond lines through ubiquitin NMR conformations, then focuses on an electrostatic contact calculated from example formal charges. [Watch the video](https://pdpppd.github.io/proteinmotion/gallery/#interactions) or read the [complete script](molecular-example.md).

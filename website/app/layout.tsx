@@ -12,15 +12,15 @@ import { asset, repo, site } from "@/lib/config";
 export const metadata: Metadata = {
   metadataBase: new URL(site + "/"),
   title: {
-    default: "ProteinMotion — Protein animation, written in Python",
+    default: "ProteinMotion — Protein animation in Python",
     template: "%s · ProteinMotion",
   },
   description:
-    "Programmatic protein films with a Manim-inspired Python API. Native Metal rendering, cartoons, ball-and-stick, contact-guided morphs, NMR and MD trajectories.",
+    "Create protein animations in Python. Render cartoons, ball-and-stick models, surfaces, labels, morphs, NMR ensembles, and MD trajectories.",
   icons: { icon: asset("icon.svg") },
   openGraph: {
     title: "ProteinMotion",
-    description: "Protein animation, written in Python.",
+    description: "Protein animation in Python.",
     type: "website",
     images: [{ url: `${site}/media/regions.jpg`, width: 1280, height: 720 }],
   },
@@ -42,7 +42,7 @@ export default function RootLayout({
           <div className="mx-auto flex max-w-[1400px] flex-wrap justify-between gap-5 px-5 py-8 text-xs leading-relaxed text-muted md:px-10">
             <span>ProteinMotion · Open source under the MIT license.</span>
             <div className="flex gap-5">
-              <Link href="/docs/rendering/">Methods & limits</Link>
+              <Link href="/docs/rendering/">Rendering</Link>
               <a href={`${repo}/blob/main/LICENSE`}>License</a>
               <a href={repo}>GitHub</a>
             </div>

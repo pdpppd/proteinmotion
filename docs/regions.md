@@ -13,14 +13,11 @@ self.play(FadeOut(marker), run_time=0.6)
 self.focus(p, run_time=1.5)  # Return to the whole protein.
 ```
 
-Selections use **PDB author residue numbers**, not array indices. A tuple `(23, 34)`
-includes every number from 23 through 34; a list `[8, 44, 70]` selects only those
-numbers. `residues=23` selects one residue. Add `atoms="CA"` or
-`atoms=["N", "CA", "C", "O"]` to filter by atom name. `chain` accepts a string or
-list of chains. All supplied criteria must match. Omitted criteria accept everything;
-empty selections raise an error. Combine selections from the same protein with
-`region_a | region_b`. Residues with different insertion codes but the same author
-number are selected together; use `Region(p, atom_indices)` for exact index selections.
+Selections use **PDB author residue numbers**. A tuple `(23, 34)` selects the inclusive range; a list `[8, 44, 70]` selects those three residues. `residues=23` selects one residue.
+
+Use `atoms="CA"` or `atoms=["N", "CA", "C", "O"]` to filter by atom name. `chain` accepts one chain ID or a list. All supplied filters must match. An empty selection raises an error.
+
+Combine selections from the same protein with `region_a | region_b`. Residues that share an author number but have different insertion codes are selected together. For exact atom selection, use `Region(p, atom_indices)`.
 
 Three highlight styles are available:
 
@@ -30,21 +27,13 @@ Three highlight styles are available:
 | `"box"` | Wire box aligned with the protein's local axes | `opacity=0.9`, `padding=2.0`, `line_width=0.12` |
 | `"atoms"` | Enlarged tinted halos around selected atoms | `opacity=0.18`, `padding=0.3` |
 
-All accept `color="#RRGGBB"`; padding and line width are in ångströms. These are 3D
-annotations, not molecular solvent surfaces. They use depth testing and smooth
-transparency, and follow the parent's rotation, translation, scaling, deformation,
-and trajectory states. Bounds are recomputed as the region changes shape. Animate
-their opacity with `FadeIn`, `FadeOut`, or `.animate.set_opacity(...)`; their positions
-and transforms belong to the parent. Annotation opacity is independent of protein
-opacity. Small annotation geometry updates happen on the CPU; molecular state
-interpolation still runs on the GPU.
+All highlight styles accept `color="#RRGGBB"`. Padding and line width are in ångströms. Highlights are 3D shapes that move with the selected region. Nearby atoms can hide parts of them.
 
-`self.focus(region, ...)` is an eased camera animation using the scene's aspect ratio.
-Tracking is enabled by default: the camera follows the selected region's center while
-keeping a steady zoom. Increase `margin` for regions that expand substantially.
-Pass `follow=False` to retain the pose fitted when the animation starts. Initial,
-immediate placement uses `self.camera.focus(region, aspect=self.width/self.height)`.
-`self.camera.frame(p, ...)` fits the whole protein and disables tracking.
+The highlight resizes as the region changes shape. Animate its opacity with `FadeIn`, `FadeOut`, or `.animate.set_opacity(...)`. Its position follows the parent protein; its opacity is independent. Highlight geometry updates on the CPU, and coordinate interpolation runs on the GPU.
+
+`self.focus(region, ...)` moves the camera to a region with easing and uses the scene’s aspect ratio. By default, the camera then follows the region’s center at a fixed zoom. Increase `margin` for a region that expands during playback. Use `follow=False` to keep the camera at the position fitted when the animation starts.
+
+For immediate placement, use `self.camera.focus(region, aspect=self.width/self.height)`. Use `self.camera.frame(p, ...)` to fit the whole protein and stop region tracking.
 
 For concurrent focus, playback, or fades, use `Focus` explicitly:
 
@@ -56,10 +45,8 @@ self.play(
 )
 ```
 
-Focus evaluates after molecular motion in the same clip. It preserves camera angles
-and field of view. `self.camera.animate.focus(region, ...)` is also supported; camera
-focus and camera orbit/zoom must run in separate clips because both write camera state.
+`Focus` updates after molecular motion in the same `play()` call and preserves the camera angles and field of view. `self.camera.animate.focus(region, ...)` is also available. Put camera focus and orbit or zoom in separate calls because each changes the camera state.
 
 ## Text labels and callouts
 
-Use `region.callout("α helix")` for a fixed screen note with a live 3D leader, `region.label()` for one amino acid, or `protein.label_residues(residues=[8, 44, 70])` for a set of names. Animate them with `Write` and `Unwrite`. See [text, labels, and callouts](text.md).
+Use `region.callout("α helix")` to place a label with a line to a selected region. Use `region.label()` for one amino acid, or `protein.label_residues(residues=[8, 44, 70])` for several names. `Write` and `Unwrite` animate these labels. See [text and labels](text.md).

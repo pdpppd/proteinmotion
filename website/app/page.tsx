@@ -24,17 +24,17 @@ export default function Home() {
             PYTHON API · NATIVE METAL
           </div>
           <h1 className="max-w-lg text-[2.7rem] font-medium leading-[1.05] tracking-[-.055em] sm:text-[3.7rem]">
-            Protein animation,
-            <br />
-            <span className="text-muted">written in Python.</span>
+            Protein animation <br />
+            <span className="text-muted">in Python</span>
           </h1>
           <p className="mt-6 max-w-md text-[17px] leading-relaxed text-muted">
-            Turn molecular structures into films. Compose cartoons, morphs,
-            surfaces, and measured interactions with a small, expressive API.
+            Load a protein structure or trajectory, add animations and labels,
+            and export a video. Render cartoons, ball-and-stick models, ribbons,
+            and molecular surfaces.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/docs/getting-started/" className="button-primary">
-              Make your first film <ArrowRightIcon />
+              Get started <ArrowRightIcon />
             </Link>
             <a href={repo} className="button-secondary">
               <GitHubLogoIcon /> View source
@@ -56,9 +56,9 @@ export default function Home() {
             "Molecular representations",
             "Cartoon, ribbon, atoms & surfaces",
           ],
-          ["02", "Motion with intent", "Eased motion, color & opacity"],
-          ["03", "A closer view", "Labels, rulers & interactions"],
-          ["04", "Real structural ensembles", "NMR models & lazy MD playback"],
+          ["02", "Animation", "Movement, color & transparency"],
+          ["03", "Labels & measurements", "Residues, distances & interactions"],
+          ["04", "States & trajectories", "NMR ensembles & MD playback"],
         ].map(([n, title, detail]) => (
           <div key={n}>
             <span className="font-mono text-[10px] text-accent">{n}</span>
@@ -71,16 +71,16 @@ export default function Home() {
       </section>
       <section className="grid gap-10 py-16 lg:grid-cols-[.8fr_1.2fr] lg:gap-24 lg:py-24">
         <div>
-          <p className="eyebrow">AUTHOR THE SCENE</p>
+          <p className="eyebrow">PYTHON SCENES</p>
           <h2 className="mt-4 max-w-sm text-3xl font-medium leading-tight tracking-[-.035em]">
-            Small scripts.
-            <br />
-            Expressive molecular films.
+            Define each animation <br />
+            in a Python script.
           </h2>
           <p className="mt-5 max-w-sm text-sm leading-7 text-muted">
-            If you know Manim, the rhythm is familiar: create an object, add it
-            to a scene, then play animations. ProteinMotion adds molecular
-            representations and a renderer built for native GPUs.
+            Create a protein object, add it to a scene, and call play() to
+            animate it. The API follows Manim’s scene syntax. Set the duration
+            of each animation and combine animations in one call to run them
+            together.
           </p>
           <Link
             href="/docs/molecular-example/"
@@ -89,8 +89,8 @@ export default function Home() {
             Read a complete script <ArrowRightIcon />
           </Link>
           <p className="mt-6 max-w-sm text-xs leading-6 text-muted">
-            A standalone package with Manim-inspired syntax. Export clips for
-            compositing into Manim or another editor.
+            ProteinMotion runs as a standalone package. Use the exported videos
+            in Manim, presentations, or a video editor.
           </p>
         </div>
         <div className="min-w-0">
@@ -105,25 +105,26 @@ export default function Home() {
         <div>
           <p className="eyebrow">MEASURED ON APPLE M3 MAX</p>
           <h2 className="mt-4 text-3xl font-medium tracking-[-.035em]">
-            Less waiting between edits.
+            Rendering performance
           </h2>
           <p className="mt-5 max-w-lg text-sm leading-7 text-muted">
-            The 24-second, 1080p/60 fps cartoon NMR film exported in 3.69
-            seconds, including rendering and hardware encoding. A single local
-            run; loading and scene preparation are measured separately.
+            A 24-second NMR cartoon video at 1080p/60 fps exported in 3.69
+            seconds on an Apple M3 Max. This single run includes rendering, GPU
+            readback, and hardware encoding. Loading and scene construction were
+            timed separately.
           </p>
           <Link
             href="/docs/validation/"
             className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-accent"
           >
-            See the methods and raw measurements <ArrowRightIcon />
+            View benchmarks <ArrowRightIcon />
           </Link>
         </div>
         <div className="grid grid-cols-2 gap-8 self-center">
           <div>
             <p className="font-mono text-4xl tracking-tight">116</p>
             <p className="mt-3 text-xs leading-6 text-muted">
-              Deposited NMR conformers
+              Ubiquitin NMR models
               <br />
               in the example ensemble
             </p>
@@ -131,17 +132,33 @@ export default function Home() {
           <div>
             <p className="font-mono text-4xl tracking-tight">107</p>
             <p className="mt-3 text-xs leading-6 text-muted">
-              Passing local tests
+              Tests passed for v0.7.0
               <br />
               including native GPU checks
             </p>
           </div>
         </div>
       </section>
+      <section className="border-t border-line py-10">
+        <h2 className="text-xl font-medium tracking-tight">
+          Use with an AI agent
+        </h2>
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
+          The ProteinMotion Movies skill provides instructions and examples for
+          writing scenes, rendering videos, and checking the results. Use it
+          with an agent that can read local files and run Python commands.
+        </p>
+        <Link
+          href="/docs/agent-skill/"
+          className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-accent"
+        >
+          Set up the skill <ArrowRightIcon />
+        </Link>
+      </section>
       <section className="mt-6 flex flex-wrap items-center justify-between gap-6 rounded-xl bg-accent-soft px-7 py-8">
         <div>
           <h2 className="text-lg font-medium tracking-tight">
-            Start with a real structure.
+            Example structures and scripts
           </h2>
           <p className="mt-2 text-sm text-muted">
             Ubiquitin, calmodulin, troponin C, and GroEL/GroES examples are
@@ -149,7 +166,7 @@ export default function Home() {
           </p>
         </div>
         <Link href="/gallery/" className="button-secondary bg-white">
-          Explore the gallery <ArrowRightIcon />
+          View examples <ArrowRightIcon />
         </Link>
       </section>
     </main>

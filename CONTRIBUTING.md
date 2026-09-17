@@ -1,6 +1,6 @@
 # Contributing
 
-ProteinMotion is an early implementation. Keep new features small, reproducible, and honest about scientific and rendering limits.
+Include a reproducible example with each feature or fix. Describe the behavior, the method used, and any limits that affect the result.
 
 ## Package development
 
@@ -14,13 +14,13 @@ pytest
 python -m build
 ```
 
-GPU and hardware-export tests are marked `gpu` and should be run on a real native adapter. Optional video checks need `ffmpeg` and `ffprobe` (`brew install ffmpeg` on macOS). CPU checks can run with `pytest -m "not gpu"`.
+GPU and hardware-export tests are marked `gpu` and should be run on a native GPU adapter. Optional video checks need `ffmpeg` and `ffprobe` (`brew install ffmpeg` on macOS). CPU checks can run with `pytest -m "not gpu"`.
 
-The hosted GitHub checks run CPU tests and linting on Ubuntu, then build the package and verify the wheel in a clean environment outside the checkout. They do not replace the local Apple silicon GPU checks recorded in the validation report. When changing rendering or animation, run the complete local suite and inspect actual output.
+GitHub Actions runs CPU tests and linting on Ubuntu, then builds and installs the wheel in a clean environment. For rendering or animation changes, also run the local GPU suite on Apple silicon and inspect the output. Record the setup and results in the validation report.
 
 ## Documentation development
 
-The website uses Next.js static export, React, and Tailwind CSS. It is a separate development tool; Node is not a dependency of the Python renderer. Use Node 22 or newer.
+The website uses Next.js static export, React, and Tailwind CSS. Website development requires Node 22 or later. The Python package has its own dependencies.
 
 ```bash
 cd website
@@ -42,20 +42,22 @@ The build exports static HTML into `website/out/`. `PAGES_BASE_PATH` defaults to
 
 `npm run verify` checks exported pages, internal links, fragment targets, and media references. Browser checks should cover desktop/mobile layout, search, code copying, video controls, and reduced motion.
 
+Follow the [writing guide](docs/writing-guide.md) when editing page text, headings, captions, and metadata.
+
 ## Publishing
 
-The Pages workflow builds on pull requests and pushes. Only `main` pushes or a manual workflow run from `main` deploy. GitHub Pages must use **GitHub Actions** as its source. The workflow uploads the static export and deploys it with the official Pages actions. No server or API keys are required by the site.
+The Pages workflow builds on pull requests and pushes. Only `main` pushes or a manual workflow run from `main` deploy. GitHub Pages must use **GitHub Actions** as its source. The workflow uploads the static export and deploys it with the official Pages actions. GitHub Pages serves the exported static files.
 
 Compressed web previews are committed in `website/public/media/`. They are 720p versions of the original 1080p/60 fps films (the continuous tour retains 60 fps; other previews use 30 fps). Their source filenames and sizes are recorded in `provenance.json`; the scientific data provenance lives in the documentation. Original rendered videos, caches, local environments, and build outputs are ignored.
 
 ## Changes and issues
 
-Open an issue with a minimal scene, input format, Python version, and the output of `proteinmotion doctor`. For rendering defects, include the relevant time or frame. Avoid uploading private or unpublished structures unless you intend to share them publicly.
+Open an issue with a minimal scene, input format, Python version, and the output of `proteinmotion doctor`. For rendering defects, include the relevant time or frame. Use a public example structure when reporting an issue in the public repository.
 
-A pull request should explain the concrete behavior change and relevant validation. Keep source attribution for new example data. Do not label interpolated coordinates as measured dynamics or physically valid transitions without supporting methodology.
+A pull request should explain the behavior change and relevant checks. Record the source of example data and distinguish deposited structures, simulated trajectories, and interpolated coordinates.
 
 ## Package and skill releases
 
-The canonical Codex skill is `skills/proteinmotion-movies`. Its six resource files are mapped into the wheel by `pyproject.toml`; keep that mapping in sync when adding a skill resource. Run the skill-creator validator when changing its instructions. The starter scene is shared by the skill and `proteinmotion init`, so maintain it once.
+The AI agent skill source is `skills/proteinmotion-movies`. Its six resource files are mapped into the wheel by `pyproject.toml`; keep that mapping in sync when adding a skill resource. Run the skill-creator validator when changing its instructions. The starter scene is shared by the skill and `proteinmotion init`, so maintain it once.
 
-Build with `python -m build` (the wheel is built from the sdist). Install that wheel into a fresh environment, change out of the checkout, and run `python -I /path/to/repo/scripts/check_installed_package.py --render` on a native GPU. CI runs the same installed-resource check without rendering. Distribute the wheel, source archive, skill ZIP and checksums as versioned GitHub Release assets. Do not publish a new version or replace release assets unless that publication is part of the task.
+Build with `python -m build` (the wheel is built from the sdist). Install that wheel into a fresh environment, change out of the checkout, and run `python -I /path/to/repo/scripts/check_installed_package.py --render` on a native GPU. CI runs the same installed-resource check without rendering. Distribute the wheel, source archive, skill ZIP and checksums as versioned GitHub Release assets. Publish versioned release assets after the release checks pass.

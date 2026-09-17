@@ -16,19 +16,13 @@ self.play(Deform(p, stretch), run_time=2)
 self.play(Morph(p, rest, align=False), run_time=2)
 ```
 
-`Morph` matches `(chain, residue number, insertion code, residue name, atom name)`.
-Input atom order can differ. By default it uses a proper Kabsch rigid alignment on
-matched alpha carbons, falling back to all atoms when necessary. Explicit `atom_map`
-supports mapping every source atom to a unique target index. Output topology stays
-fixed: unmatched atoms are not created/deleted. Raw coordinate targets are explicitly
-ordered like the source. Morphs and deformations are **visual interpolation**, not
-energy minimization, a physical transition pathway, or an MD simulation.
+`Morph` matches atoms by `(chain, residue number, insertion code, residue name, atom name)`. Input atom order can differ. By default, it aligns matched Cα atoms with a Kabsch rigid fit. It uses all atoms if Cα atoms are insufficient.
+
+Use `atom_map` to map every source atom to a unique target index. A raw coordinate array must follow source atom order. `Morph` keeps the source topology fixed and interpolates coordinates for visualization.
 
 ## Different proteins: contact-guided backbone morphing
 
-`BackboneMorph` supports different sequences, residue counts, and atom topologies.
-It moves a selected Cα correspondence and fades unmatched residues. The matcher uses
-structure/contact information, without requiring sequence identity.
+`BackboneMorph` handles proteins with different sequences, residue counts, and atom sets. It matches Cα atoms using their structural contacts, moves the selected residues, and fades the unmatched residues.
 
 ```python
 from proteinmotion import BackboneMorph, Protein, Rotate, match_backbones
@@ -62,11 +56,9 @@ self.play(
 self.play(Rotate(target, 1.0), run_time=2)
 ```
 
-Omit `match` to search automatically; pass the same matching options directly to
-`BackboneMorph`. `ContactMatch.load(path)` reuses a saved mapping.
-`ContactMatch.from_pairs(source, target, [0, 2, 5], [1, 4, 7])` accepts a manual
-mapping. These are **zero-based topology residue indices**, not atom indices or PDB
-residue numbers. Saved mappings also contain residue identities, validated on use.
+Omit `match` to run the search automatically and pass matching options to `BackboneMorph`. Use `ContactMatch.load(path)` to reuse a saved mapping.
+
+For a manual mapping, call `ContactMatch.from_pairs(source, target, [0, 2, 5], [1, 4, 7])`. These lists contain **zero-based topology residue indices**. Saved mappings also store residue identities, which are checked when loaded.
 
 For selected correspondence `(iₖ, jₖ)`, the soft contact map is
 `C(i,j) = 1 / (1 + exp((distance(i,j) - cutoff) / softness))`, with zero diagonal.
@@ -77,47 +69,29 @@ Both source and destination indices increase strictly N-to-C, giving an injectiv
 order-preserving correspondence. All off-diagonal contacts, including sequence
 neighbors, participate. Error is dimensionless; RMSD is separately reported in Å.
 
-Feasible seeds come from contact/distance fingerprints, local structural fragments,
-rigid fits, and dynamic programming. A compatibility graph represents allowed pairings;
-bitset branch-and-bound searches cliques with coloring upper bounds. This is a
-combinatorial optimization, so a finite budget does **not** promise a global maximum.
-Check `full_candidate_space`, `search_completed`, `cardinality_proved`, and
-`global_optimal` in the report. Candidate pruning and timeouts are reported explicitly.
-`max_candidates=None` searches the full pairing space, up to 30,000 vertices; it can
-spend more time branching and return a poorer incumbent than a restricted search at
-the same time budget. Small completed searches can prove the optimum. Numerical
-comparisons use 1e-10 feasibility and 1e-14 objective tolerances.
+The search starts from contact fingerprints, structural fragments, rigid fits, and dynamic programming. It builds a graph of compatible residue pairs and uses branch-and-bound to search for a larger set.
 
-The included calmodulin → troponin C example matches **114 of 144 source Cα residues
-and 114 of 162 target Cα residues**, with RMS soft-contact error **0.02746** and
-maximum error **0.29362**, below 0.30. Global optimality was not proved. Thirty source
-residues fade out; 48 target residues fade in. At 25 ms delay, the last matched
-residue starts 2.825 s after the first; each moves for 3.175 s in the 6 s morph.
+The search has a time and candidate limit. Check `full_candidate_space`, `search_completed`, `cardinality_proved`, and `global_optimal` in the report to see what was established. Small completed searches can prove the optimum. Larger searches may return a feasible result before reaching it.
 
-For `K` pairs, each residue's move lasts `run_time - (K-1)*residue_delay`, which must
-be positive. Matching source/destination Cα positions follow the same world-space
-path; smooth alpha fades exchange source/target ribbon connectivity and
-color along that path. GPU buffers hold the coordinate endpoints and per-residue
-timing/visibility controls; normal playback changes uniforms rather than rebuilding
-geometry each frame. Backward seeking reproduces the same motion.
+`max_candidates=None` considers all pairings up to 30,000 graph vertices. At a fixed time budget, this can return fewer matches than a restricted search. Numerical comparisons use feasibility tolerance 1e-10 and objective tolerance 1e-14.
 
-This operation supports **cartoon, ribbon, and ball-and-stick** representations, one selected chain
-per endpoint, and at most 800 Cα residues in the shorter chain. Multi-chain inputs
-need `source_chain`/`target_chain`; other residues fade with the unmatched sets.
-Domain permutations and crossing correspondences are not supported. Use the camera
-for concurrent rotation: the morph owns both endpoint transforms, coordinates, and
-opacity. `align=False` ends at the destination's original world coordinates;
-`align=True` ends at its aligned pose. Subsequent animations should target the
-destination object. The source remains hidden. The path is a visual interpolation;
-bond lengths, clashes, energies, and physical kinetics are not constrained.
+The calmodulin → troponin C example matches **114 of 144 source Cα residues** and **114 of 162 target Cα residues**. Its RMS soft-contact error is **0.02746** and maximum error is **0.29362**, within the 0.30 limit. The report marks global optimality as unproved.
 
-For an atom-level view, call `.ball_and_stick()` on both endpoints before the morph.
-Every atom in a matched residue translates with its Cα; each endpoint keeps its
-internal residue geometry, while the source and target atom sets crossfade. Different
-side-chain atoms are not assigned an atom-to-atom correspondence. Bonds fade with their
-less-visible endpoint so no half-bonds remain attached to hidden atoms. Inter-residue
-bonds can stretch during the visual transition; this mode is not an all-atom simulation.
-The `BallAndStickDemo` scene uses the same mapping, camera, and timing as `BackboneDemo`.
+Thirty source residues fade out and 48 target residues fade in. With a 25 ms delay, the last matched residue starts 2.825 s after the first. Each residue moves for 3.175 s during the 6 s morph.
+
+For `K` matched pairs, each move lasts `run_time - (K-1)*residue_delay` seconds. This value must be positive. Each matched source and target Cα follows the same path. Their representations crossfade along that path.
+
+The GPU stores endpoint coordinates and residue timing. Playback updates animation parameters and supports backward seeking.
+
+`BackboneMorph` supports **cartoon, ribbon, and ball-and-stick**, with one selected chain per endpoint. The shorter chain can contain at most 800 Cα residues. For multi-chain inputs, set `source_chain` and `target_chain`; remaining residues join the unmatched fades. Correspondences must preserve residue order.
+
+The morph controls both proteins’ transforms, coordinates, and opacity. Use camera motion for rotation during the morph. With `align=False`, the target finishes at its original world coordinates. With `align=True`, it finishes in the aligned position. Continue the scene by animating the target object; the source is hidden.
+
+The interpolated path can contain stretched bonds and atomic clashes. It describes a visual transition rather than a calculated molecular pathway.
+
+For ball-and-stick, call `.ball_and_stick()` on both proteins before the morph. Each matched residue moves with its Cα and keeps its internal geometry. Source atoms fade out as target atoms fade in. The correspondence is between residues; different side-chain atoms have no individual mapping.
+
+Bonds use the lower opacity of their endpoints. Inter-residue bonds can stretch during the transition. The `BallAndStickDemo` and `BackboneDemo` examples use the same residue mapping, camera, and timing.
 
 ```bash
 proteinmotion render examples/backbone_morph.py BackboneDemo -o backbone-morph.mp4 --fps 60

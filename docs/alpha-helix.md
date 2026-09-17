@@ -1,6 +1,6 @@
 # Alpha-helix hydrogen-bond test
 
-This controlled example makes the backbone hydrogen-bond pattern visible: **O(i)···H–N(i+4)**. It uses a fixed, idealized 16-residue backbone with explicit amide hydrogens, so the view can rotate without contacts changing between conformers.
+This example shows the alpha-helix hydrogen-bond pattern **O(i)···H–N(i+4)**. It uses an idealized 16-residue backbone with explicit amide hydrogens. Coordinates stay fixed as the camera rotates.
 
 [Watch the film](https://pdpppd.github.io/proteinmotion/gallery/#alpha-helix) · [Download the complete script](alpha_helix_hbonds.py) · [Source on GitHub](https://github.com/pdpppd/proteinmotion/blob/main/examples/alpha_helix_hbonds.py)
 
@@ -8,9 +8,9 @@ This controlled example makes the backbone hydrogen-bond pattern visible: **O(i)
 
 ## What the test establishes
 
-The detector receives coordinates and the normal geometry criteria, **N···O ≤ 3.5 Å and N–H···O ≥ 150°**. It is not told to connect residues four positions apart. It finds exactly the **12 expected pairs**: O1–H5 through O12–H16, with no extra pairs. The i→i+4 pattern is the defining backbone hydrogen-bond arrangement of an [α helix](https://www.ebi.ac.uk/training/online/courses/foundations-protein-structure/principles-of-protein-folding-and-architecture/secondary-structure-%CE%B1-helices-and-%CE%B2-sheets/%CE%B1-helix/).
+The detector uses the coordinates and geometry criteria **N···O ≤ 3.5 Å** and **N–H···O ≥ 150°**. It finds the 12 expected pairs, O1–H5 through O12–H16, using geometry alone. The i→i+4 pattern is characteristic of an [alpha helix](https://www.ebi.ac.uk/training/online/courses/foundations-protein-structure/principles-of-protein-folding-and-architecture/secondary-structure-%CE%B1-helices-and-%CE%B2-sheets/%CE%B1-helix/).
 
-The backbone is constructed with φ = −57°, ψ = −47° and trans peptide bonds (ω = 180°). It contains N, Cα, C, O and amide H; side chains, other hydrogens and terminal caps are omitted. This is a synthetic geometry fixture, not a deposited structure, MD trajectory or energy-minimized peptide. Coordinates are held fixed throughout the film.
+The synthetic backbone uses φ = −57°, ψ = −47°, and trans peptide bonds with ω = 180°. It contains N, Cα, C, O, and amide H atoms. Side chains, other hydrogens, and terminal caps are omitted. This fixed geometry is used to test detection and display.
 
 | Quantity | Value in this idealized fixture |
 |---|---:|
@@ -19,9 +19,9 @@ The backbone is constructed with φ = −57°, ψ = −47° and trans peptide bo
 | N···O distance | 3.09 Å |
 | N–H···O angle | 165.6° |
 
-The film draws **gold dashed H···O segments** and keeps covalent N–H bonds solid. It first shows the entire network, then isolates O5···H–N9 and labels the two different distances. Short bond lines do not carry inline numbers; the measurements sit beside the close-up so a label does not hide the bond.
+Gold dashed lines show H···O contacts; solid sticks show covalent N–H bonds. The video first displays the full network, then zooms into O5···H–N9. Distance labels sit beside the close-up to keep the short bonds visible.
 
-The zoom begins at 8.4 seconds and fades the surrounding residues. In v0.6.2, covalent sticks are clipped at each atom surface before blending, so the fade no longer exposes cylinders inside the balls. This applies automatically to global and residue-wise opacity; no scene-code changes are needed.
+The zoom starts at 8.4 seconds and fades the surrounding residues. Covalent sticks end at the atom surfaces during the fade, keeping their internal sections hidden.
 
 [All measured pairs as CSV](alpha-helix-hbonds.csv) · [Geometry and render report](alpha-helix-hbonds-report.json)
 
@@ -51,18 +51,14 @@ network = hb.highlight(
 self.play(Write(network), run_time=2)
 ```
 
-For a structure file, load explicit H with `Protein.from_file(path, include_hydrogens=True)`. `endpoints="hydrogen_acceptor"` draws H···A and reports that distance if `show_distances=True`. With `hydrogens="backbone"` or inferred H in `"auto"` mode, the endpoint follows the virtual hydrogen position; that does not itself create a visible H atom. `hb.hydrogen_position(pair)` returns the current explicit or inferred H coordinates in model Å.
+Load explicit H atoms with `Protein.from_file(path, include_hydrogens=True)`. Set `endpoints="hydrogen_acceptor"` to draw H···A lines. With `show_distances=True`, labels show that distance.
 
-The backward-compatible default `endpoints="donor_acceptor"` draws D···A and labels donor–acceptor distance. `Interaction.distance` always remains D···A, whichever line endpoints you choose. Hydrogen endpoints apply only to hydrogen-bond analyses.
+In `"backbone"` mode, or when `"auto"` infers a hydrogen, the line uses its calculated position. Inferred hydrogens provide line endpoints only; add explicit atoms to display them as spheres. `hb.hydrogen_position(pair)` returns the H coordinates in ångströms.
 
-## Why the earlier example was hard to read
+The default `endpoints="donor_acceptor"` draws D···A and labels donor–acceptor distance. `Interaction.distance` always remains D···A, whichever line endpoints you choose. Hydrogen endpoints apply only to hydrogen-bond analyses.
 
-The NMR example displayed one donor–acceptor ruler at a time inside a much larger model, without visible hydrogens. Its inline caption occupied much of the short line. Changing conformers could also change which contacts passed the geometry cutoff. That view did not make the repeating helix network clear.
+## Tests with synthetic and deposited coordinates
 
-This diagnostic draws all qualifying helix contacts, shows the H atoms, moves only the camera and separates measurements from the short lines. No angle or distance thresholds were relaxed to obtain the idealized network.
+Tests check the backbone angles, expected residue pairs, explicit and inferred H endpoints, transformed positions, and repeatable rendering. Reversing one amide H removes its contact. An extended backbone with φ = −135° and ψ = 135° produces none of the helix contacts.
 
-## Regression checks and a real structure
-
-The checks verify the generated φ/ψ angles independently, the entire expected residue-pair set, explicit and virtual H endpoints, transformed anchors, and reproducible GPU rendering. Reversing one amide H removes its bond; an extended backbone with φ = −135° / ψ = 135° does not acquire forced i→i+4 bonds.
-
-A separate check uses the included **1UBQ residues 23–34** with inferred backbone H. At the default 150° angle cutoff it detects six local helix bonds. Two further i→i+4 pairs have angles approximately 149.8° and 145.4°, so they are excluded; setting the documented cutoff to 140° includes all eight. This demonstrates real-coordinate cutoff sensitivity, rather than assuming every annotated helix must pass one geometric threshold. [General hydrogen-bond methods and limitations](interactions.md).
+A separate test uses **1UBQ residues 23–34** with inferred backbone H. The default 150° cutoff detects six local helix bonds. Two more i→i+4 pairs have angles of about 149.8° and 145.4°; lowering the cutoff to 140° includes all eight. Contact counts therefore depend on the geometry threshold. See [hydrogen-bond methods](interactions.md).

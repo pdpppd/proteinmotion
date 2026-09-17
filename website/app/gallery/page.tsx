@@ -6,8 +6,7 @@ import { asset, demos, repo } from "@/lib/config";
 import { codeHTML } from "@/lib/content";
 export const metadata: Metadata = {
   title: "Example gallery",
-  description:
-    "Real films rendered with ProteinMotion, with source code and reproducible commands.",
+  description: "ProteinMotion videos with source code and rendering commands.",
 };
 export default function Gallery() {
   return (
@@ -17,12 +16,12 @@ export default function Gallery() {
     >
       <p className="eyebrow">RENDERED WITH PROTEINMOTION</p>
       <h1 className="mt-4 text-4xl font-medium tracking-[-.045em] md:text-5xl">
-        From a structure to a story.
+        Video examples
       </h1>
       <p className="mt-5 max-w-2xl text-base leading-7 text-muted">
-        Actual package output, with the source and command for every film. These
-        web previews are compressed to 720p (the continuous tour at 60 fps,
-        other films at 30 fps); original renders were 1080p/60 fps.
+        Each video includes its Python script and render command. Previews are
+        compressed to 720p. The feature demo plays at 60 fps; other previews
+        play at 30 fps. The original videos were rendered at 1080p/60 fps.
       </p>
       <div className="mt-14 grid gap-x-10 gap-y-16 md:grid-cols-2">
         {demos.map((demo, i) => (
@@ -73,16 +72,16 @@ export default function Gallery() {
       </div>
       <div className="mt-14 border-t border-line pt-8">
         <p className="max-w-3xl text-sm leading-7 text-muted">
-          NMR model order is not a physical time sequence. Morphs and state
-          interpolation are visual transitions, without energy minimization or a
-          claim of physical pathways. The contact matcher is bounded and does
-          not promise global optimality on large inputs.
+          The NMR examples interpolate between deposited models to show
+          structural variation. The morph examples interpolate between two
+          structures. These animations illustrate coordinate changes; physical
+          dynamics require simulation data.
         </p>
         <Link
           href="/docs/rendering/"
           className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-accent"
         >
-          Methods and limits <ArrowRightIcon />
+          Rendering methods <ArrowRightIcon />
         </Link>
       </div>
     </main>

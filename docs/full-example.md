@@ -1,8 +1,8 @@
-# A complete NMR film
+# Complete NMR example
 
-The included `examples/nmr_regions.py` is a complete film with live 3D annotations, eased camera focus, NMR playback, and a transition to ball-and-stick.
+`examples/nmr_regions.py` animates a ubiquitin NMR ensemble with 3D highlights, camera focus, and a transition to ball-and-stick.
 
-The ensemble is PDB 2K39. Its 116 deposited models are conformers, not a physical time sequence. Model interpolation is illustrative.
+PDB 2K39 contains 116 models of ubiquitin. This example interpolates between models to show their structural variation. Model order is not a time sequence.
 
 ## Run a scene
 

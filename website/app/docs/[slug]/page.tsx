@@ -6,18 +6,22 @@ import {
   ArrowRightIcon,
   ExternalLinkIcon,
 } from "@radix-ui/react-icons";
-import { guides } from "@/lib/config";
+import { guides, guideAliases } from "@/lib/config";
 import { compile, readGuide, editLink } from "@/lib/content";
 export const dynamicParams = false;
 export function generateStaticParams() {
-  return guides.map((g) => ({ slug: g.slug }));
+  return [
+    ...guides.map((g) => ({ slug: g.slug })),
+    ...Object.keys(guideAliases).map((slug) => ({ slug })),
+  ];
 }
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug: requestedSlug } = await params;
+  const slug = guideAliases[requestedSlug] ?? requestedSlug;
   const guide = guides.find((g) => g.slug === slug);
   return {
     title: guide?.title,
@@ -32,7 +36,8 @@ export default async function Guide({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
+  const { slug: requestedSlug } = await params;
+  const slug = guideAliases[requestedSlug] ?? requestedSlug;
   const index = guides.findIndex((g) => g.slug === slug);
   if (index < 0) notFound();
   const guide = guides[index];

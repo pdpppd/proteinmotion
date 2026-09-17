@@ -26,25 +26,17 @@ self.play(PlayTrajectory(p, start=0, end=len(trajectory) - 1), run_time=10)
 the default `state_easing=linear` preserves constant interpolation speed for MD.
 This is separate from `rate_func`, which controls progress through the entire clip.
 
-Only two coordinate states reside in GPU buffers; playback caches three decoded CPU
-frames per trajectory animation. MDAnalysis converts its coordinates to ångströms.
-For `.npy`, pass `units='nm'` when appropriate. Raw arrays cannot verify atom identity;
-the caller must preserve atom order. Topology-backed sources verify both count and keys.
-Long movies are streamed through PyAV with three readback buffers, not kept in RAM.
+Playback holds two coordinate states on the GPU and caches three decoded frames on the CPU per trajectory animation. PyAV streams exported video through three readback buffers.
 
-**Preprocess periodic boundaries before loading.** ProteinMotion does not unwrap
-molecules or apply minimum-image interpolation. Wrapped coordinates can create long
-bonds or incorrect interpolated paths. Supply whole, unwrapped molecules; align if
-desired. The MD adapter is a sequential, single-threaded reader.
+MDAnalysis converts coordinates to ångströms. For NumPy files in nanometers, pass `units="nm"`. Raw arrays must follow the protein’s atom order. Sources with topology information are checked for matching atom counts and identities.
 
-Secondary structure comes from PDB/mmCIF annotations. Without assignments, cartoon
-renders coils and emits a warning for structure files. MD topologies default to coils.
-Supply external DSSP-style assignments with `p.with_secondary_structure('HHHCCEEE…')`,
-one `H/E/C` character per topology residue, before adding/rendering. Assignments remain
-fixed over a trajectory. Cartoon helices follow the alpha-carbon backbone; they are
-not idealized cylindrical helices.
+**Load whole, unwrapped molecules.** Prepare periodic boundaries before importing a trajectory. Wrapped coordinates can create long bonds and incorrect interpolated paths. You can also align frames to remove overall motion. The MD adapter reads frames sequentially on one thread.
 
-### A real NMR ensemble
+Secondary structure comes from PDB/mmCIF annotations. When assignments are missing, cartoons use coils and structure files produce a warning. MD topologies also default to coils.
+
+To supply assignments, call `p.with_secondary_structure("HHHCCEEE…")` before adding the protein. Use one `H`, `E`, or `C` per topology residue. The assignments stay fixed during playback. Helix geometry follows the Cα backbone.
+
+## Ubiquitin NMR example
 
 `examples/nmr_regions.py` uses [PDB 2K39](https://www.rcsb.org/structure/2K39),
 an RDC-derived solution NMR ensemble of ubiquitin: **116 deposited models, 76 residues,
@@ -68,10 +60,6 @@ proteinmotion render examples/nmr_regions.py NMRStates -o nmr-116-states.mp4 --f
 proteinmotion render examples/nmr_regions.py NMRAtoms -o nmr-116-states-atoms.mp4 --fps 60
 ```
 
-`RegionTour` visits residues 23–34 with gold sphere/box annotations, then residues
-71–76 with cyan atom halos and a box. It switches to ball-and-stick for the tail.
-The other two scenes play **all 116 states** in cartoon and ball-and-stick.
-Deposited NMR model order is **not a physical time sequence**. Interpolation is an
-illustrative transition between conformers, not a simulated molecular pathway.
-The 23 s playback duration is chosen for viewing. Provenance and alignment details
-are recorded in [the ensemble report](nmr-ensemble-report.json).
+`RegionTour` highlights residues 23–34 with a gold sphere and box, then residues 71–76 with cyan atom highlights and a box. It switches to ball-and-stick for the tail. The other two scenes play all 116 models in cartoon and ball-and-stick.
+
+NMR models describe structural variation. Their deposited order is not a time sequence. The animation interpolates between them over a duration chosen for viewing. See the [ensemble report](nmr-ensemble-report.json) for source and alignment details.

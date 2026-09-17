@@ -14,29 +14,30 @@ export const asset = (path: string) => {
   const revision = assetRevisions[clean];
   return `${base}/${clean}${revision ? `?v=${revision}` : ""}`;
 };
+export const guideAliases: Record<string, string> = {
+  "codex-skill": "agent-skill",
+};
 export const guides = [
   {
     slug: "getting-started",
     file: "getting-started.md",
     title: "Get started",
     group: "START HERE",
-    description: "Install ProteinMotion and render your first film.",
+    description: "Install ProteinMotion and render a video.",
   },
   {
-    slug: "codex-skill",
-    file: "codex-skill.md",
-    title: "Codex movie skill",
+    slug: "agent-skill",
+    file: "agent-skill.md",
+    title: "AI agent skill",
     group: "START HERE",
-    description:
-      "Install the bundled skill and ask Codex to create protein movies.",
+    description: "Set up the movie-making skill for your AI agent.",
   },
   {
     slug: "scenes",
     file: "scenes.md",
     title: "Scenes & motion",
     group: "AUTHORING",
-    description:
-      "Compose scenes, representations, transforms, and eased animation.",
+    description: "Load a protein, choose a representation, and animate it.",
   },
   {
     slug: "regions",
@@ -52,7 +53,7 @@ export const guides = [
     title: "Text & labels",
     group: "AUTHORING",
     description:
-      "Write vector text, name amino acids, and anchor callouts to moving regions.",
+      "Add text, amino acid labels, and lines that point to selected regions.",
   },
   {
     slug: "styling",
@@ -60,7 +61,7 @@ export const guides = [
     title: "Colors & surfaces",
     group: "AUTHORING",
     description:
-      "Color residues, ease their opacity, and render moving molecular surfaces.",
+      "Set residue colors and transparency, and render molecular surfaces.",
   },
   {
     slug: "interactions",
@@ -68,7 +69,7 @@ export const guides = [
     title: "Distances & interactions",
     group: "AUTHORING",
     description:
-      "Measure atoms and residues, highlight hydrogen bonds, and import charges for screened electrostatics.",
+      "Add distance labels, detect hydrogen bonds, and estimate electrostatic interactions.",
   },
   {
     slug: "morphing",
@@ -84,7 +85,7 @@ export const guides = [
     title: "NMR & trajectories",
     group: "AUTHORING",
     description:
-      "Animate multi-model structures and read MD trajectories lazily.",
+      "Animate NMR ensembles and read MD trajectories one frame at a time.",
   },
   {
     slug: "full-example",
@@ -92,15 +93,15 @@ export const guides = [
     title: "Complete NMR script",
     group: "EXAMPLES",
     description:
-      "A runnable film with camera focus, highlights, and real NMR models.",
+      "Animate a ubiquitin NMR ensemble with camera focus and region highlights.",
   },
   {
     slug: "showcase",
     file: "showcase.md",
-    title: "Continuous feature tour",
+    title: "Feature demo",
     group: "EXAMPLES",
     description:
-      "One continuous calmodulin-to-troponin C tour, with chapter timings and runnable source.",
+      "A calmodulin and troponin C video with chapter times and source code.",
   },
   {
     slug: "alpha-helix",
@@ -108,7 +109,7 @@ export const guides = [
     title: "Alpha-helix H bonds",
     group: "EXAMPLES",
     description:
-      "Verify the full i-to-i+4 network with visible hydrogens and a clear bond close-up.",
+      "Show the i-to-i+4 hydrogen bonds in an idealized alpha helix.",
   },
   {
     slug: "molecular-example",
@@ -116,7 +117,7 @@ export const guides = [
     title: "Molecular tools script",
     group: "EXAMPLES",
     description:
-      "Two complete films: styled surfaces and live molecular interaction rulers.",
+      "Scripts for residue colors, surfaces, distance labels, and interactions.",
   },
   {
     slug: "api",
@@ -128,36 +129,40 @@ export const guides = [
   {
     slug: "rendering",
     file: "rendering.md",
-    title: "Rendering & limits",
+    title: "Rendering",
     group: "REFERENCE",
-    description:
-      "Native Metal, transparency, hardware encoding, and practical limits.",
+    description: "How the renderer, transparency, and video export work.",
   },
   {
     slug: "validation",
     file: "VALIDATION.md",
-    title: "Validation & speed",
+    title: "Tests & benchmarks",
     group: "REFERENCE",
-    description:
-      "Measured M3 Max benchmarks, tests, provenance, and raw results.",
+    description: "Test results, M3 Max rendering times, and input data.",
   },
   {
     slug: "contributing",
     file: "contributing.md",
     title: "Contributing",
     group: "PROJECT",
-    description:
-      "Develop the package, build the docs, and run meaningful checks.",
+    description: "Set up development tools, build the website, and run checks.",
+  },
+  {
+    slug: "writing-guide",
+    file: "writing-guide.md",
+    title: "Writing guide",
+    group: "PROJECT",
+    description: "Conventions for clear technical documentation.",
   },
 ];
 export const demos = [
   {
     id: "showcase",
-    title: "One continuous molecular story",
+    title: "Calmodulin and troponin C",
     file: "showcase",
-    label: "THE CONTINUOUS FEATURE TOUR",
+    label: "FEATURE DEMO",
     detail:
-      "Follow calmodulin through representations, residue styling, labels, NMR states and deformation. Morph into troponin C, then explore its hydrogen bonds, distance rulers and charge contacts. One scene, eased transitions, 60 fps.",
+      "Calmodulin changes representation, color, and conformation, then morphs into troponin C. The video also shows labels, camera focus, distances, hydrogen bonds, and electrostatic estimates.",
     source: "examples/feature_showcase.py",
     scene: "FeatureShowcase",
     duration: "101 s",
@@ -165,11 +170,11 @@ export const demos = [
   },
   {
     id: "alpha-helix",
-    title: "The bonds that hold a helix",
+    title: "Alpha-helix hydrogen bonds",
     file: "alpha-helix",
     label: "ALPHA-HELIX HYDROGEN-BOND TEST",
     detail:
-      "A fixed idealized backbone with explicit H: all 12 expected i-to-i+4 bonds, then a close-up distinguishing gold H···O contacts from solid N–H bonds. Detection uses geometry, without a sequence-offset rule.",
+      "An idealized backbone with explicit hydrogens. The video shows all 12 expected i-to-i+4 hydrogen bonds, then zooms into one bond to compare H···O and N···O distances.",
     source: "examples/alpha_helix_hbonds.py",
     scene: "AlphaHelixHBonds",
     duration: "23 s",
@@ -177,11 +182,11 @@ export const demos = [
   },
   {
     id: "surfaces",
-    title: "Color is part of the story",
+    title: "Residue colors and surfaces",
     file: "surfaces",
     label: "RESIDUE COLOR + MOVING SURFACES",
     detail:
-      "Staggered color changes and local transparency carry from cartoon to atoms to a rebuilt solvent-excluded surface through ubiquitin NMR conformers.",
+      "Residue colors change in sequence across a ubiquitin structure. The video switches between cartoon, ball-and-stick, and surface views, then updates the surface during NMR playback.",
     source: "examples/molecular_tools.py",
     scene: "StylingAndSurface",
     duration: "24.8 s",
@@ -189,11 +194,11 @@ export const demos = [
   },
   {
     id: "interactions",
-    title: "Measure the connections",
+    title: "Distances and interactions",
     file: "interactions",
     label: "HYDROGEN BONDS + SCREENED ELECTROSTATICS",
     detail:
-      "Depth-tested 3D rulers and 2D overlay distances, geometric hydrogen bonds with virtual backbone H, and screened Coulomb contacts using illustrative formal charges.",
+      "Compare 3D and 2D distance lines. Highlight hydrogen bonds using inferred backbone hydrogens, then display screened Coulomb estimates using example formal charges.",
     source: "examples/molecular_tools.py",
     scene: "InteractionsAndDistances",
     duration: "20.2 s",
@@ -201,11 +206,11 @@ export const demos = [
   },
   {
     id: "labels",
-    title: "Give each region a voice",
+    title: "Residue labels and callouts",
     file: "labels",
-    label: "VECTOR TEXT + LIVE CALLOUTS",
+    label: "TEXT + CALLOUTS",
     detail:
-      "Contour-to-fill writing, region callouts, and automatic amino acid labels follow ubiquitin through NMR conformers in cartoon and ball-and-stick.",
+      "Add amino acid names and region labels to ubiquitin. Lines connect the labels to the selected residues as the structure moves.",
     source: "examples/labels_and_callouts.py",
     scene: "ProteinLabels",
     duration: "18.8 s",
@@ -213,11 +218,11 @@ export const demos = [
   },
   {
     id: "writing",
-    title: "Watch the letters take shape",
+    title: "Text writing animation",
     file: "writing",
     label: "MANIM-STYLE WRITE",
     detail:
-      "A close-up of cached vector glyphs drawing their contours, filling in, then erasing. Native Metal rendering, with Greek letters and configurable glyph timing.",
+      "Write draws each letter’s outline and fills it in. Unwrite erases the text. The example includes Greek letters and delays between letters.",
     source: "examples/labels_and_callouts.py",
     scene: "WritingStudy",
     duration: "10 s",
@@ -225,11 +230,11 @@ export const demos = [
   },
   {
     id: "regions",
-    title: "Follow a region",
+    title: "Region focus and highlights",
     file: "regions",
     label: "FOCUS + HIGHLIGHTS",
     detail:
-      "Live spheres, wire boxes, and atom halos follow the helix and tail of ubiquitin through NMR conformers.",
+      "The camera focuses on the helix and tail of ubiquitin. Spheres, boxes, and atom highlights mark the selected regions during NMR playback.",
     source: "examples/nmr_regions.py",
     scene: "RegionTour",
     duration: "24.1 s",
@@ -237,11 +242,11 @@ export const demos = [
   },
   {
     id: "nmr-cartoon",
-    title: "116 conformers, one scene",
+    title: "NMR ensemble in cartoon view",
     file: "nmr-cartoon",
     label: "NMR · CARTOON",
     detail:
-      "Every deposited model of ubiquitin, aligned on core Cα atoms and eased between adjacent states.",
+      "All 116 deposited ubiquitin models, aligned using core Cα atoms. The animation interpolates between consecutive models.",
     source: "examples/nmr_regions.py",
     scene: "NMRStates",
     duration: "24 s",
@@ -249,7 +254,7 @@ export const demos = [
   },
   {
     id: "nmr-atoms",
-    title: "See the atoms move",
+    title: "NMR ensemble in ball-and-stick",
     file: "nmr-atoms",
     label: "NMR · BALL & STICK",
     detail:
@@ -261,11 +266,11 @@ export const demos = [
   },
   {
     id: "morph",
-    title: "Between different proteins",
+    title: "Calmodulin to troponin C morph",
     file: "morph",
     label: "CONTACT-GUIDED MORPH",
     detail:
-      "Calmodulin to troponin C: 114 matched Cα pairs move N-to-C while unmatched residues fade.",
+      "A contact-map match selects 114 Cα pairs. Matched residues move in sequence from N to C; unmatched residues fade out or in.",
     source: "examples/backbone_morph.py",
     scene: "BackboneDemo",
     duration: "11.5 s",
@@ -273,11 +278,11 @@ export const demos = [
   },
   {
     id: "morph-atoms",
-    title: "A closer look at morphing",
+    title: "Ball-and-stick morph",
     file: "morph-atoms",
     label: "MORPH · BALL & STICK",
     detail:
-      "Matched residues translate with their Cα atoms while the endpoint atom sets blend with smooth transparency.",
+      "Each matched residue moves with its Cα atom. Source atoms fade out as target atoms fade in.",
     source: "examples/backbone_morph.py",
     scene: "BallAndStickDemo",
     duration: "11.5 s",
@@ -285,7 +290,7 @@ export const demos = [
   },
   {
     id: "groel",
-    title: "Go beyond a single chain",
+    title: "GroEL/GroES assembly",
     file: "groel",
     label: "LARGE ASSEMBLY",
     detail:

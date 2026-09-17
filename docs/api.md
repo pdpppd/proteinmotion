@@ -1,6 +1,6 @@
 # API reference
 
-This reference covers the public authoring API in version 0.6.2. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which live in their corresponding modules.
+This reference covers the public Python API in version 0.7.0. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which are in their own modules.
 
 ## ProteinScene
 
@@ -61,11 +61,11 @@ marker = region.highlight(style="box", color="#f2ba67", padding=1.5)
 
 Selections use PDB author residue numbers. Tuples are inclusive ranges; lists select explicit numbers. The chain and atom-name filters also accept lists. Empty selections raise an error. Explicit atom indices are zero-based.
 
-`region.atom_indices`, `region.residue_indices`, `region.positions`, and `region.world_positions` expose the selected atoms/residues and live coordinates. Indices are read-only. Unions require the same parent protein.
+`region.atom_indices`, `region.residue_indices`, `region.positions`, and `region.world_positions` expose the selected atoms/residues and current coordinates. Indices are read-only. Unions require the same parent protein.
 
-`region.set_color(color)`, `region.set_opacity(value)` and their `.animate` equivalents style the selection. `region.distance_to(other, **options)` creates a live ruler. [Styling and surface guide](styling.md).
+`region.set_color(color)`, `region.set_opacity(value)` and their `.animate` equivalents style the selection. `region.distance_to(other, **options)` creates a distance ruler. [Styling and surface guide](styling.md).
 
-Highlight styles are `sphere`, `box`, and `atoms`. All accept `color`, `opacity`, and `padding`; boxes also use `line_width`. Highlights follow their parent coordinates and transforms. Animate their opacity, not their transform. [More examples](regions.md).
+Highlight styles are `sphere`, `box`, and `atoms`. All accept `color`, `opacity`, and `padding`; boxes also use `line_width`. Highlights follow their parent coordinates and transforms. Animate opacity on the highlight and transforms on its parent. [More examples](regions.md).
 
 ## Text and annotations
 
@@ -114,7 +114,7 @@ InteractionHighlight(analysis, mode="3d", color=None,
                      **distance_options)
 ```
 
-Options after required positional arguments (and `charges`) are keyword-only. `Distance.distance` evaluates live endpoint separation; labels convert to `unit="nm"` when requested. Analyses expose `.pairs` and `.highlight(**options)`. Immutable `Interaction` records contain atom indices, distance, kind, optional angle/energy/hydrogen and an `inferred_hydrogen` flag; `.as_dict()` exports one record.
+Options after required positional arguments (and `charges`) are keyword-only. `Distance.distance` evaluates the current distance between endpoints; labels convert to `unit="nm"` when requested. Analyses expose `.pairs` and `.highlight(**options)`. Immutable `Interaction` records contain atom indices, distance, kind, optional angle/energy/hydrogen and an `inferred_hydrogen` flag; `.as_dict()` exports one record.
 
 `HydrogenBonds.hydrogen_position(pair)` returns the current H coordinates. For hydrogen bonds, `endpoints="hydrogen_acceptor"` draws and optionally labels H···A instead of the default D···A. [Alpha-helix diagnostic](alpha-helix.md).
 
@@ -135,7 +135,7 @@ self.play(self.camera.animate.zoom(1.3), run_time=1)
 
 | Constructor | Purpose |
 |---|---|
-| `Write(annotation)` / `Unwrite(annotation)` | Draw or erase vector glyphs and callout leaders |
+| `Write(annotation)` / `Unwrite(annotation)` | Draw or erase text and callout lines |
 | `Rotate(protein, angle, axis=(0, 1, 0))` | Rotate around the molecular centroid |
 | `FadeIn(target)` / `FadeOut(target)` | Animate opacity with smooth transparency |
 | `Representation(protein, name)` | Transition to `cartoon`, `ribbon`, `ball_and_stick`, or `surface` |
@@ -177,7 +177,7 @@ match = ContactMatch.load("correspondence.json")
 print(match.report)
 ```
 
-`ContactMatch.from_pairs(source, target, source_indices, target_indices)` accepts manually specified, monotone topology residue indices (not atom indices or PDB numbers). The bounded optimizer maximizes matched residue count under a configurable contact-error limit, then minimizes error. Global optimality must be checked in the report; it is not promised for large structures.
+`ContactMatch.from_pairs(source, target, source_indices, target_indices)` accepts zero-based topology residue indices in increasing order. The search maximizes matched residue count under a contact-error limit, then minimizes error among equal-sized sets. Check the report to see whether the search completed and proved optimality.
 
 ## Command line
 
@@ -191,6 +191,6 @@ proteinmotion still scene.py SceneName -o frame.png --time 4.5
 proteinmotion preview scene.py SceneName
 ```
 
-`init` creates a starter scene and bundled 1UBQ structure without overwriting files. `install-skill` copies the bundled Codex skill; `--path` selects its destination folder and `--force` replaces modified bundled files. All commands are also available through `python -m proteinmotion`.
+`init` creates a starter scene and a 1UBQ structure in a new folder. `install-skill` copies the AI agent skill; `--path` selects its destination folder and `--force` replaces modified bundled files. The default destination is the Codex skills directory. All commands are also available through `python -m proteinmotion`.
 
 Shared render/still/preview options: `--width`, `--height`, `--fps`, `--msaa 1|4`. Rendering also accepts `--codec` and `--bitrate`. Preview controls: drag to orbit, wheel to zoom, Space to pause, arrows to seek, Home to rewind, R to reset the camera, Escape to close.
