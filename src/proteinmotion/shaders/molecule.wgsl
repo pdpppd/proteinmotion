@@ -33,7 +33,13 @@ struct Segment {
 fn safe_normal(v: vec3<f32>) -> vec3<f32> {
     return v * inverseSqrt(max(dot(v,v), 0.00000001));
 }
-fn ease(t:f32) -> f32 { return t*t*t*(10.0+t*(-15.0+6.0*t)); }
+fn ease(t:f32) -> f32 {
+    // Mirror the upper half, as on the CPU: avoid cancellation near 1 that
+    // misclassifies fully visible fragments as transparent at a fade endpoint.
+    let u=select(t,1.0-t,t>0.5);
+    let value=u*u*u*(10.0+u*(-15.0+6.0*u));
+    return select(value,1.0-value,t>0.5);
+}
 fn atom_progress(i:u32) -> f32 {
     let c=controls[i].motion;
     if c.z<0.5 { return object.params.x; }

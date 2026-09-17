@@ -2,8 +2,9 @@ export const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "/proteinmotion";
 export const repo = "https://github.com/pdpppd/proteinmotion";
 export const site = "https://pdpppd.github.io/proteinmotion";
 const assetRevisions: Record<string, string> = {
-  "media/showcase.mp4": "1",
-  "media/showcase.jpg": "1",
+  "media/showcase.mp4": "2",
+  "media/showcase.jpg": "2",
+  "downloads/showcase.png": "2",
   "media/alpha-helix.mp4": "0.6.2",
   "media/alpha-helix.jpg": "0.6.2",
   "downloads/alpha-helix.png": "0.6.2",
@@ -88,10 +89,10 @@ export const guides = [
   {
     slug: "showcase",
     file: "showcase.md",
-    title: "Complete feature tour",
+    title: "Continuous feature tour",
     group: "EXAMPLES",
     description:
-      "One 66-second film covering every major visual capability, with chapters and runnable source.",
+      "One continuous calmodulin-to-troponin C tour, with chapter timings and runnable source.",
   },
   {
     slug: "alpha-helix",
@@ -144,14 +145,14 @@ export const guides = [
 export const demos = [
   {
     id: "showcase",
-    title: "ProteinMotion in 66 seconds",
+    title: "One continuous molecular story",
     file: "showcase",
-    label: "THE COMPLETE FEATURE TOUR",
+    label: "THE CONTINUOUS FEATURE TOUR",
     detail:
-      "Ten chapters: representations, residue styling, focus and labels, ensembles and MD readers, deformation, contact-guided morphs, hydrogen bonds, distance rulers, charge contacts, and a 58,870-atom complex.",
+      "Follow calmodulin through representations, residue styling, labels, NMR states and deformation. Morph into troponin C, then explore its hydrogen bonds, distance rulers and charge contacts. One scene, eased transitions, 60 fps.",
     source: "examples/feature_showcase.py",
     scene: "FeatureShowcase",
-    duration: "66 s",
+    duration: "101 s",
     pdb: "",
   },
   {

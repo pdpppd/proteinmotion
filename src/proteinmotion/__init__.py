@@ -14,7 +14,7 @@ from .scene import ProteinScene, Scene
 from .styling import Colorize, SetOpacity
 from .trajectory import Trajectory
 
-__version__ = "0.6.2"
+__version__ = "0.6.3"
 __all__ = [
     "Electrostatics",
     "HydrogenBonds",

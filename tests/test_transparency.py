@@ -163,3 +163,24 @@ def test_bond_only_annotations_keep_their_full_length(renderer):
         np.testing.assert_array_equal(
             renderer.render([p], camera, background), renderer.render([reference], camera, background)
         )
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("representation", ["cartoon", "ball_and_stick"])
+def test_residue_fade_endpoint_has_no_brightness_pop(renderer, protein, representation):
+    from proteinmotion import ProteinScene, SetOpacity
+
+    # A nonzero clip start exercises subtraction/rounding in the GPU's f32 clock.
+    # At these times the exact quintic opacity rounds to 1; treating even a few
+    # fragments as translucent can expose overlapping geometry and change shading.
+    getattr(protein, representation)()
+    protein.select().set_opacity(0.2)
+    scene = ProteinScene(width=192, height=192, msaa=renderer.msaa)
+    scene.add(protein)
+    scene.camera.frame(protein, aspect=1)
+    scene.wait(19.5)
+    scene.play(SetOpacity(protein, 1), run_time=1.5)
+    reference = scene.render_frame(21, renderer=renderer)
+    for epsilon in (1e-4, 1e-5, 1e-6):
+        actual = scene.render_frame(21 - epsilon, renderer=renderer)
+        np.testing.assert_array_equal(actual, reference)

@@ -129,7 +129,7 @@ export default function Home() {
             </p>
           </div>
           <div>
-            <p className="font-mono text-4xl tracking-tight">97</p>
+            <p className="font-mono text-4xl tracking-tight">101</p>
             <p className="mt-3 text-xs leading-6 text-muted">
               Passing local tests
               <br />

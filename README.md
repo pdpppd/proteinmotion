@@ -11,9 +11,9 @@ A small, Manim-inspired API for molecular films, with native Metal rendering on 
 
 [**Documentation**](https://pdpppd.github.io/proteinmotion/) · [**Video gallery**](https://pdpppd.github.io/proteinmotion/gallery/) · [**API reference**](https://pdpppd.github.io/proteinmotion/docs/api/) · [**Molecular tools script**](examples/molecular_tools.py) · [**Labeling script**](examples/labels_and_callouts.py) · [**Complete NMR script**](examples/nmr_regions.py)
 
-[![Watch the complete 66-second ProteinMotion feature tour](docs/showcase.png)](https://pdpppd.github.io/proteinmotion/gallery/#showcase)
+[![Watch the continuous ProteinMotion feature tour](docs/showcase.png)](https://pdpppd.github.io/proteinmotion/gallery/#showcase)
 
-**One film, ten chapters:** representations, residue styling, focus and labels, NMR/MD playback, deformation, protein morphs, hydrogen bonds, distance rulers, electrostatics, and large complexes. [Chapters and methods](https://pdpppd.github.io/proteinmotion/docs/showcase/) · [Runnable source](examples/feature_showcase.py)
+**One continuous film at 60 fps:** follow calmodulin through representations, residue styling, focus, labels, NMR-state playback and deformation. Morph into troponin C, then explore its hydrogen bonds, distances and electrostatics without a scene cut. [Chapters and methods](https://pdpppd.github.io/proteinmotion/docs/showcase/) · [Runnable source](examples/feature_showcase.py)
 
 ## What you can make
 
@@ -163,7 +163,7 @@ Watch these in the [video gallery](https://pdpppd.github.io/proteinmotion/galler
 
 On the tested **Apple M3 Max**, the 24-second NMR cartoon exported at 1080p/60 fps in **3.69 seconds**. The annotated region tour exported in 4.52 seconds. These are single local runs including rendering/readback/encoding and excluding loading and scene construction, with potentially warm driver caches—not universal performance guarantees.
 
-**97 local tests pass**, including native Metal rendering, residue styling, surfaces, numerical interactions, reproducible seeking, trajectory I/O, matching and hardware encoding. All 4,326 frames of the three NMR examples and all 1,728 frames of the new text examples decoded successfully. The two v0.6 films add 2,700 successfully decoded frames: the 24.8-second rebuilt-surface film exported in 33.69 seconds and the 20.2-second interaction film in 8.45 seconds at 1080p/60 fps. Surface rebuilding during coordinate motion is CPU-bound. [Methods, raw measurements, and limits](https://pdpppd.github.io/proteinmotion/docs/validation/).
+**101 local tests pass**, including native Metal rendering, residue styling, surfaces, numerical interactions, reproducible seeking, trajectory I/O, matching and hardware encoding. All 4,326 frames of the three NMR examples and all 1,728 frames of the new text examples decoded successfully. The two v0.6 films add 2,700 successfully decoded frames: the 24.8-second rebuilt-surface film exported in 33.69 seconds and the 20.2-second interaction film in 8.45 seconds at 1080p/60 fps. Surface rebuilding during coordinate motion is CPU-bound. [Methods, raw measurements, and limits](https://pdpppd.github.io/proteinmotion/docs/validation/).
 
 ## Scientific and implementation limits
 

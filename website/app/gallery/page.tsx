@@ -21,8 +21,8 @@ export default function Gallery() {
       </h1>
       <p className="mt-5 max-w-2xl text-base leading-7 text-muted">
         Actual package output, with the source and command for every film. These
-        web previews are compressed to 720p/30 fps; original renders were
-        1080p/60 fps.
+        web previews are compressed to 720p (the continuous tour at 60 fps,
+        other films at 30 fps); original renders were 1080p/60 fps.
       </p>
       <div className="mt-14 grid gap-x-10 gap-y-16 md:grid-cols-2">
         {demos.map((demo, i) => (

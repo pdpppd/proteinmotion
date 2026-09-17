@@ -1,7 +1,7 @@
 {
-  "frames": 3972,
-  "seconds": 23.342215833021328,
-  "fps": 170.16379372094426,
+  "frames": 6030,
+  "seconds": 23.537078417022713,
+  "fps": 256.1915244178702,
   "adapter": {
     "vendor": "",
     "architecture": "",
@@ -16,7 +16,7 @@
   },
   "codec": "h264_videotoolbox",
   "output": "outputs/proteinmotion-showcase.mp4",
-  "duration_seconds": 66.2,
+  "duration_seconds": 100.5,
   "width": 1920,
   "height": 1080,
   "output_fps": 60.0,
@@ -25,98 +25,123 @@
       "number": "01",
       "title": "Representations",
       "start": 0.0,
-      "duration": 9.0
+      "duration": 11.8
     },
     {
       "number": "02",
       "title": "Color + transparency",
-      "start": 9.0,
-      "duration": 8.4
+      "start": 11.8,
+      "duration": 9.2
     },
     {
       "number": "03",
       "title": "Focus + annotation",
-      "start": 17.4,
-      "duration": 6.5
+      "start": 21.0,
+      "duration": 12.1
     },
     {
       "number": "04",
-      "title": "Ensembles + MD readers",
-      "start": 23.9,
-      "duration": 7.0
+      "title": "States + deformation",
+      "start": 33.1,
+      "duration": 19.1
     },
     {
       "number": "05",
-      "title": "Deformation + easing",
-      "start": 30.9,
-      "duration": 5.0
+      "title": "Contact-guided morph",
+      "start": 52.2,
+      "duration": 13.5
     },
     {
       "number": "06",
-      "title": "Contact-guided morphs",
-      "start": 35.9,
-      "duration": 8.0
+      "title": "Hydrogen bonds",
+      "start": 65.7,
+      "duration": 8.2
     },
     {
       "number": "07",
-      "title": "Hydrogen bonds",
-      "start": 43.9,
-      "duration": 6.3
+      "title": "Live distances",
+      "start": 73.9,
+      "duration": 7.6
     },
     {
       "number": "08",
-      "title": "Distance labels",
-      "start": 50.2,
-      "duration": 5.0
+      "title": "Electrostatics",
+      "start": 81.5,
+      "duration": 8.2
     },
     {
       "number": "09",
-      "title": "Electrostatics",
-      "start": 55.2,
-      "duration": 5.0
-    },
-    {
-      "number": "10",
-      "title": "Scale + native rendering",
-      "start": 60.2,
-      "duration": 6.0
+      "title": "One continuous scene",
+      "start": 89.7,
+      "duration": 10.8
     }
   ],
-  "xtc_source": "2K39 aligned deposited NMR conformers, not MD",
-  "xtc_states_verified": 116,
-  "xtc_max_coordinate_error_angstrom": 0.0050048828125,
-  "cross_chapter_seek_deterministic": true,
-  "charge_source": "Imported array of illustrative formal side-chain charges",
-  "package_version": "0.6.2",
+  "morph_start_seconds": 55.39999999999999,
+  "morph_end_seconds": 63.89999999999999,
+  "protein_object_count": 2,
+  "hbond_count": 10,
+  "charge_energy_kcal_mol": -0.376579098955172,
+  "continuity": {
+    "clip_boundaries_verified": 55,
+    "sample_epsilon_seconds": 1e-06,
+    "max_camera_delta": 0.0,
+    "max_visible_coordinate_delta_angstrom": 2.9817101676599123e-06,
+    "max_opacity_delta": 7.152557373046875e-07,
+    "max_color_delta": 5.960464477539062e-07,
+    "max_representation_delta": 2.9629599775585326e-18,
+    "chapter_2_to_3_max_pixel_delta": 0,
+    "chapter_2_to_3_mean_pixel_delta": 0.0,
+    "chapter_2_to_3_fraction_pixels_delta_above_10": 0.0,
+    "troponin_pose_preserved_after_morph": true,
+    "backward_seek_pixel_identical": true,
+    "loop_endpoints_pixel_identical": true
+  },
+  "xtc_source": "1CFC NMR heavy atoms mapped to 1CLL identities; not MD",
+  "xtc_states_verified": 25,
+  "xtc_max_coordinate_error_angstrom": 0.005001068115234375,
+  "nmr_states_played": [
+    1,
+    2,
+    3
+  ],
+  "nmr_common_heavy_atoms": 1130,
+  "nmr_hidden_nonprotein_atoms": 6,
+  "charge_source": "Imported illustrative formal side-chain charges for 1NCX",
+  "package_version": "0.6.3",
+  "inputs": {
+    "1cfc.cif": {
+      "bytes": 5150482,
+      "sha256": "5a95f75069d65fef7ded5d9824a17022b7d78ed1ae159a1ed651d36f12a9eefa"
+    },
+    "showcase-calmodulin.pdb": {
+      "bytes": 89810,
+      "sha256": "de009ad9e676fb59501238f9462444cf20c8c5eb137d50d8464703a20a241ca5"
+    },
+    "showcase-calmodulin.xtc": {
+      "bytes": 112380,
+      "sha256": "3b716633d49465330fdd72f29475bfe167d9fa6fbd58b0509b0bdac793284629"
+    },
+    "showcase-troponin-charges.npy": {
+      "bytes": 10352,
+      "sha256": "8bf82bde94f8a0e7ddb3cb15c34df4b54d490571c044ff5d6ed08bdd89b8e1cf"
+    }
+  },
   "master_verification": {
     "codec": "h264",
     "width": 1920,
     "height": 1080,
     "fps": 60,
-    "decoded_frames": 3972,
-    "duration_seconds": 66.2
+    "decoded_frames": 6030,
+    "duration_seconds": 100.5,
+    "constant_frame_spacing_verified": true
   },
   "preview_verification": {
     "codec": "h264",
     "width": 1280,
     "height": 720,
-    "fps": 30,
-    "decoded_frames": 1986,
-    "duration_seconds": 66.2
-  },
-  "inputs": {
-    "showcase-nmr.pdb": {
-      "bytes": 47627,
-      "sha256": "7391c67ed107c3423a8c7be9d49fc4e13c3ef93a3f5280399d6829c7def292da"
-    },
-    "showcase-nmr.xtc": {
-      "bytes": 279592,
-      "sha256": "8b982aa93ee7ce29c1eeba84b882acf904cee090609829040cfbdd9ffef2ecaf"
-    },
-    "showcase-formal-charges.npy": {
-      "bytes": 4944,
-      "sha256": "b518112631b042b0919f755ff6a317d3367809437e04a2350afb4b18a459f121"
-    }
-  },
-  "initial_review_scene_construction_seconds": 1.451645166031085
+    "fps": 60,
+    "decoded_frames": 6030,
+    "duration_seconds": 100.5,
+    "constant_frame_spacing_verified": true
+  }
 }

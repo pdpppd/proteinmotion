@@ -4,11 +4,15 @@ Tested on 16–17 September 2026 on the local **Apple M3 Max, 40 GPU cores, 64 G
 macOS 26.6.2, arm64 Python 3.12.8. The native adapter reports `backend_type=Metal`.
 wgpu 0.32.0, Gemmi 0.7.5, PyAV 18.1.0, NumPy 2.5.3, and MDAnalysis 2.10.0 were used.
 
-## Complete feature showcase
+## Version 0.6.3: continuous feature tour and stable fade endpoints
 
-The ten-chapter homepage film contains **3,972 frames / 66.2 seconds** at 1920×1080, 60 fps and 4× MSAA. It exported in **23.34 seconds (170.2 fps)** using Metal and VideoToolbox on the same local M3 Max. This is one end-to-end run including renderer initialization, surface rebuilding, readback and hardware encoding; caches may be warm. All master frames and all **1,986** 720p/30 fps preview frames decoded successfully. Representative encoded frames from every chapter were inspected.
+The homepage film now uses one camera and a single timeline: calmodulin stays on screen until the contact-guided morph, and the actual troponin C destination carries the subsequent interaction demonstrations. All **55 animation boundaries** were checked for continuity of camera, visible atom coordinates, opacity, color and representation. Frames immediately before/after the styling-to-focus boundary at 21 seconds are pixel-identical at a ±1 μs interval. Backward seeking reproduces the same pixels, the troponin C pose is preserved after the morph, and the first/last frames meet on the same background for a gentle loop.
 
-The MD-reader demonstration uses a supplied XTC conversion of all 116 aligned 2K39 NMR conformers; it is not an MD simulation. Atom identities and all frames were compared to the source, with maximum coordinate error **0.00501 Å** (XTC quantization). Rendering a label scene, jumping to the large complex and seeking backward reproduces identical pixels. The existing **97 tests pass**, including native GPU checks. [Film, chapter guide and source](showcase.md) · [Measured render and input report](showcase-report.json).
+The GPU quintic easing function now mirrors its upper half, like the CPU implementation. This avoids floating-point cancellation near opacity 1 that could send apparently opaque cartoon fragments through the transparency pass and cause a brightness pop. Four new native GPU cases cover cartoon and ball-and-stick fades at 1×/4× MSAA and nonzero timeline offsets. All four fail against the previous shader and pass with the fix. **101 local tests pass.**
+
+The continuous film contains **6,030 frames / 100.5 seconds** at 1920×1080, 60 fps and 4× MSAA. It exported in **23.54 seconds (256.2 fps)** using Metal and VideoToolbox on the local M3 Max. This is one end-to-end run including renderer initialization, surfaces, readback and hardware encoding; caches may be warm. It has different content from earlier films and is not a controlled performance comparison. The 720p web preview retains **60 fps**. All frames of both encodes decoded successfully; representative frames and the transition around 20 seconds were inspected.
+
+The MD-reader demonstration now uses 25 deposited **1CFC calmodulin NMR conformers**, mapped by exact identity to all **1,130 protein heavy atoms** in the displayed 1CLL topology. Six nonprotein atoms are hidden during playback. Atom identities and every XTC frame were compared with the mapped source, with maximum coordinate error **0.00501 Å** (XTC quantization). Only states 1–3 are played, slowly; these are not MD simulation frames or a physical time series. [Film, chapter guide and source](showcase.md) · [Measured render, continuity and input report](showcase-report.json).
 
 ## Version 0.6.2: clean ball-and-stick fades
 
