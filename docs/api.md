@@ -182,10 +182,15 @@ print(match.report)
 ## Command line
 
 ```bash
+proteinmotion --version
+proteinmotion init my-movie
+proteinmotion install-skill
 proteinmotion doctor
 proteinmotion render scene.py SceneName -o film.mp4 --fps 60
 proteinmotion still scene.py SceneName -o frame.png --time 4.5
 proteinmotion preview scene.py SceneName
 ```
 
-Shared options: `--width`, `--height`, `--fps`, `--msaa 1|4`. Rendering also accepts `--codec` and `--bitrate`. Preview controls: drag to orbit, wheel to zoom, Space to pause, arrows to seek, Home to rewind, R to reset the camera, Escape to close.
+`init` creates a starter scene and bundled 1UBQ structure without overwriting files. `install-skill` copies the bundled Codex skill; `--path` selects its destination folder and `--force` replaces modified bundled files. All commands are also available through `python -m proteinmotion`.
+
+Shared render/still/preview options: `--width`, `--height`, `--fps`, `--msaa 1|4`. Rendering also accepts `--codec` and `--bitrate`. Preview controls: drag to orbit, wheel to zoom, Space to pause, arrows to seek, Home to rewind, R to reset the camera, Escape to close.

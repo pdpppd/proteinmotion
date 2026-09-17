@@ -19,3 +19,7 @@ The unmodified Regular and Semibold OpenType fonts are from [Adobe Source Sans, 
 Copyright 2010–2024 Adobe, with Reserved Font Name “Source”. Distributed under the [SIL Open Font License 1.1](src/proteinmotion/fonts/OFL.txt), included beside the font binaries in source distributions and wheels. The font license does not apply to documents or videos created using the fonts.
 
 Other dependencies retain their respective upstream licenses. PDB structure provenance is documented in [docs/rendering.md](docs/rendering.md).
+
+## Starter structure
+
+The installable starter movie and Codex skill include deposited ubiquitin coordinates, [PDB 1UBQ](https://www.rcsb.org/structure/1UBQ), copied unchanged from `examples/data/1ubq.cif`. The file retains its structural metadata and source citation. These scientific data are separate from the package's original MIT-licensed code.

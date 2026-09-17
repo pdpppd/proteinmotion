@@ -18,7 +18,7 @@ export default function Header() {
           </span>
           ProteinMotion
           <span className="ml-1 hidden rounded border border-line px-1.5 py-1 font-mono text-[10px] font-normal tracking-normal text-muted lg:inline">
-            v0.6
+            v0.7
           </span>
         </Link>
         <nav

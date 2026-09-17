@@ -1,10 +1,12 @@
 import argparse
 import importlib.util
 import json
+import shlex
 import shutil
 import sys
 from pathlib import Path
 
+from . import __version__
 from .scene import ProteinScene
 
 
@@ -29,8 +31,22 @@ def main():
     parser = argparse.ArgumentParser(
         prog="proteinmotion", description="Programmatic molecular films on native Metal"
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("doctor", help="Report the native GPU and video encoder environment")
+    starter = commands.add_parser("init", help="Create a starter film and bundled PDB input")
+    starter.add_argument(
+        "directory", type=Path, help="Movie folder; existing film/data are never overwritten"
+    )
+    skill = commands.add_parser("install-skill", help="Install the bundled Codex movie-making skill")
+    skill.add_argument(
+        "--path",
+        type=Path,
+        help="Destination skill folder (default: $CODEX_HOME/skills/proteinmotion-movies)",
+    )
+    skill.add_argument(
+        "--force", action="store_true", help="Replace modified bundled files; preserve unrelated files"
+    )
     for mode in ("render", "still", "preview"):
         p = commands.add_parser(mode)
         p.add_argument("file", type=Path)
@@ -47,6 +63,24 @@ def main():
         if mode == "still":
             p.add_argument("--time", type=float, default=0)
     args = parser.parse_args()
+    if args.command in ("init", "install-skill"):
+        from .authoring import SKILL_NAME, init_movie, install_skill
+
+        try:
+            if args.command == "init":
+                destination = init_movie(args.directory)
+                print(f"Created {destination / 'film.py'} and {destination / '1ubq.cif'}")
+                print(
+                    f"proteinmotion render {shlex.quote(str(destination / 'film.py'))} "
+                    f"ProteinMovie --fps 60 -o {shlex.quote(str(destination / 'film.mp4'))}"
+                )
+            else:
+                destination = install_skill(args.path, force=args.force)
+                print(f"Installed ${SKILL_NAME} at {destination}")
+                print("If Codex is already open, start a new conversation to discover the skill.")
+        except (OSError, ValueError) as exc:
+            parser.error(str(exc))
+        return
     if args.command == "doctor":
         import platform
 
@@ -59,6 +93,7 @@ def main():
         print(
             json.dumps(
                 {
+                    "proteinmotion": __version__,
                     "python": sys.version,
                     "machine": platform.machine(),
                     "wgpu": wgpu.__version__,

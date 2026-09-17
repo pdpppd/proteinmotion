@@ -31,63 +31,47 @@ ProteinMotion is a standalone package with Manim-inspired syntax. Export its cli
 
 ## Install
 
-Python 3.11+ and a native GPU are required. Apple silicon/macOS is the verified platform.
+Python 3.11+ and a native GPU are required. Apple silicon/macOS is the verified platform. Install the **v0.7.0 wheel** directly from [GitHub Releases](https://github.com/pdpppd/proteinmotion/releases/tag/v0.7.0):
 
 ```bash
-git clone https://github.com/pdpppd/proteinmotion.git
-cd proteinmotion
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e '.[preview]'
+python -m pip install \
+  https://github.com/pdpppd/proteinmotion/releases/download/v0.7.0/proteinmotion-0.7.0-py3-none-any.whl
 proteinmotion doctor
 ```
 
-Install `'.[preview,md]'` to add MD trajectory readers. The core install is `pip install -e .`. PyAV wheels bundle FFmpeg libraries; rendering needs no FFmpeg executable, browser, Blender, or Xcode build. This version is installed from source; no PyPI release is assumed.
+No repository checkout is required. Shaders, fonts, licenses, the starter structure and the Codex skill are included. PyAV bundles FFmpeg libraries; no external FFmpeg executable, browser, Blender or Xcode build is needed.
+
+For interactive preview and MD readers:
+
+```bash
+python -m pip install \
+  "proteinmotion[preview,md] @ https://github.com/pdpppd/proteinmotion/releases/download/v0.7.0/proteinmotion-0.7.0-py3-none-any.whl"
+```
 
 ## Your first film
 
-Save this as `film.py` in the repository root:
-
-```python
-from proteinmotion import (
-    FadeIn, FadeOut, Protein, ProteinScene, Representation, Rotate,
-)
-
-
-class MyFilm(ProteinScene):
-    def construct(self):
-        protein = Protein.from_file("examples/data/1ubq.cif").cartoon().center()
-        self.add(protein)
-        self.camera.frame(protein, aspect=self.width / self.height)
-
-        self.play(FadeIn(protein), run_time=0.8)
-        self.play(Rotate(protein, 1.2), run_time=2)
-
-        helix = protein.select(chain="A", residues=(23, 34))
-        highlight = helix.highlight(style="box", color="#f2ba67")
-        self.play(FadeIn(highlight), run_time=0.6)
-        self.focus(helix, margin=1.7, run_time=1.5)
-        self.play(Rotate(protein, 0.5), run_time=1.5)
-        self.play(FadeOut(highlight), run_time=0.6)
-        self.focus(protein, run_time=1.2)
-
-        self.play(Representation(protein, "ball_and_stick"), run_time=1)
-        self.wait(0.8)
-
-
-if __name__ == "__main__":
-    MyFilm(width=1920, height=1080, fps=60).render("film.mp4")
-```
-
 ```bash
-python film.py
-# Or render the included equivalent:
-proteinmotion render examples/quickstart.py Quickstart -o film.mp4 --fps 60
-# Interactive preview (requires the preview extra):
-proteinmotion preview examples/quickstart.py Quickstart
+proteinmotion init my-movie
+proteinmotion render my-movie/film.py ProteinMovie --fps 60 -o my-movie/film.mp4
 ```
+
+This creates an editable scene and a real ubiquitin structure, then renders a film with rotation, residue color, a helix callout, eased camera focus, and representation changes. [Complete starter script](skills/proteinmotion-movies/assets/film.py) · [Installation and authoring guide](https://pdpppd.github.io/proteinmotion/docs/getting-started/).
 
 Residue ranges are inclusive PDB author numbers; angles are radians and coordinates are ångströms. Animations inside one `play()` run together. Successive calls run in sequence.
+
+## Make movies with Codex
+
+```bash
+proteinmotion install-skill
+```
+
+Then ask Codex: **“Use $proteinmotion-movies to make a movie from my protein structure with labels and focused camera moves.”** The skill is installed locally and included in the release. If Codex was already open, start a new conversation to discover it.
+
+[Skill source](skills/proteinmotion-movies/SKILL.md) · [Skill ZIP](https://github.com/pdpppd/proteinmotion/releases/download/v0.7.0/proteinmotion-movies-v0.7.0.zip) · [Usage guide](https://pdpppd.github.io/proteinmotion/docs/codex-skill/).
+
+For development and the larger repository examples, clone this repository and run `python -m pip install -e '.[dev,md,preview]'`. The Python package is also runnable as `python -m proteinmotion`.
 
 ## Write labels into the scene
 
@@ -163,7 +147,7 @@ Watch these in the [video gallery](https://pdpppd.github.io/proteinmotion/galler
 
 On the tested **Apple M3 Max**, the 24-second NMR cartoon exported at 1080p/60 fps in **3.69 seconds**. The annotated region tour exported in 4.52 seconds. These are single local runs including rendering/readback/encoding and excluding loading and scene construction, with potentially warm driver caches—not universal performance guarantees.
 
-**101 local tests pass**, including native Metal rendering, residue styling, surfaces, numerical interactions, reproducible seeking, trajectory I/O, matching and hardware encoding. All 4,326 frames of the three NMR examples and all 1,728 frames of the new text examples decoded successfully. The two v0.6 films add 2,700 successfully decoded frames: the 24.8-second rebuilt-surface film exported in 33.69 seconds and the 20.2-second interaction film in 8.45 seconds at 1080p/60 fps. Surface rebuilding during coordinate motion is CPU-bound. [Methods, raw measurements, and limits](https://pdpppd.github.io/proteinmotion/docs/validation/).
+**107 local tests pass**, including native Metal rendering, residue styling, surfaces, numerical interactions, reproducible seeking, trajectory I/O, matching and hardware encoding. All 4,326 frames of the three NMR examples and all 1,728 frames of the new text examples decoded successfully. The two v0.6 films add 2,700 successfully decoded frames: the 24.8-second rebuilt-surface film exported in 33.69 seconds and the 20.2-second interaction film in 8.45 seconds at 1080p/60 fps. Surface rebuilding during coordinate motion is CPU-bound. [Methods, raw measurements, and limits](https://pdpppd.github.io/proteinmotion/docs/validation/).
 
 ## Scientific and implementation limits
 

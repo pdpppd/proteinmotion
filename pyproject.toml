@@ -4,11 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "proteinmotion"
-version = "0.6.3"
+version = "0.7.0"
 description = "Programmatic protein animation with a Manim-inspired API and native Metal rendering"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY.md"]
 dependencies = ["numpy>=1.26", "scipy>=1.12", "gemmi>=0.7,<0.8", "wgpu>=0.31,<0.33", "pillow>=10", "av>=18,<19", "fonttools>=4.55,<5", "uharfbuzz>=0.45,<1", "mapbox-earcut>=1.0,<3", "scikit-image>=0.24,<0.27"]
 
 [project.urls]
@@ -39,5 +40,13 @@ select = ["E4", "E7", "E9", "F", "I"]
 [tool.hatch.build.targets.wheel]
 packages = ["src/proteinmotion"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"skills/proteinmotion-movies/SKILL.md" = "proteinmotion/_skill/SKILL.md"
+"skills/proteinmotion-movies/agents/openai.yaml" = "proteinmotion/_skill/agents/openai.yaml"
+"skills/proteinmotion-movies/references/animation.md" = "proteinmotion/_skill/references/animation.md"
+"skills/proteinmotion-movies/references/annotations-and-interactions.md" = "proteinmotion/_skill/references/annotations-and-interactions.md"
+"skills/proteinmotion-movies/assets/film.py" = "proteinmotion/_skill/assets/film.py"
+"skills/proteinmotion-movies/assets/1ubq.cif" = "proteinmotion/_skill/assets/1ubq.cif"
+
 [tool.hatch.build.targets.sdist]
-include = ["/src", "/tests", "/examples", "/docs", "/README.md", "/CONTRIBUTING.md", "/THIRD_PARTY.md", "/LICENSE", "/pyproject.toml"]
+include = ["/src", "/tests", "/examples", "/skills", "/scripts", "/docs", "/README.md", "/CONTRIBUTING.md", "/THIRD_PARTY.md", "/LICENSE", "/pyproject.toml"]

@@ -4,6 +4,14 @@ Tested on 16–17 September 2026 on the local **Apple M3 Max, 40 GPU cores, 64 G
 macOS 26.6.2, arm64 Python 3.12.8. The native adapter reports `backend_type=Metal`.
 wgpu 0.32.0, Gemmi 0.7.5, PyAV 18.1.0, NumPy 2.5.3, and MDAnalysis 2.10.0 were used.
 
+## Version 0.7: installable authoring tools and Codex skill
+
+**107 local tests pass.** Six new CPU cases cover starter movies with paths containing spaces, rendering-scene construction outside the checkout, overwrite protection, skill installation under a configured Codex directory, idempotent installation, explicit updates preserving unrelated files, symlink rejection, and CLI entry points.
+
+The wheel built from the source distribution was installed into a fresh environment with `md` and `preview` extras. An isolated Python process outside the checkout verified the installed module location, all shader/font/license resources, and the complete bundled skill. The installed CLI created a self-contained movie project and installed the skill to a temporary destination. A 60-frame, 640×360 native Metal/VideoToolbox movie rendered from the installed package and every frame decoded successfully. The same resource/CLI check now runs in CI without requiring a GPU.
+
+The `proteinmotion-movies` skill passed the skill-creator validator and an independent authoring trial: a 10-second 640×360, 30 fps ubiquitin movie with residue selection, a representation transition and a Cα distance ruler. All 300 frames decoded. The trial identified a sizing ambiguity; the skill now explicitly documents 1080p design pixels for text, label offsets and 2D line widths. [Skill guide](codex-skill.md) · [Install the release](getting-started.md).
+
 ## Version 0.6.3: continuous feature tour and stable fade endpoints
 
 The homepage film now uses one camera and a single timeline: calmodulin stays on screen until the contact-guided morph, and the actual troponin C destination carries the subsequent interaction demonstrations. All **55 animation boundaries** were checked for continuity of camera, visible atom coordinates, opacity, color and representation. Frames immediately before/after the styling-to-focus boundary at 21 seconds are pixel-identical at a ±1 μs interval. Backward seeking reproduces the same pixels, the troponin C pose is preserved after the morph, and the first/last frames meet on the same background for a gentle loop.

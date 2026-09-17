@@ -8,15 +8,15 @@ ProteinMotion is an early implementation. Keep new features small, reproducible,
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[dev,md,preview]'
-ruff format src tests examples
-ruff check src tests examples
+ruff format src tests examples scripts skills
+ruff check src tests examples scripts skills
 pytest
 python -m build
 ```
 
 GPU and hardware-export tests are marked `gpu` and should be run on a real native adapter. Optional video checks need `ffmpeg` and `ffprobe` (`brew install ffmpeg` on macOS). CPU checks can run with `pytest -m "not gpu"`.
 
-The hosted GitHub checks run CPU tests and linting on Ubuntu, then build the package. They do not replace the local Apple silicon GPU checks recorded in the validation report. When changing rendering or animation, run the complete local suite and inspect actual output.
+The hosted GitHub checks run CPU tests and linting on Ubuntu, then build the package and verify the wheel in a clean environment outside the checkout. They do not replace the local Apple silicon GPU checks recorded in the validation report. When changing rendering or animation, run the complete local suite and inspect actual output.
 
 ## Documentation development
 
@@ -46,10 +46,16 @@ The build exports static HTML into `website/out/`. `PAGES_BASE_PATH` defaults to
 
 The Pages workflow builds on pull requests and pushes. Only `main` pushes or a manual workflow run from `main` deploy. GitHub Pages must use **GitHub Actions** as its source. The workflow uploads the static export and deploys it with the official Pages actions. No server or API keys are required by the site.
 
-Compressed web previews are committed in `website/public/media/`. They are 720p/30 fps versions of the original 1080p/60 fps films. Their source filenames and sizes are recorded in `provenance.json`; the scientific data provenance lives in the documentation. Original rendered videos, caches, local environments, and build outputs are ignored.
+Compressed web previews are committed in `website/public/media/`. They are 720p versions of the original 1080p/60 fps films (the continuous tour retains 60 fps; other previews use 30 fps). Their source filenames and sizes are recorded in `provenance.json`; the scientific data provenance lives in the documentation. Original rendered videos, caches, local environments, and build outputs are ignored.
 
 ## Changes and issues
 
 Open an issue with a minimal scene, input format, Python version, and the output of `proteinmotion doctor`. For rendering defects, include the relevant time or frame. Avoid uploading private or unpublished structures unless you intend to share them publicly.
 
 A pull request should explain the concrete behavior change and relevant validation. Keep source attribution for new example data. Do not label interpolated coordinates as measured dynamics or physically valid transitions without supporting methodology.
+
+## Package and skill releases
+
+The canonical Codex skill is `skills/proteinmotion-movies`. Its six resource files are mapped into the wheel by `pyproject.toml`; keep that mapping in sync when adding a skill resource. Run the skill-creator validator when changing its instructions. The starter scene is shared by the skill and `proteinmotion init`, so maintain it once.
+
+Build with `python -m build` (the wheel is built from the sdist). Install that wheel into a fresh environment, change out of the checkout, and run `python -I /path/to/repo/scripts/check_installed_package.py --render` on a native GPU. CI runs the same installed-resource check without rendering. Distribute the wheel, source archive, skill ZIP and checksums as versioned GitHub Release assets. Do not publish a new version or replace release assets unless that publication is part of the task.

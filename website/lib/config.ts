@@ -23,6 +23,14 @@ export const guides = [
     description: "Install ProteinMotion and render your first film.",
   },
   {
+    slug: "codex-skill",
+    file: "codex-skill.md",
+    title: "Codex movie skill",
+    group: "START HERE",
+    description:
+      "Install the bundled skill and ask Codex to create protein movies.",
+  },
+  {
     slug: "scenes",
     file: "scenes.md",
     title: "Scenes & motion",
