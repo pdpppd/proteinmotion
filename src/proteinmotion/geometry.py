@@ -60,8 +60,8 @@ def segments(protein):
             w, h = {"H": (1.15, 0.20), "E": (1.18, 0.16), "C": (0.24, 0.24)}[ss]
             if ss == "E" and (j == len(chain) - 1 or topo.residues[chain[j + 1]].secondary != "E"):
                 w = 2.05
-            width.append(w)
-            thick.append(h)
+            width.append(w * protein._cartoon_scale[ri])
+            thick.append(h * protein._cartoon_scale[ri])
         for i in range(len(chain) - 1):
             row = np.zeros(20, np.float32)
             row[:4].view(np.uint32)[:] = [

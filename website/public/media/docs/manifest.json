@@ -430,5 +430,69 @@
       "examples/data/1cll.cif": "a8be375d00d2d5d47ffacae491f775167d1c0488ab8485cabd269410e596d3aa"
     },
     "code": "\"\"\"Calmodulin 1CLL: select a helix, fade its context, then pull lens focus.\n\nRender with:\n    proteinmotion render examples/eevee_focus.py HelixFocus --renderer eevee \\\n        --width 960 --height 540 --fps 60 -o helix-focus.mp4\n\nRequires Blender 4.5+. The camera motion illustrates the deposited structure.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import FocusPull, Protein, ProteinScene, SetOpacity, Text, Write\n\nDATA = Path(__file__).resolve().parent / \"data\"\n\n\nclass HelixFocus(ProteinScene):\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1cll.cif\", chains=\"A\").cartoon(color=\"#7299b4\").center()\n        protein.rotate(0.9, axis=(0, 0, 1))\n        helix = protein.select(chain=\"A\", residues=(5, 19))\n        helix.set_color(\"#ffb34c\")\n        # The context selection includes every atom outside the highlighted helix.\n        context = protein.select(chain=\"A\", residues=[4, *range(20, 149)])\n        far_region = protein.select(chain=\"A\", residues=(82, 92), atoms=\"CA\")\n        self.add(protein)\n        self.camera.frame(protein, aspect=self.width / self.height).zoom(1.5)\n        self.camera.set_focus(protein, chain=\"A\", residues=(5, 19), atoms=\"CA\", fstop=4)\n        self.add(Text(\"Calmodulin \u00b7 1CLL\", position=(0.055, 0.9), font_size=30))\n        label = helix.callout(\n            \"Alpha helix\",\n            subtitle=\"Chain A \u00b7 residues 5\u201319\",\n            position=(0.68, 0.13),\n            color=\"#ffb34c\",\n            font_size=38,\n        )\n        self.play(Write(label), run_time=0.8)\n        self.play(SetOpacity(context, 0.06), run_time=1)\n        self.play(self.camera.animate.orbit(theta=0.28), run_time=2)\n        self.wait(0.4)\n        self.play(FocusPull(self.camera, far_region, fstop=2.8), SetOpacity(context, 0.35), run_time=1.4)\n        self.wait(0.4)\n        self.play(FocusPull(self.camera, helix, fstop=4), SetOpacity(context, 0.06), run_time=1.2)\n        self.wait(0.8)"
+  },
+  "numerical-properties": {
+    "title": "B factors across representations",
+    "caption": "1UBQ B factors control residue color and cartoon thickness.",
+    "source": "examples/numerical_properties.py",
+    "scene": "NumericalProperties",
+    "duration": 8.5,
+    "frames": 510,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/docs/numerical-properties.mp4",
+    "poster": "media/docs/numerical-properties.jpg",
+    "poster_time": 3,
+    "video_sha256": "0cc97c6f140f9884522feee9b0688dd349bc5ed378ef96934f4407f6c92d411d",
+    "poster_sha256": "8c5da7d4a74e5cfc4c62d823ff6b8b9e2cdd59a81aea3b1af2bb14c4b9716b70",
+    "dependencies": {
+      "examples/numerical_properties.py": "995d537f01ca4d0fa271ff49c38605b6d8f455da6e2b764ca29470c99f4b4020",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Map 1UBQ C\u03b1 B factors to residue color and cartoon thickness.\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import (\n    ColorByProperty,\n    ColorLegend,\n    ColorScale,\n    Protein,\n    ProteinScene,\n    Representation,\n    ResidueValues,\n    Rotate,\n    Text,\n)\n\nDATA = Path(__file__).parent / \"data\"\n\n\nclass NumericalProperties(ProteinScene):\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1ubq.cif\").center()\n        values = ResidueValues.b_factors(protein)\n        scale = ColorScale(0, 40)\n        self.add(protein)\n        self.camera.frame(protein, margin=1.08)\n        self.add(Text(\"Residue properties\", position=(0.06, 0.07), font_size=42))\n        self.add(Text(\"Ubiquitin \u00b7 C\u03b1 B factors\", position=(0.06, 0.13), font_size=25))\n        self.add(ColorLegend(scale, title=\"B factor\", unit=\"\u00c5\u00b2\", position=(0.06, 0.8)))\n        self.play(\n            ColorByProperty(protein, values, scale=scale, thickness=(0.6, 1.8), residue_delay=0.012),\n            Rotate(protein, 0.25),\n            run_time=2.5,\n        )\n        self.wait(0.5)\n        self.play(Representation(protein, \"ball_and_stick\"), run_time=1.5)\n        self.play(Rotate(protein, 0.3), run_time=1)\n        self.play(Representation(protein, \"surface\"), run_time=1.5)\n        self.play(Rotate(protein, 0.25), run_time=1.5)"
+  },
+  "synchronized-plots": {
+    "title": "NMR states with linked plots",
+    "caption": "2K39 playback with a contact map, sequence strip, and C\u03b1 distance trace.",
+    "source": "examples/synchronized_plots.py",
+    "scene": "SynchronizedPlots",
+    "duration": 10.0,
+    "frames": 600,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/docs/synchronized-plots.mp4",
+    "poster": "media/docs/synchronized-plots.jpg",
+    "poster_time": 4,
+    "video_sha256": "24d6496e9f3f91cd0c7c344b84bf9b113a71d42cd4fe10fb329eaa757a7d06b8",
+    "poster_sha256": "3d8555865f07ae0f83344580c0bb9b367d09cf75c73bbb7e7c17c4b339fa4ff1",
+    "dependencies": {
+      "examples/synchronized_plots.py": "73af2ca471ba92fd673e76ba5370f42bf09ae62454185a4fb2a18761cd664569",
+      "examples/data/2k39.cif": "a6bf4eed6d432c37089a81aba2ef1ef1bf6500e819ac628c5a5258460e1bb824"
+    },
+    "code": "\"\"\"A ubiquitin NMR ensemble, contact map, sequence, and synchronized distance trace.\n\n2K39 contains deposited NMR models. Interpolation illustrates ensemble variation;\nstate indices do not represent elapsed physical time. Frames are aligned on C\u03b1\nresidues 1\u201370 to remove overall translation and rotation.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import (\n    ColorLegend,\n    ColorScale,\n    ContactMap,\n    PlayTrajectory,\n    Protein,\n    ProteinScene,\n    ResidueValues,\n    SequenceTrack,\n    Text,\n    TimeSeriesPlot,\n    linear,\n)\n\nDATA = Path(__file__).parent / \"data\"\n\n\nclass SynchronizedPlots(ProteinScene):\n    def construct(self):\n        protein = Protein.from_file(DATA / \"2k39.cif\").center()\n        core = protein.select(chain=\"A\", residues=(1, 70), atoms=\"CA\")\n        protein.trajectory = protein.trajectory.aligned(indices=core.atom_indices)\n        values = ResidueValues.rmsf(protein, align=False)\n        scale = ColorScale(0, 8)\n        protein.color_by(values, scale=scale)\n        selected = protein.select(chain=\"A\", residues=(23, 34))\n        self.add(protein, selected.highlight(style=\"box\", padding=1.0, color=\"#f5d477\"))\n        self.camera.frame(protein, margin=1.22)\n        # Offset the camera target to leave room for the plots on the right.\n        self.camera.target += [12, 0, 0]\n        self.add(Text(\"An NMR ensemble with synchronized plots\", position=(0.05, 0.05), font_size=35))\n        self.add(Text(\"2K39 \u00b7 deposited model order\", position=(0.05, 0.105), font_size=24))\n        self.add(ContactMap(protein, selection=selected, position=(0.69, 0.16), size=(0.27, 0.36)))\n        self.add(\n            TimeSeriesPlot.distance(\n                protein.select(residues=5, atoms=\"CA\"),\n                protein.select(residues=70, atoms=\"CA\"),\n                title=\"C\u03b1 5 \u2192 C\u03b1 70\",\n                position=(0.64, 0.54),\n                size=(0.32, 0.29),\n            )\n        )\n        self.add(\n            SequenceTrack(\n                protein,\n                selection=selected,\n                title=\"Helix: residues 23\u201334\",\n                position=(0.05, 0.85),\n                size=(0.91, 0.13),\n            )\n        )\n        self.add(\n            ColorLegend(\n                scale, title=\"Aligned ensemble RMSF\", unit=\"\u00c5\", position=(0.05, 0.68), size=(0.29, 0.12)\n            )\n        )\n        self.wait(0.5)\n        self.play(PlayTrajectory(protein), run_time=9, rate_func=linear)\n        self.wait(0.5)"
+  },
+  "density-maps": {
+    "title": "Electron density and slices",
+    "caption": "1UBQ PDBe density: animate the contour and move a slice past helix 23\u201334.",
+    "source": "examples/density_maps.py",
+    "scene": "DensityMaps",
+    "duration": 10.0,
+    "frames": 600,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/docs/density-maps.mp4",
+    "poster": "media/docs/density-maps.jpg",
+    "poster_time": 6,
+    "video_sha256": "ef7a1f07d8e51370f4d5198a90fe4622249c1c5751672c5facb76b509cd5e844",
+    "poster_sha256": "940db343f73a6b5a60a0f112edb1c6dcde97a3b4726568fd3d4491ab7c283fdb",
+    "dependencies": {
+      "examples/density_maps.py": "339c58105923d39b131b6b4a5e46579b513e54237707ed0aa0a301323c434fb3",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6",
+      "examples/data/1ubq.ccp4": "ffa129de6ba72a0980b7724abfec132ee952334c92e1b57023876e38f24c4153"
+    },
+    "code": "\"\"\"1UBQ electron density from PDBe, with a contour and a moving density slice.\n\nSource: https://www.ebi.ac.uk/pdbe/coordinates/files/1ubq.ccp4\nRetrieved 2026-09-17. The supplied map covers a complete crystallographic unit\ncell. Cropping extends periodic data across the cell boundary when needed.\nSigma contours use the mean and standard deviation of the original map.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import (\n    ColorLegend,\n    ColorScale,\n    DensityMap,\n    FadeIn,\n    FadeOut,\n    Protein,\n    ProteinScene,\n    Text,\n)\n\nDATA = Path(__file__).parent / \"data\"\n\n\nclass DensityMaps(ProteinScene):\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1ubq.cif\").ball_and_stick().center()\n        protein.set_residue_opacity(0.08)\n        helix = protein.select(chain=\"A\", residues=(23, 34))\n        helix.set_opacity(1)\n        density = DensityMap.from_file(DATA / \"1ubq.ccp4\")\n        local = density.crop(helix, padding=2.5)\n        shell = local.isosurface(1.5, opacity=0.28, follow=protein)\n        scale = ColorScale(-0.5, 2, colors=(\"#10243d\", \"#438ca4\", \"#f5df93\"))\n        section = local.slice(\"z\", 0.15, scale=scale, follow=protein, resolution=96)\n        self.add(protein, shell)\n        self.camera.frame(helix, margin=1.55)\n        self.camera.orbit(theta=0.22, phi=0.18)\n        self.add(Text(\"Electron density\", position=(0.06, 0.07), font_size=42))\n        self.add(Text(\"1UBQ \u00b7 helix 23\u201334 \u00b7 PDBe map\", position=(0.06, 0.13), font_size=25))\n        self.play(FadeIn(shell), run_time=1)\n        self.play(shell.animate.set_level(2.5), self.camera.animate.orbit(theta=0.25), run_time=2)\n        self.play(shell.animate.set_level(1.5), run_time=1.5)\n        self.play(FadeIn(section), run_time=1)\n        self.add(ColorLegend(scale, title=\"Map value\", position=(0.06, 0.81)))\n        self.play(section.animate.set_slice(0.85), run_time=3)\n        self.play(FadeOut(section), run_time=1)\n        self.wait(0.5)"
   }
 }

@@ -71,6 +71,29 @@ export const guides = [
       "Set residue colors and transparency, and render molecular surfaces.",
   },
   {
+    slug: "numerical-properties",
+    file: "numerical-properties.md",
+    title: "Numerical properties",
+    group: "AUTHORING",
+    description:
+      "Map B factors, RMSF, and custom residue values to color and thickness.",
+  },
+  {
+    slug: "synchronized-plots",
+    file: "synchronized-plots.md",
+    title: "Plots & sequence tracks",
+    group: "AUTHORING",
+    description:
+      "Add distance traces, live contact maps, and sequence strips to a movie.",
+  },
+  {
+    slug: "density-maps",
+    file: "density-maps.md",
+    title: "Density maps & slices",
+    group: "AUTHORING",
+    description: "Load MRC/CCP4 maps and animate contours and slices.",
+  },
+  {
     slug: "interactions",
     file: "interactions.md",
     title: "Distances & interactions",

@@ -9,6 +9,7 @@ import wgpu
 
 from .annotations import Annotation
 from .geometry import atom_metadata, segments, state_data, sweep_grid
+from .mesh import MeshGPU, MeshObject
 
 
 class _MoleculeGPU:
@@ -45,6 +46,7 @@ class _MoleculeGPU:
         self.appearance = storage(protein._appearance)
         self.appearance_reference = protein._appearance
         self.has_style_opacity = bool(np.any(protein._appearance[:, 12:14] != 1))
+        self.shape_reference = protein._cartoon_scale
         self.color_key = str(protein.color_scheme)
         self.reference = state_data(self.topology, protein._a)[:, 4:7].copy()
         self.uniforms, self.bindings = [], []
@@ -104,9 +106,12 @@ class _MoleculeGPU:
                 self.keys[slot] = key
                 self.state_references[slot] = coords
             chosen.append(slot)
-        if self.color_key != str(protein.color_scheme):
+        if self.color_key != str(protein.color_scheme) or not np.array_equal(
+            self.shape_reference, protein._cartoon_scale
+        ):
             queue.write_buffer(self.segments, 0, segments(protein))
             self.color_key = str(protein.color_scheme)
+            self.shape_reference = protein._cartoon_scale
         cartoon, ribbon, ball = protein.representation
         for i, opacity in enumerate((ball, cartoon + ribbon, protein.surface_opacity)):
             u = np.zeros(28, np.float32)
@@ -233,6 +238,37 @@ class Renderer:
             }
         ]
         self.ribbon_pipeline = pipeline("ribbon_vertex", vertex_buffers=self._ribbon_vertex_buffers)
+        self.mesh_layout = d.create_bind_group_layout(
+            entries=[
+                {
+                    "binding": 0,
+                    "visibility": wgpu.ShaderStage.VERTEX | wgpu.ShaderStage.FRAGMENT,
+                    "buffer": {"type": "uniform"},
+                }
+            ]
+        )
+        mesh_layout = d.create_pipeline_layout(bind_group_layouts=[self.camera_layout, self.mesh_layout])
+        mesh_buffers = [
+            {
+                "array_stride": 36,
+                "step_mode": "vertex",
+                "attributes": [
+                    {"format": "float32x3", "offset": i * 12, "shader_location": i} for i in range(3)
+                ],
+            }
+        ]
+        self.mesh_pipelines = {
+            transparent: pipeline(
+                "density_vertex",
+                "density_transparent" if transparent else "density_fragment",
+                vertex_buffers=mesh_buffers,
+                transparent=transparent,
+                layout_override=mesh_layout,
+                cull_mode="none",
+            )
+            for transparent in (False, True)
+        }
+        self._meshes = {}
         self._pipeline = pipeline
         self._oit_textures = []
         self.transparency_pipelines = None
@@ -374,6 +410,7 @@ class Renderer:
         u[24] = camera.depth_cue
         d.queue.write_buffer(self.camera_buffer, 0, u)
         draws = []
+        mesh_draws = []
         annotations = []
         expanded = []
         for obj in proteins:
@@ -381,6 +418,13 @@ class Renderer:
                 expanded.extend(obj._geometry_objects(camera, self.width, self.height))
             expanded.append(obj)
         for protein in expanded:
+            if isinstance(protein, MeshObject):
+                if protein not in self._meshes:
+                    self._meshes[protein] = MeshGPU(self, protein)
+                gpu = self._meshes[protein]
+                gpu.update()
+                mesh_draws.append(gpu)
+                continue
             if isinstance(protein, Annotation):
                 annotations.append(protein)
                 continue
@@ -404,13 +448,14 @@ class Renderer:
                 )
             )
         ]
-        if transparent_draws and self.transparency_pipelines is None:
+        has_transparency = bool(transparent_draws) or any(0 < g.obj.opacity < 1 for g in mesh_draws)
+        if has_transparency and self.transparency_pipelines is None:
             self._create_transparency()
         encoder = d.create_command_encoder()
         attachment = {
             "view": self.ms_view,
             "resolve_target": self.view
-            if self.msaa > 1 and not transparent_draws and not annotations
+            if self.msaa > 1 and not has_transparency and not annotations
             else None,
             "clear_value": (*map(float, background), 1.0),
             "load_op": "clear",
@@ -422,14 +467,16 @@ class Renderer:
                 "view": self.depth_view,
                 "depth_clear_value": 1.0,
                 "depth_load_op": "clear",
-                "depth_store_op": "store" if transparent_draws else "discard",
+                "depth_store_op": "store" if has_transparency else "discard",
             },
         )
         self._draw_molecules(
             render_pass, draws, (self.ribbon_pipeline, self.bond_pipeline, self.sphere_pipeline)
         )
+        for gpu in mesh_draws:
+            gpu.draw(render_pass)
         render_pass.end()
-        if transparent_draws:
+        if has_transparency:
             trans = encoder.begin_render_pass(
                 color_attachments=[
                     {
@@ -443,6 +490,9 @@ class Renderer:
                 depth_stencil_attachment={"view": self.depth_view, "depth_read_only": True},
             )
             self._draw_molecules(trans, transparent_draws, self.transparency_pipelines)
+            for gpu in mesh_draws:
+                if 0 < gpu.obj.opacity < 1:
+                    gpu.draw(trans, transparent=True)
             trans.end()
             composite = encoder.begin_render_pass(
                 color_attachments=[
@@ -529,6 +579,8 @@ class Renderer:
             return
         for _ in self.drain():
             pass
+        for gpu in self._meshes.values():
+            gpu.close()
         for molecule in self._molecules.values():
             molecule.close()
         if self._overlay is not None:

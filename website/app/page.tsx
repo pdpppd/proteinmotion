@@ -101,6 +101,36 @@ export default function Home() {
           <div dangerouslySetInnerHTML={{ __html: codeHTML(snippet) }} />
         </div>
       </section>
+      <section className="grid gap-8 border-t border-line py-10 md:grid-cols-3">
+        {[
+          [
+            "Numerical properties",
+            "Color residues by B factors, RMSF, or custom values. Use cartoon thickness and a color scale to show the range.",
+            "numerical-properties",
+          ],
+          [
+            "Plots that follow the movie",
+            "Show distance traces, contact maps, and a sequence strip alongside trajectory playback.",
+            "synchronized-plots",
+          ],
+          [
+            "Density maps and slices",
+            "Load an MRC or CCP4 map, change its contour level, and move a slice through the volume.",
+            "density-maps",
+          ],
+        ].map(([title, description, slug]) => (
+          <div key={slug}>
+            <h2 className="text-xl font-medium tracking-tight">{title}</h2>
+            <p className="mt-3 text-sm leading-7 text-muted">{description}</p>
+            <Link
+              href={`/docs/${slug}/`}
+              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-accent"
+            >
+              View code and output <ArrowRightIcon />
+            </Link>
+          </div>
+        ))}
+      </section>
       <section className="border-t border-line py-10">
         <h2 className="text-xl font-medium tracking-tight">
           Depth of field with EEVEE

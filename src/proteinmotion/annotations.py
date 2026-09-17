@@ -59,6 +59,7 @@ class AnnotationLayout:
     leaders: list[Leader]
     bounds: np.ndarray | None = None
     anchor: np.ndarray | None = None
+    triangles: np.ndarray | None = None
 
 
 class Annotation:

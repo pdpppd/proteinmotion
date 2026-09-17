@@ -74,6 +74,21 @@
       "title": "Blender EEVEE",
       "description": "Render through Blender with depth of field and smooth group fades.",
       "guide": "eevee"
+    },
+    "properties": {
+      "title": "Numerical properties",
+      "description": "Map measured residue values to colors and cartoon thickness.",
+      "guide": "numerical-properties"
+    },
+    "plots": {
+      "title": "Plots and sequence tracks",
+      "description": "Display time-series traces, contact maps, sequence strips, and color legends.",
+      "guide": "synchronized-plots"
+    },
+    "density": {
+      "title": "Density maps",
+      "description": "Read MRC/CCP4 grids, extract contours, and animate slices.",
+      "guide": "density-maps"
     }
   },
   "parameters": {
@@ -249,17 +264,44 @@
     "max_opacity_layers": "Maximum distinct positive opacity levels per frame. Rendering cost grows with this count.",
     "timeout": "Seconds allowed for Blender startup or one frame before an error is raised.",
     "eevee": "Optional EEVEEOptions instance; requires renderer=\"eevee\".",
-    "executable": "Optional Blender executable name or path."
+    "executable": "Optional Blender executable name or path.",
+    "vmin": "Finite lower limit of the fixed color scale.",
+    "vmax": "Finite upper limit, greater than vmin.",
+    "colors": "Two or more RGB colors, interpolated between equally spaced stops.",
+    "missing": "Color for missing values (NaN).",
+    "values": "Numerical input values; see the shape and missing-value rules for this object.",
+    "name": "Measurement name for labels and legends.",
+    "scale": "ColorScale shared by the structure, plots, and legend. None derives limits from finite values.",
+    "thickness": "Optional (minimum, maximum) positive cartoon cross-section scale factors. Missing values use 1.",
+    "alignment": "Region used to fit frames to the first sampled frame; defaults to all Cα atoms.",
+    "times": "Strictly increasing finite x coordinates, one for each value.",
+    "title": "Text displayed above the plot or color bar.",
+    "xlabel": "Horizontal axis label, including units when appropriate.",
+    "ylabel": "Vertical axis label, including units when appropriate.",
+    "size": "Panel (width, height) as fractions of the viewport.",
+    "ylim": "Optional fixed (minimum, maximum) vertical limits. Defaults to the finite data range with padding.",
+    "reveal": "Show only trace samples at or before the cursor.",
+    "live_value": "Optional pure function returning the measurement at current coordinates for the cursor marker.",
+    "first": "First Region for a centroid-to-centroid distance trace.",
+    "second": "Second Region from the same protein.",
+    "highlight_color": "Color marking the selected residues in the plot.",
+    "contact_color": "Color of a contact cell.",
+    "min_separation": "Exclude this many neighboring topology residues within a chain, plus the diagonal.",
+    "max_residues": "Maximum Cα residues in a quadratic contact-map calculation; select a region for larger proteins.",
+    "density": "DensityMap supplying scalar values and map coordinates.",
+    "spacing": "Positive scalar or (x, y, z) voxel spacing in ångströms for an orthogonal grid.",
+    "origin": "Physical (x, y, z) origin of the first voxel, in ångströms.",
+    "basis": "Optional 3×3 matrix whose columns are voxel step vectors in ångströms; replaces spacing.",
+    "periodic": "Wrap sampling and crops at cell boundaries for a full periodic grid.",
+    "level": "Contour value in the units chosen for this surface.",
+    "step_size": "Positive marching-cubes grid stride. Larger values reduce extraction cost and detail."
   },
   "members": {
     "construct": {
       "description": "Override this method to define the scene with add(), play(), wait(), and camera setup.",
       "returns": "None"
     },
-    "add": {
-      "description": "Add objects at the current timeline position and capture their initial state.",
-      "returns": "The scene."
-    },
+    "add": "Add proteins, density objects, or annotations at the current timeline time.",
     "play": {
       "description": "Run animations together, then advance the timeline by run_time seconds.",
       "returns": "The scene.",
@@ -601,12 +643,16 @@
         "position": "World translation as a 3-vector.",
         "orientation": "3 × 3 rotation matrix.",
         "size": "Positive uniform scale factor.",
-        "opacity": "Global opacity in [0, 1]."
+        "opacity": "Global opacity in [0, 1].",
+        "trajectory_frame": "Current fractional trajectory state, updated by PlayTrajectory and restored by seeking."
       },
       "members": {
         "animate": {
           "description": "Create a builder for protein transforms, opacity, and color animation.",
           "returns": "Animate"
+        },
+        "color_by": {
+          "description": "Apply residue property colors and optional cartoon thickness before adding the protein to a scene."
         }
       }
     },
@@ -1094,6 +1140,210 @@
         "follow": "Follow the selected atoms through motion. False fixes the destination at the start of the clip."
       },
       "notes": "Uses an independent lens animation channel, so it can run with camera orbit or zoom. Requires the EEVEE renderer to show depth of field."
+    },
+    "properties.ColorScale": {
+      "description": "A fixed linear scale mapping scalar values to RGB colors.",
+      "example": "numerical-properties",
+      "notes": "Values outside the limits use endpoint colors. NaN uses the missing color. Intermediate colors interpolate between equally spaced stops.",
+      "members": {
+        "normalize": {
+          "description": "Clip values to [0, 1], keeping NaN for missing data."
+        },
+        "map": {
+          "description": "Map values to an RGB array shaped (*values.shape, 3)."
+        }
+      }
+    },
+    "properties.ResidueValues": {
+      "description": "One measurement per topology residue, with identity checks and optional units.",
+      "example": "numerical-properties",
+      "parameters": {
+        "values": "One finite number or NaN per topology residue, including selected hetero residues."
+      },
+      "attributes": {
+        "values": "Read-only array of per-residue values.",
+        "keys": "Chain, author residue number, insertion code, and residue name in topology order.",
+        "name": "Measurement name.",
+        "unit": "Measurement unit."
+      },
+      "members": {
+        "from_mapping": {
+          "description": "Load keyed values using (chain, author number[, insertion code]); omissions become NaN.",
+          "parameters": {
+            "values": "Dictionary of residue identity keys and scalar values. Unknown or ambiguous keys raise an error."
+          }
+        },
+        "b_factors": {
+          "description": "Read first-model B factors, or stored confidence values when the source file uses that convention.",
+          "parameters": {
+            "atoms": "Atom name such as CA, or None for the mean of the residue’s selected atoms."
+          }
+        },
+        "rmsf": {
+          "description": "Calculate per-residue RMSF in ångströms by streaming trajectory frames.",
+          "parameters": {
+            "align": "Fit each frame to the first sampled frame before computing fluctuations.",
+            "atoms": "Atom name, or None to average atomic mean-square fluctuations within each residue."
+          },
+          "notes": "Default alignment uses Cα atoms. For MD, unwrap periodic coordinates first. NMR RMSF describes variation across deposited models."
+        }
+      }
+    },
+    "properties.ColorByProperty": {
+      "description": "Animate property-based residue colors and optional cartoon thickness.",
+      "example": "numerical-properties",
+      "notes": "Residue delays are in seconds. run_time must exceed total delay. The scale remains fixed during the transition."
+    },
+    "plots.ColorLegend": {
+      "description": "A horizontal color bar with numeric limits and measurement units.",
+      "example": "numerical-properties",
+      "guide": "numerical-properties"
+    },
+    "plots.TimeSeriesPlot": {
+      "description": "A vector trace with a cursor linked to scene time or a protein trajectory.",
+      "example": "synchronized-plots",
+      "parameters": {
+        "values": "One finite value or NaN per time sample; NaN leaves a gap.",
+        "protein": "Optional protein whose current trajectory state drives the cursor. Supply one sample per trajectory state."
+      },
+      "notes": "Without a protein, the cursor uses scene seconds. With a protein, it follows forward, reverse, and eased playback. Supplied samples remain fixed.",
+      "members": {
+        "distance": {
+          "description": "Read a trajectory and trace distances between two selection centroids, in ångströms before scene transforms.",
+          "notes": "The marker measures the current interpolated coordinates; the line connects the supplied state measurements. Omitted times use state indices."
+        },
+        "current_value": {
+          "description": "Live measurement, or linear interpolation of supplied samples at the current cursor."
+        }
+      }
+    },
+    "plots.SequenceTrack": {
+      "description": "Residue tiles showing current structure colors or a fixed numerical property.",
+      "example": "synchronized-plots",
+      "parameters": {
+        "region": "Optional Region limiting which Cα residues appear.",
+        "selection": "Region to mark with the highlight color.",
+        "values": "Optional ResidueValues or one value per protein residue."
+      },
+      "notes": "The same selection can mark residues in a 3D highlight and a contact map. Letters appear when tiles have enough width."
+    },
+    "plots.ContactMap": {
+      "description": "A live binary Cα contact map with linked residue markers.",
+      "example": "synchronized-plots",
+      "parameters": {
+        "region": "Optional Region limiting the rows and columns.",
+        "selection": "Region to mark on the map edges.",
+        "cutoff": "Maximum Cα separation in ångströms for a contact."
+      },
+      "members": {
+        "matrix": {
+          "description": "Symmetric boolean contact matrix evaluated from the protein’s current coordinates."
+        }
+      },
+      "notes": "Rows follow topology order and labels use PDB author numbers. Work scales quadratically; the default limit is 512 Cα residues."
+    },
+    "density.DensityMap": {
+      "description": "An immutable scalar grid with physical coordinates and optional periodic boundaries.",
+      "example": "density-maps",
+      "parameters": {
+        "values": "Finite three-dimensional array in (x, y, z) order, with at least two samples per axis.",
+        "max_voxels": "Maximum number of allocated grid values, default 32 million."
+      },
+      "attributes": {
+        "values": "Read-only float32 grid in x, y, z order.",
+        "origin": "Origin in ångströms.",
+        "basis": "Voxel step vectors as matrix columns.",
+        "mean": "Mean of the source grid, preserved in crops.",
+        "std": "Standard deviation of the source grid, preserved in crops.",
+        "periodic": "Whether sampling wraps around the grid."
+      },
+      "members": {
+        "from_file": {
+          "description": "Read MRC/CCP4, optionally gzip-compressed, using Gemmi with map axes and physical coordinates preserved.",
+          "parameters": {
+            "origin": "auto prefers a nonzero ORIGIN field, otherwise grid starts; header or start forces that convention."
+          },
+          "notes": "Full crystallographic unit-cell grids are periodic. Cropped maps and EM volumes retain their stored extent. No symmetry expansion is performed."
+        },
+        "slice": {
+          "description": "Create a trilinearly sampled, colored slice plane.",
+          "parameters": {
+            "axis": "Map grid axis: x, y, or z. In a skew cell these follow the lattice voxel vectors.",
+            "position": "Fractional location along the selected grid axis, from 0 to 1.",
+            "resolution": "Samples per edge of the slice plane: integer from 2 to 512.",
+            "follow": "Optional Protein whose translation, rotation, and scale are applied to this map object. Density does not deform with atom coordinates."
+          }
+        },
+        "isosurface": {
+          "description": "Create a shaded marching-cubes contour.",
+          "parameters": {
+            "units": "sigma for mean + level × standard deviation, or absolute for a stored map value.",
+            "follow": "Optional Protein whose translation, rotation, and scale are applied to this map object. Density does not deform with atom coordinates."
+          }
+        },
+        "crop": {
+          "description": "Crop a box around a selected region in its protein’s local coordinates, with padding in ångströms.",
+          "notes": "Periodic maps wrap across cell boundaries. Crops preserve the original mean and standard deviation for sigma contours."
+        }
+      }
+    },
+    "density.DensitySurface": {
+      "description": "A cached contour mesh with animated level, opacity, and transforms.",
+      "example": "density-maps",
+      "parameters": {
+        "follow": "Optional Protein whose translation, rotation, and scale are applied to this map object. Density does not deform with atom coordinates.",
+        "units": "sigma for mean + level × standard deviation, or absolute for a stored map value."
+      },
+      "members": {
+        "positions": {
+          "description": "Eight map corners in local coordinates, for camera framing."
+        },
+        "model_matrix": {
+          "description": "Map object transform, including its followed protein transform if present."
+        },
+        "mesh_data": {
+          "description": "Evaluate or reuse the cached local-space vertices, faces, colors, and normals."
+        },
+        "set_slice": {
+          "description": "Set a slice’s fractional grid position.",
+          "parameters": {
+            "position": "Fractional location along the selected grid axis, from 0 to 1."
+          }
+        },
+        "animate": {
+          "description": "Animate opacity and transforms, or use set_level() on a surface and set_slice() on a slice."
+        }
+      }
+    },
+    "density.DensitySlice": {
+      "description": "A trilinearly sampled map plane with a fixed color scale and animated position.",
+      "example": "density-maps",
+      "parameters": {
+        "follow": "Optional Protein whose translation, rotation, and scale are applied to this map object. Density does not deform with atom coordinates.",
+        "axis": "Map grid axis: x, y, or z. In a skew cell these follow the lattice voxel vectors.",
+        "position": "Fractional location along the selected grid axis, from 0 to 1.",
+        "resolution": "Samples per edge of the slice plane: integer from 2 to 512."
+      },
+      "members": {
+        "positions": {
+          "description": "Eight map corners in local coordinates, for camera framing."
+        },
+        "model_matrix": {
+          "description": "Map object transform, including its followed protein transform if present."
+        },
+        "mesh_data": {
+          "description": "Evaluate or reuse the cached local-space vertices, faces, colors, and normals."
+        },
+        "set_slice": {
+          "description": "Set a slice’s fractional grid position.",
+          "parameters": {
+            "position": "Fractional location along the selected grid axis, from 0 to 1."
+          }
+        },
+        "animate": {
+          "description": "Animate opacity and transforms, or use set_level() on a surface and set_slice() on a slice."
+        }
+      }
     }
   }
 }

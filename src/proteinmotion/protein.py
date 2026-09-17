@@ -16,6 +16,8 @@ class Protein:
         self._a = self._b = xyz
         self._key_a = self._key_b = (id(xyz), 0)
         self._mix = 0.0
+        self.trajectory_frame = 0.0
+        self._trajectory_source = None
         self.trajectory = trajectory or Trajectory([xyz], topology=topology)
         self.position = np.zeros(3)
         self.orientation = np.eye(3)
@@ -36,6 +38,8 @@ class Protein:
 
         self._appearance = initial_appearance(len(topology.atoms))
         self._color_mix = self._opacity_mix = 1.0
+        self._cartoon_scale = np.ones(len(topology.residues), np.float32)
+        self._cartoon_scale.flags.writeable = False
         self._surface_options = None
         self.surface_opacity = 0.0
 
@@ -148,6 +152,12 @@ class Protein:
 
         return set_color(self, color)
 
+    def color_by(self, values, *, scale=None, thickness=None):
+        """Map residue values to color and optional cartoon cross-section scale factors."""
+        from .properties import color_by
+
+        return color_by(self, values, scale=scale, thickness=thickness)
+
     def color_residues(self, color, *, chain=None, residues=None):
         self.select(chain=chain, residues=residues).set_color(color)
         return self
@@ -224,6 +234,8 @@ class Protein:
             key_a=self._key_a,
             key_b=self._key_b,
             mix=self._mix,
+            trajectory_frame=self.trajectory_frame,
+            trajectory_source=self._trajectory_source,
             position=self.position.copy(),
             orientation=self.orientation.copy(),
             size=self.size,
@@ -235,6 +247,7 @@ class Protein:
             ribbon_width=self.ribbon_width,
             controls=self._controls,
             metadata_override=self._metadata_override,
+            cartoon_scale=self._cartoon_scale,
             appearance=self._appearance,
             color_mix=self._color_mix,
             opacity_mix=self._opacity_mix,
@@ -244,8 +257,11 @@ class Protein:
 
     def restore(self, s):
         self._pair(s["a"], s["b"], s["mix"], s["key_a"], s["key_b"])
+        self.trajectory_frame = s["trajectory_frame"]
+        self._trajectory_source = s["trajectory_source"]
         self._controls = s["controls"]
         self._metadata_override = s["metadata_override"]
+        self._cartoon_scale = s["cartoon_scale"]
         self._appearance = s["appearance"]
         self._color_mix, self._opacity_mix = s["color_mix"], s["opacity_mix"]
         self._surface_options, self.surface_opacity = s["surface_options"], s["surface_opacity"]

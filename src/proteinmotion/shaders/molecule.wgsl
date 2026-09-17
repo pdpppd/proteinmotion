@@ -327,3 +327,25 @@ struct TransparentSphere {
     out.opacity=atom_opacity(owner);
     return out;
 }
+
+// General triangle meshes use only the camera and object uniform bindings.
+@vertex fn density_vertex(@location(0) p:vec3f, @location(1) n:vec3f,
+                          @location(2) c:vec3f) -> Surface {
+    var out:Surface;
+    out.p=world(p); out.clip=camera.vp*vec4f(out.p,1.0);
+    out.normal=world_normal(n); out.color=c; out.opacity=1.0;
+    return out;
+}
+fn density_color(in:Surface) -> vec3f {
+    if object.appearance.z>0.5 { return in.color; }
+    return shade(in.p,in.normal,in.color).rgb;
+}
+@fragment fn density_fragment(in:Surface) -> @location(0) vec4f {
+    if opacity(in.opacity)<1.0 { discard; }
+    return vec4f(density_color(in),1.0);
+}
+@fragment fn density_transparent(in:Surface) -> TransparentPixel {
+    let alpha=opacity(in.opacity);
+    if alpha<=0.0 || alpha>=1.0 { discard; }
+    return transparent(density_color(in),alpha,in.p);
+}

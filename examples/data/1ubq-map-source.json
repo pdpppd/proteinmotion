@@ -1,0 +1,9 @@
+{
+  "entry": "1UBQ",
+  "file": "1ubq.ccp4",
+  "source": "https://www.ebi.ac.uk/pdbe/coordinates/files/1ubq.ccp4",
+  "retrieved": "2026-09-17",
+  "description": "PDBe electron-density map for the crystallographic ubiquitin structure.",
+  "coordinates": "1ubq.cif",
+  "modifications": "None. Examples crop the loaded map in memory."
+}

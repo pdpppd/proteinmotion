@@ -85,7 +85,7 @@ class _Drawing:
 class OverlayRenderer:
     def __init__(self, renderer):
         self.renderer = renderer
-        self.text, self.leaders = {}, {}
+        self.text, self.leaders, self.panels = {}, {}, {}
         d = renderer.device
         self.layout = d.create_bind_group_layout(
             entries=[
@@ -132,12 +132,45 @@ class OverlayRenderer:
             ],
         )
         self.stroke_pipeline = pipeline("stroke", [])
+        panel_shader = d.create_shader_module(
+            code=files("proteinmotion").joinpath("shaders/panel.wgsl").read_text()
+        )
+        self.panel_pipeline = d.create_render_pipeline(
+            layout="auto",
+            vertex={
+                "module": panel_shader,
+                "entry_point": "vertex",
+                "buffers": [
+                    {
+                        "array_stride": 24,
+                        "step_mode": "vertex",
+                        "attributes": [
+                            {"format": "float32x2", "offset": 0, "shader_location": 0},
+                            {"format": "float32x4", "offset": 8, "shader_location": 1},
+                        ],
+                    }
+                ],
+            },
+            fragment={
+                "module": panel_shader,
+                "entry_point": "fragment",
+                "targets": [{"format": "rgba8unorm", "blend": blend}],
+            },
+            primitive={"topology": "triangle-list"},
+            multisample={"count": renderer.msaa},
+        )
 
     def draw(self, encoder, annotations, camera):
         r = self.renderer
-        line_draws, text_draws = [], []
+        line_draws, text_draws, panel_draws = [], [], []
         for root in annotations:
             layout = root.layout(camera, r.width, r.height)
+            if layout.triangles is not None:
+                if root not in self.panels:
+                    self.panels[root] = _PanelDrawing(self)
+                panel = self.panels[root]
+                panel.update(layout.triangles, root.opacity)
+                panel_draws.append(panel)
             for index, leader in enumerate(layout.leaders):
                 key = (root, index)
                 points = leader.points
@@ -187,10 +220,49 @@ class OverlayRenderer:
                 }
             ]
         )
-        for gpu in (*line_draws, *text_draws):
+        for gpu in (*panel_draws, *line_draws, *text_draws):
             gpu.draw(render_pass)
         render_pass.end()
 
     def close(self):
-        for gpu in (*self.text.values(), *self.leaders.values()):
+        for gpu in (*self.text.values(), *self.leaders.values(), *self.panels.values()):
             gpu.close()
+
+
+class _PanelDrawing:
+    def __init__(self, overlay):
+        self.overlay, self.capacity, self.vertices, self.data = overlay, 0, None, None
+        d = overlay.renderer.device
+        self.uniform = d.create_buffer(size=16, usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST)
+        self.binding = d.create_bind_group(
+            layout=overlay.panel_pipeline.get_bind_group_layout(0),
+            entries=[{"binding": 0, "resource": {"buffer": self.uniform}}],
+        )
+
+    def update(self, data, opacity):
+        r = self.overlay.renderer
+        self.count = len(data)
+        if self.count > self.capacity:
+            if self.vertices is not None:
+                self.vertices.destroy()
+            self.capacity = 1 << (self.count - 1).bit_length()
+            self.vertices = r.device.create_buffer(
+                size=self.capacity * 24, usage=wgpu.BufferUsage.VERTEX | wgpu.BufferUsage.COPY_DST
+            )
+            self.data = None
+        if self.count and (self.data is None or not np.array_equal(data, self.data)):
+            r.device.queue.write_buffer(self.vertices, 0, data)
+            self.data = data
+        r.device.queue.write_buffer(self.uniform, 0, np.array([r.width, r.height, opacity, 0], np.float32))
+
+    def draw(self, render_pass):
+        if self.count:
+            render_pass.set_pipeline(self.overlay.panel_pipeline)
+            render_pass.set_bind_group(0, self.binding)
+            render_pass.set_vertex_buffer(0, self.vertices)
+            render_pass.draw(self.count)
+
+    def close(self):
+        if self.vertices is not None:
+            self.vertices.destroy()
+        self.uniform.destroy()

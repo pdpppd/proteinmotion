@@ -2,7 +2,7 @@
 
 [Browse the reference manual](https://pdpppd.github.io/proteinmotion/reference/) for individual class and function pages, parameters, methods, and rendered examples.
 
-This quick reference covers the public Python API in version 0.7.0. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which are in their own modules.
+This quick reference covers the public Python API in version 0.9.0. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which are in their own modules.
 
 ## ProteinScene
 
@@ -14,7 +14,7 @@ Subclass `ProteinScene` and implement `construct()`. `Scene` is an alias.
 
 | Method | Behavior |
 |---|---|
-| `add(*proteins)` | Add proteins, highlights, text or callouts at the current timeline position |
+| `add(*proteins)` | Add proteins, density objects, highlights, text or callouts at the current timeline position |
 | `play(*animations, run_time=1.0, rate_func=None)` | Run animations concurrently, then advance the timeline |
 | `wait(duration=1.0)` | Hold the current scene |
 | `focus(target, run_time=1.5, margin=1.25, follow=True)` | Ease the camera to a protein or region |
@@ -196,3 +196,22 @@ proteinmotion preview scene.py SceneName
 `init` creates a starter scene and a 1UBQ structure in a new folder. `install-skill` copies the AI agent skill; `--path` selects its destination folder and `--force` replaces modified bundled files. The default destination is the Codex skills directory. All commands are also available through `python -m proteinmotion`.
 
 Shared render/still/preview options: `--width`, `--height`, `--fps`, `--msaa 1|4`. Rendering also accepts `--codec` and `--bitrate`. Preview controls: drag to orbit, wheel to zoom, Space to pause, arrows to seek, Home to rewind, R to reset the camera, Escape to close.
+
+
+## Numerical properties
+
+`ResidueValues` holds one value per topology residue. Load file B factors with `ResidueValues.b_factors(protein)`, calculate aligned fluctuations with `ResidueValues.rmsf(protein)`, or import measurements with `ResidueValues.from_mapping(protein, values)`.
+
+`protein.color_by(values, scale=ColorScale(0, 40), thickness=(0.6, 1.8))` sets initial colors and optional cartoon thickness. Use `ColorByProperty` inside `play` for an eased transition, including residue delays. `ColorLegend` displays the same scale. [Guide and rendered output](numerical-properties.md).
+
+## Plots and sequence tracks
+
+`TimeSeriesPlot(times, values, protein=protein)` follows the current trajectory state. Omit `protein` to follow scene seconds. `TimeSeriesPlot.distance(first, second)` measures centroid distance between two Regions over a trajectory and places the marker at the current measurement.
+
+`ContactMap(protein, selection=region)` displays live Cα contacts. `SequenceTrack(protein, selection=region)` displays the current residue colors. Both use viewport position and size. [Guide and rendered output](synchronized-plots.md).
+
+## Density maps
+
+`DensityMap.from_file(path)` loads MRC/CCP4 grids, including compressed files. `density.isosurface(level, units="sigma")` makes a contour; `density.slice("z", 0.5)` makes a sampled plane. Add either to a scene and animate with `shell.animate.set_level(...)` or `section.animate.set_slice(...)`.
+
+Use `density.crop(region, padding=3)` for local views and `follow=protein` when the map and protein should share scene transforms. [Guide and rendered output](density-maps.md).

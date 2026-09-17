@@ -22,6 +22,9 @@ for (const filename of await readdir("../docs")) {
 for (const filename of [
   "quickstart.py",
   "eevee_focus.py",
+  "numerical_properties.py",
+  "synchronized_plots.py",
+  "density_maps.py",
   "docs_examples.py",
   "nmr_regions.py",
   "labels_and_callouts.py",

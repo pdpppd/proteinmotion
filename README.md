@@ -17,13 +17,13 @@ The demo shows calmodulin as a cartoon, ball-and-stick model, and surface. It in
 
 Use Python 3.11 or later and a GPU. On Macs with Apple silicon, use an arm64 Python installation. ProteinMotion uses Metal for rendering and VideoToolbox for video encoding on macOS.
 
-Install v0.8.0 from GitHub Releases:
+Install v0.9.0 from GitHub Releases:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install \
-  https://github.com/pdpppd/proteinmotion/releases/download/v0.8.0/proteinmotion-0.8.0-py3-none-any.whl
+  https://github.com/pdpppd/proteinmotion/releases/download/v0.9.0/proteinmotion-0.9.0-py3-none-any.whl
 proteinmotion doctor
 ```
 
@@ -84,6 +84,9 @@ The selected atoms define the focus point and follow the protein during motion. 
 - **Representations:** cartoon, ribbon, ball-and-stick, and molecular surfaces.
 - **Animation:** rotation, translation, camera movement, deformation, and transitions between representations.
 - **Residue styling:** color and opacity changes, applied together or delayed by residue.
+- **Numerical properties:** B factors, aligned RMSF, and imported residue values mapped to color and cartoon thickness.
+- **Plots:** distance traces, live contact maps, sequence strips, and color legends synchronized with the movie.
+- **Density:** MRC/CCP4 maps, animated contours, and moving slices, with map coordinates preserved.
 - **Labels:** text writing and erasing, amino acid names, and callout lines that connect labels to selected regions.
 - **Rendering:** native GPU rendering or Blender EEVEE with depth of field.
 - **Region tools:** camera focus and 3D sphere, box, or atom highlights.
@@ -103,7 +106,7 @@ Copy the skill to your agent's skills directory:
 proteinmotion install-skill --path /path/to/skills/proteinmotion-movies
 ```
 
-You can also [download the skill ZIP](https://github.com/pdpppd/proteinmotion/releases/download/v0.8.0/proteinmotion-movies-v0.8.0.zip) and extract it there. For agents that read instructions directly, point them to `SKILL.md` and keep the references and assets beside it.
+You can also [download the skill ZIP](https://github.com/pdpppd/proteinmotion/releases/download/v0.9.0/proteinmotion-movies-v0.9.0.zip) and extract it there. For agents that read instructions directly, point them to `SKILL.md` and keep the references and assets beside it.
 
 Example request:
 
@@ -117,6 +120,9 @@ These scripts and their input structures are in the repository:
 
 | Example | Source |
 |---|---|
+| B factors, residue colors, and cartoon thickness | [numerical_properties.py](examples/numerical_properties.py) |
+| NMR playback with distance, contact, and sequence plots | [synchronized_plots.py](examples/synchronized_plots.py) |
+| Electron-density contours and slices | [density_maps.py](examples/density_maps.py) |
 | EEVEE depth of field and residue focus | [eevee_focus.py](examples/eevee_focus.py) |
 | Calmodulin and troponin C feature demo | [feature_showcase.py](examples/feature_showcase.py) |
 | Residue colors, surfaces, distances, and interactions | [molecular_tools.py](examples/molecular_tools.py) |

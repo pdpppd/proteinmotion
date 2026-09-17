@@ -156,6 +156,8 @@ class MeshExporter:
         self.surfaces = {}
 
     def meshes(self, p):
+        if hasattr(p, "_export_mesh"):
+            return p._export_mesh()
         from .surface import build_surface
 
         xyz, tint = p.positions, current_tints(p)

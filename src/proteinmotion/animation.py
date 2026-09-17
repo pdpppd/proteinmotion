@@ -129,6 +129,8 @@ class PlayTrajectory(Animation):
         blend = float(self.state_easing(f - lo))
         if not np.isfinite(blend) or not 0 <= blend <= 1:
             raise ValueError("state_easing must return a finite value in [0, 1]")
+        self.target.trajectory_frame = float(lo + blend * (hi - lo))
+        self.target._trajectory_source = self.trajectory
         self.target._pair(a, b, blend, (id(self.trajectory), lo), (id(self.trajectory), hi))
 
 

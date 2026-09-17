@@ -18,6 +18,7 @@ class Atom:
     name: str
     element: str
     residue_index: int
+    bfactor: float = float("nan")
 
     @property
     def key(self):
@@ -149,6 +150,7 @@ def load_structure(path, *, chains=None, include_water=False, include_hydrogens=
                             a.name,
                             a.element.name,
                             len(residues),
+                            float(a.b_iso),
                         )
                     )
                     xyz.append([a.pos.x, a.pos.y, a.pos.z])

@@ -62,7 +62,9 @@ class Camera:
     def frame(self, *proteins, margin=1.25, aspect=16 / 9):
         if not proteins or not np.isfinite(margin) or margin <= 0 or not np.isfinite(aspect) or aspect <= 0:
             raise ValueError("frame needs targets and positive finite margin/aspect values")
-        points = np.concatenate([p.positions @ p.model_matrix[:3, :3].T + p.position for p in proteins])
+        points = np.concatenate(
+            [p.positions @ p.model_matrix[:3, :3].T + p.model_matrix[:3, 3] for p in proteins]
+        )
         self.target = (points.max(0) + points.min(0)) / 2
         self.radius = max(float(np.linalg.norm(points - self.target, axis=1).max()) + 2, 1.0)
         half_fov = min(self.fov / 2, np.arctan(np.tan(self.fov / 2) * aspect))

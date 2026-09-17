@@ -66,6 +66,16 @@ class Worker:
         self.focus = bpy.data.objects.new("Residue focus", None)
         scene.collection.objects.link(self.focus)
         self.camera.data.dof.focus_object = self.focus
+        self.unlit_material = unlit = bpy.data.materials.new("Density slice")
+        unlit.use_nodes = True
+        nodes = unlit.node_tree.nodes
+        nodes.clear()
+        output = nodes.new("ShaderNodeOutputMaterial")
+        emission = nodes.new("ShaderNodeEmission")
+        attribute = nodes.new("ShaderNodeVertexColor")
+        attribute.layer_name = "color"
+        unlit.node_tree.links.new(attribute.outputs["Color"], emission.inputs["Color"])
+        unlit.node_tree.links.new(emission.outputs[0], output.inputs["Surface"])
         self.material = mat = bpy.data.materials.new("Protein")
         mat.use_nodes = True
         shader = mat.node_tree.nodes.get("Principled BSDF")
@@ -201,7 +211,9 @@ class Worker:
                         mesh.update()
                         mesh.polygons.foreach_set("use_smooth", np.ones(len(subset), bool))
                         mesh.color_attributes.new(name="color", type="FLOAT_COLOR", domain="POINT")
-                        mesh.materials.append(self.material)
+                        mesh.materials.append(
+                            self.unlit_material if bool(data.get(f"{i}_unlit", False)) else self.material
+                        )
                         obj = bpy.data.objects.new(mesh.name, mesh)
                         self.groups[group].objects.link(obj)
                     else:

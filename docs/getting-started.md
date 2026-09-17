@@ -4,13 +4,13 @@ ProteinMotion requires Python 3.11 or later and a GPU. On macOS, it uses Metal f
 
 ## Install the release
 
-Create a virtual environment and install v0.8.0 from [GitHub Releases](https://github.com/pdpppd/proteinmotion/releases/tag/v0.8.0):
+Create a virtual environment and install v0.9.0 from [GitHub Releases](https://github.com/pdpppd/proteinmotion/releases/tag/v0.9.0):
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install \
-  https://github.com/pdpppd/proteinmotion/releases/download/v0.8.0/proteinmotion-0.8.0-py3-none-any.whl
+  https://github.com/pdpppd/proteinmotion/releases/download/v0.9.0/proteinmotion-0.9.0-py3-none-any.whl
 proteinmotion --version
 proteinmotion doctor
 ```
@@ -47,7 +47,7 @@ Install extras from the same release URL:
 
 ```bash
 python -m pip install \
-  "proteinmotion[preview,md] @ https://github.com/pdpppd/proteinmotion/releases/download/v0.8.0/proteinmotion-0.8.0-py3-none-any.whl"
+  "proteinmotion[preview,md] @ https://github.com/pdpppd/proteinmotion/releases/download/v0.9.0/proteinmotion-0.9.0-py3-none-any.whl"
 ```
 
 | Extra | Purpose |

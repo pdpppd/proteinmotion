@@ -8,6 +8,7 @@ import numpy as np
 from .annotations import Annotation
 from .camera import Camera
 from .math3d import color
+from .mesh import MeshObject
 from .protein import Protein
 
 
@@ -32,8 +33,8 @@ class ProteinScene:
 
     def add(self, *proteins):
         for p in proteins:
-            if not isinstance(p, (Protein, Annotation)):
-                raise TypeError("Only Protein or annotation objects can be added")
+            if not isinstance(p, (Protein, Annotation, MeshObject)):
+                raise TypeError("Only Protein, density mesh, or annotation objects can be added")
             if any(item[0] is p for item in self._objects):
                 raise ValueError("Object is already in this scene")
             self._objects.append((p, self.duration, p.snapshot()))
@@ -51,7 +52,7 @@ class ProteinScene:
                     "Staggered animations need a linear clip clock for delays in seconds; use their per-residue easing"
                 )
             for target in anim.targets:
-                if isinstance(target, (Protein, Annotation)) and not any(
+                if isinstance(target, (Protein, Annotation, MeshObject)) and not any(
                     p is target for p, _, _ in self._objects
                 ):
                     self.add(target)
@@ -123,6 +124,8 @@ class ProteinScene:
         self.camera.update_tracking()
         visible = [p for p, start, _ in self._objects if start <= time and p.opacity > 0]
         for p in visible:
+            if hasattr(p, "_set_time"):
+                p._set_time(time)
             if hasattr(p, "_sync"):
                 p._sync()
         return visible
