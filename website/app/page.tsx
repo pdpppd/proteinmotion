@@ -117,44 +117,6 @@ export default function Home() {
           View code and rendered output <ArrowRightIcon />
         </Link>
       </section>
-      <section className="grid gap-10 border-t border-line py-12 md:grid-cols-[1.1fr_.9fr] md:gap-24">
-        <div>
-          <p className="eyebrow">MEASURED ON APPLE M3 MAX</p>
-          <h2 className="mt-4 text-3xl font-medium tracking-[-.035em]">
-            Rendering performance
-          </h2>
-          <p className="mt-5 max-w-lg text-sm leading-7 text-muted">
-            A 24-second NMR cartoon video at 1080p/60 fps exported in 3.69
-            seconds on an Apple M3 Max. This single run includes rendering, GPU
-            readback, and hardware encoding. Loading and scene construction were
-            timed separately.
-          </p>
-          <Link
-            href="/docs/validation/"
-            className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-accent"
-          >
-            View benchmarks <ArrowRightIcon />
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 gap-8 self-center">
-          <div>
-            <p className="font-mono text-4xl tracking-tight">116</p>
-            <p className="mt-3 text-xs leading-6 text-muted">
-              Ubiquitin NMR models
-              <br />
-              in the example ensemble
-            </p>
-          </div>
-          <div>
-            <p className="font-mono text-4xl tracking-tight">116</p>
-            <p className="mt-3 text-xs leading-6 text-muted">
-              Tests passed for v0.8.0
-              <br />
-              including native GPU and EEVEE checks
-            </p>
-          </div>
-        </div>
-      </section>
       <section className="border-t border-line py-10">
         <h2 className="text-xl font-medium tracking-tight">
           Use with an AI agent
