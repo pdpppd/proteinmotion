@@ -12,13 +12,27 @@ from .regions import Region
 from .styling import current_tints
 
 
-class _Panel(Annotation):
-    def __init__(self, position, size, title, *, background="#101e30"):
+def _ticks(lo, hi, count=4):
+    """Place ticks at readable 1, 2, 2.5, 5 or 10 multiples within the data range."""
+    raw = (hi - lo) / max(1, count - 1)
+    power = 10.0 ** np.floor(np.log10(raw))
+    steps = np.array([1, 2, 2.5, 5, 10]) * power
+    step = steps[np.argmin(abs(np.log(steps / raw)))]
+    first, last = np.ceil(lo / step - 1e-10), np.floor(hi / step + 1e-10)
+    values = np.arange(first, last + 1) * step
+    values[abs(values) < step * 1e-10] = 0
+    return values
+
+
+class _Plot(Annotation):
+    """Vector drawing helpers. The scene itself supplies the background."""
+
+    def __init__(self, position, size, title):
         super().__init__()
         self.position, self.size = _point2(position, "position"), _point2(size, "size")
         if np.any(self.size <= 0):
-            raise ValueError("Panel size must be positive")
-        self.title, self.background = str(title), parse_color(background)
+            raise ValueError("Plot size must be positive")
+        self.title = str(title)
         self._texts = {}
 
     def snapshot(self):
@@ -43,19 +57,19 @@ class _Panel(Annotation):
         self._pixel_scale = height / 1080
         self._origin = self.position * [width, height]
         self._extent = self.size * [width, height]
-        self._rects([np.r_[self._origin, self._extent]], [self.background], alpha=0.96)
 
-    def _text(self, key, value, xy, *, size=23, tint="#c0cede", align="left"):
-        if key not in self._texts:
+    def _text(self, key, value, xy, *, size=24, tint="#cdd6e3", align="left"):
+        if key not in self._texts or self._texts[key].font_size != size:
             self._texts[key] = Text(str(value), font_size=size, color=tint)
         text = self._texts[key]
+        text.color = parse_color(tint)
         text.set_text(str(value))
         xy = np.asarray(xy, dtype=float).copy()
         xy[0] -= text.geometry.width * self._pixel_scale * {"left": 0, "center": 0.5, "right": 1}[align]
         self._placements.append(Placement(text, xy, glyph_offset=self._offset))
         self._offset += text.glyph_count
 
-    def _line(self, points, tint="#40526a", width=1.5, opacity=1):
+    def _line(self, points, tint="#a9b6c9", width=1.5, opacity=1):
         self._leaders.append(
             Leader(np.asarray(points, dtype=float), parse_color(tint), width * self._pixel_scale, opacity)
         )
@@ -67,13 +81,27 @@ class _Panel(Annotation):
         rgba = np.column_stack((np.broadcast_to(colors, (len(boxes), 3)), np.full(len(boxes), alpha)))
         self._fills.append(np.concatenate((vertices, np.repeat(rgba[:, None], 6, 1)), -1).reshape(-1, 6))
 
+    def _polygon(self, points, tint):
+        points = np.asarray(points, dtype=float)
+        triangles = np.stack(
+            (np.broadcast_to(points[0], (len(points) - 2, 2)), points[1:-1], points[2:]), axis=1
+        ).reshape(-1, 2)
+        rgba = np.broadcast_to(np.r_[parse_color(tint), 1], (len(triangles), 4))
+        self._fills.append(np.column_stack((triangles, rgba)))
+
+    def _dot(self, point, radius, tint):
+        angles = np.linspace(0, 2 * np.pi, 32, endpoint=False)
+        self._polygon(point + radius * np.column_stack((np.cos(angles), np.sin(angles))), tint)
+
     def _finish(self):
         return AnnotationLayout(
-            self._placements, self._leaders, triangles=np.concatenate(self._fills).astype(np.float32)
+            self._placements,
+            self._leaders,
+            triangles=(np.concatenate(self._fills).astype(np.float32) if self._fills else np.empty((0, 6))),
         )
 
 
-class ColorLegend(_Panel):
+class ColorLegend(_Plot):
     """A horizontal color scale with numeric limits and an optional measurement unit."""
 
     def __init__(self, scale, *, title="", unit="", position=(0.06, 0.82), size=(0.3, 0.12)):
@@ -87,31 +115,32 @@ class ColorLegend(_Panel):
         x, y = self._origin
         w, h = self._extent
         s = self._pixel_scale
-        self._text("title", self.title + (f" ({self.unit})" if self.unit else ""), [x + 16 * s, y + 8 * s])
-        xx, yy, ww = x + 16 * s, y + h * 0.42, w - 32 * s
+        self._text("title", self.title + (f" ({self.unit})" if self.unit else ""), [x, y], size=26)
+        xx, yy, ww = x, y + h * 0.42, w
         values = np.linspace(self.color_scale.vmin, self.color_scale.vmax, 128)
         boxes = np.column_stack(
             (
                 xx + np.arange(128) * ww / 128,
                 np.full(128, yy),
                 np.full(128, ww / 128 + 0.1),
-                np.full(128, h * 0.2),
+                np.full(128, 8 * s),
             )
         )
         self._rects(boxes, self.color_scale.map(values))
         for i, a in enumerate((0, 0.5, 1)):
             value = self.color_scale.vmin + a * (self.color_scale.vmax - self.color_scale.vmin)
+            self._line([[xx + a * ww, yy + 12 * s], [xx + a * ww, yy + 17 * s]], width=1)
             self._text(
                 f"tick{i}",
                 f"{value:.3g}",
-                [xx + a * ww, yy + h * 0.23],
-                size=20,
+                [xx + a * ww, yy + 23 * s],
+                size=22,
                 align=("left", "center", "right")[i],
             )
         return self._finish()
 
 
-class TimeSeriesPlot(_Panel):
+class TimeSeriesPlot(_Plot):
     """A trace with a moving cursor. By default the x coordinate is scene seconds.
 
     Pass ``protein`` to map its current trajectory state to ``times`` (one sample
@@ -136,6 +165,8 @@ class TimeSeriesPlot(_Panel):
         ylim=None,
         reveal=False,
         live_value=None,
+        grid=False,
+        tips=True,
     ):
         super().__init__(position, size, title)
         self.times = np.array(times, dtype=float, copy=True)
@@ -156,6 +187,7 @@ class TimeSeriesPlot(_Panel):
             raise TypeError("live_value must be a callable")
         self.times.flags.writeable = self.values.flags.writeable = False
         self.protein, self.live_value, self.reveal = protein, live_value, bool(reveal)
+        self.grid, self.tips = bool(grid), bool(tips)
         self._trajectory = None if protein is None else protein.trajectory
         self.xlabel, self.ylabel, self.color = str(xlabel), str(ylabel), parse_color(color)
         if ylim is None:
@@ -225,10 +257,13 @@ class TimeSeriesPlot(_Panel):
         x, y = self._origin
         w, h = self._extent
         s = self._pixel_scale
-        self._text("title", self.title, [x + 16 * s, y + 10 * s], size=25, tint="#edf3fc")
-        self._text("ylabel", self.ylabel, [x + 16 * s, y + 42 * s], size=20)
+        self._text("title", self.title, [x, y], size=28, tint="#edf3fc")
+        self._text("ylabel", self.ylabel, [x, y + 37 * s], size=23)
         lo, hi = self.ylim
-        left, right, top, bottom = x + 62 * s, x + w - 20 * s, y + 78 * s, y + h - 56 * s
+        yticks = _ticks(lo, hi, max(2, min(5, int(h / s / 90))))
+        ylabels = [f"{v:g}" for v in yticks]
+        gutter = max(50, max(map(len, ylabels), default=0) * 13 + 16) * s
+        left, right, top, bottom = x + gutter, x + w - 16 * s, y + 79 * s, y + h - 62 * s
 
         def project(t, v):
             return np.column_stack(
@@ -238,15 +273,26 @@ class TimeSeriesPlot(_Panel):
                 )
             )
 
-        for i, v in enumerate(np.linspace(lo, hi, 3)):
+        for i, (v, label) in enumerate(zip(yticks, ylabels)):
             yy = project([self.times[0]], [v])[0, 1]
-            self._line([[left, yy], [right, yy]], width=1, opacity=0.6)
-            self._text(f"y{i}", f"{v:.2g}", [left - 10 * s, yy - 10 * s], size=18, align="right")
+            if self.grid:
+                self._line([[left, yy], [right, yy]], width=1, opacity=0.16)
+            self._line([[left - 4 * s, yy], [left + 4 * s, yy]])
+            self._text(f"y{i}", label, [left - 13 * s, yy - 13 * s], size=22, align="right")
         self._line([[left, top], [left, bottom], [right, bottom]])
-        for i, t in enumerate((self.times[0], (self.times[0] + self.times[-1]) / 2, self.times[-1])):
+        if self.tips:
+            self._polygon(
+                [[left, top - 7 * s], [left - 4 * s, top + 3 * s], [left + 4 * s, top + 3 * s]], "#a9b6c9"
+            )
+            self._polygon(
+                [[right + 7 * s, bottom], [right - 3 * s, bottom - 4 * s], [right - 3 * s, bottom + 4 * s]],
+                "#a9b6c9",
+            )
+        for i, t in enumerate(_ticks(self.times[0], self.times[-1], max(2, min(6, int(w / s / 120))))):
             xx = project([t], [lo])[0, 0]
-            self._text(f"x{i}", f"{t:g}", [xx, bottom + 8 * s], size=18, align="center")
-        self._text("xlabel", self.xlabel, [(left + right) / 2, bottom + 31 * s], size=20, align="center")
+            self._line([[xx, bottom - 4 * s], [xx, bottom + 4 * s]])
+            self._text(f"x{i}", f"{t:g}", [xx, bottom + 12 * s], size=22, align="center")
+        self._text("xlabel", self.xlabel, [(left + right) / 2, bottom + 42 * s], size=23, align="center")
         # Keep NaN gaps. Bucket min/max reduction retains narrow peaks in long traces.
         indices = np.arange(len(self.times))
         if len(indices) > 4000:
@@ -270,22 +316,20 @@ class TimeSeriesPlot(_Panel):
             crossed_gap = missing[indices[1:]] != missing[indices[:-1]]
             pairs = pairs[np.isfinite(pairs).all((1, 2)) & ~crossed_gap]
             if len(pairs):
-                self._line(pairs, self.color, width=2.5)
+                self._line(pairs, self.color, width=2.8)
         cursor = np.clip(self.cursor, self.times[0], self.times[-1])
-        px = project([cursor], [lo])[0, 0]
-        self._line([[px, top], [px, bottom]], self.color, width=1.3, opacity=0.7)
         current = self.current_value
         if np.isfinite(current):
             px, py = project([cursor], [current])[0]
-            angle = np.linspace(0, 2 * np.pi, 20)
-            self._line(
-                np.column_stack((px + 4 * s * np.cos(angle), py + 4 * s * np.sin(angle))), self.color, width=3
-            )
+            # A short dashed projection keeps the moving point easy to read.
+            for yy in np.arange(py + 10 * s, bottom, 11 * s):
+                self._line([[px, yy], [px, min(yy + 5 * s, bottom)]], self.color, width=1.3, opacity=0.5)
+            self._dot([px, py], 5 * s, self.color)
         self._text(
             "value",
             f"{current:.2f}" if np.isfinite(current) else "missing",
-            [right, y + 42 * s],
-            size=21,
+            [right, y + 37 * s],
+            size=24,
             tint=self.color,
             align="right",
         )
@@ -301,11 +345,11 @@ def _selection(protein, region):
     return set(region.residue_indices)
 
 
-class SequenceTrack(_Panel):
-    """Residue tiles in topology order, with current structure colors or fixed values.
+class SequenceTrack(_Plot):
+    """A sequence with a thin color strip in topology order.
 
     Use the same Region for ``selection`` and a 3D highlight to link the views.
-    Restrict long sequences with ``region``. Letters appear when tiles are wide enough.
+    Restrict long sequences with ``region``. Letters appear when space allows.
     """
 
     def __init__(
@@ -342,8 +386,10 @@ class SequenceTrack(_Panel):
         x, y = self._origin
         w, h = self._extent
         s = self._pixel_scale
-        self._text("title", self.title, [x + 14 * s, y + 8 * s], size=23)
-        left, top, cell = x + 14 * s, y + h * 0.36, (w - 28 * s) / len(self.ids)
+        self._text("title", self.title, [x, y], size=26)
+        left, top, cell = x, y + h * 0.34, w / len(self.ids)
+        letters = cell > 17 * s
+        strip_y = top + (29 * s if letters else 8 * s)
         if self.values is not None:
             colors = self.color_scale.map(self.values.values)[self.ids]
         else:
@@ -356,23 +402,25 @@ class SequenceTrack(_Panel):
             )
             colors = base * (1 - tint[:, 3:]) + tint[:, :3]
         boxes = np.array(
-            [[left + i * cell, top, max(cell - 1 * s, cell * 0.8), h * 0.27] for i in range(len(self.ids))]
+            [[left + i * cell, strip_y, max(cell - 1 * s, cell * 0.8), 5 * s] for i in range(len(self.ids))]
         )
         self._rects(boxes, colors)
         selected = _selection(self.protein, self.selection)
         for j, ri in enumerate(self.ids):
             r = self.protein.topology.residues[ri]
             if ri in selected:
-                bx, by, bw, bh = boxes[j]
-                self._line([[bx, by - 3 * s], [bx + bw, by - 3 * s]], self.highlight_color, width=4)
-            if cell > 17 * s:
+                bx = left + j * cell
+                self._line(
+                    [[bx, strip_y + 13 * s], [bx + cell, strip_y + 13 * s]], self.highlight_color, width=2
+                )
+            if letters:
                 letter = gemmi.find_tabulated_residue(r.name).one_letter_code or "X"
                 self._text(
                     f"letter{j}",
                     letter.upper(),
                     [left + (j + 0.5) * cell, top + 2 * s],
-                    size=19,
-                    tint="#081321",
+                    size=22,
+                    tint=self.highlight_color if ri in selected else "#cdd6e3",
                     align="center",
                 )
         for j in sorted({0, len(self.ids) // 2, len(self.ids) - 1}):
@@ -380,14 +428,14 @@ class SequenceTrack(_Panel):
             self._text(
                 f"number{j}",
                 f"{r.chain}:{r.resid}{r.icode}",
-                [left + (j + 0.5) * cell, y + h * 0.7],
-                size=18,
+                [left + (j + 0.5) * cell, strip_y + 24 * s],
+                size=21,
                 align="left" if j == 0 else "right" if j == len(self.ids) - 1 else "center",
             )
         return self._finish()
 
 
-class ContactMap(_Panel):
+class ContactMap(_Plot):
     """Live binary Cα contact map. Residue rows use topology order and author labels.
 
     A contact has distance <= cutoff Å. ``min_separation`` excludes that many
@@ -442,12 +490,14 @@ class ContactMap(_Panel):
         x, y = self._origin
         w, h = self._extent
         s = self._pixel_scale
-        self._text("title", f"{self.title} · {self.cutoff:g} Å", [x + 14 * s, y + 10 * s], size=23)
-        extent = max(1, min(w - 72 * s, h - 82 * s))
-        left, top = x + (w - extent) / 2, y + 46 * s
+        self._text("title", f"{self.title} · {self.cutoff:g} Å", [x, y], size=28, tint="#edf3fc")
+        extent = max(1, min(w - 96 * s, h - 98 * s))
+        left, top = x + (w - extent + 64 * s) / 2, y + 49 * s
         n = len(self.ids)
         cell = extent / n
-        self._rects([[left, top, extent, extent]], [[0.08, 0.15, 0.22]])
+        axis_x, axis_y = left - 11 * s, top + extent + 11 * s
+        self._line([[axis_x, top], [axis_x, axis_y], [left + extent, axis_y]], width=1.2)
+        self._line([[left, top], [left + extent, top + extent]], opacity=0.15, width=1)
         rows, cols = np.nonzero(self.matrix)
         if len(rows):
             boxes = np.column_stack(
@@ -468,13 +518,12 @@ class ContactMap(_Panel):
                     self.highlight_color,
                     width=3,
                 )
-        for j in sorted({0, n - 1}):
+        for j in sorted({0, n // 2, n - 1}):
             r = self.protein.topology.residues[self.ids[j]]
-            self._text(
-                f"axis{j}",
-                f"{r.chain}:{r.resid}{r.icode}",
-                [left + j * cell, top + extent + 13 * s],
-                size=17,
-                align="left" if j == 0 else "right",
-            )
+            label = f"{r.chain}:{r.resid}{r.icode}"
+            px, py = left + (j + 0.5) * cell, top + (j + 0.5) * cell
+            self._line([[px, axis_y], [px, axis_y + 4 * s]], width=1)
+            self._line([[axis_x - 4 * s, py], [axis_x, py]], width=1)
+            self._text(f"x{j}", label, [px, axis_y + 11 * s], size=21, align="center")
+            self._text(f"y{j}", label, [axis_x - 13 * s, py - 12 * s], size=21, align="right")
         return self._finish()

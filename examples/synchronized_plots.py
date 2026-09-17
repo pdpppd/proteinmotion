@@ -36,10 +36,10 @@ class SynchronizedPlots(ProteinScene):
         self.add(protein, selected.highlight(style="box", padding=1.0, color="#f5d477"))
         self.camera.frame(protein, margin=1.22)
         # Offset the camera target to leave room for the plots on the right.
-        self.camera.target += [12, 0, 0]
+        self.camera.target += [19, 0, 0]
         self.add(Text("An NMR ensemble with synchronized plots", position=(0.05, 0.05), font_size=35))
         self.add(Text("2K39 · deposited model order", position=(0.05, 0.105), font_size=24))
-        self.add(ContactMap(protein, selection=selected, position=(0.69, 0.16), size=(0.27, 0.36)))
+        self.add(ContactMap(protein, selection=selected, position=(0.64, 0.16), size=(0.32, 0.36)))
         self.add(
             TimeSeriesPlot.distance(
                 protein.select(residues=5, atoms="CA"),

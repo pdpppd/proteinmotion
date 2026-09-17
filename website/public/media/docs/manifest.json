@@ -444,8 +444,8 @@
     "video": "media/docs/numerical-properties.mp4",
     "poster": "media/docs/numerical-properties.jpg",
     "poster_time": 3,
-    "video_sha256": "0cc97c6f140f9884522feee9b0688dd349bc5ed378ef96934f4407f6c92d411d",
-    "poster_sha256": "8c5da7d4a74e5cfc4c62d823ff6b8b9e2cdd59a81aea3b1af2bb14c4b9716b70",
+    "video_sha256": "ec2c8c883498e27f9393f2ea3ac88bd4d37d18739d59b1f38e44a399625dc177",
+    "poster_sha256": "753ffe45eb71cbb5aae4d6cf400614905aea2f890d496ff48052a5dbb9b1e898",
     "dependencies": {
       "examples/numerical_properties.py": "995d537f01ca4d0fa271ff49c38605b6d8f455da6e2b764ca29470c99f4b4020",
       "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
@@ -465,13 +465,13 @@
     "video": "media/docs/synchronized-plots.mp4",
     "poster": "media/docs/synchronized-plots.jpg",
     "poster_time": 4,
-    "video_sha256": "24d6496e9f3f91cd0c7c344b84bf9b113a71d42cd4fe10fb329eaa757a7d06b8",
-    "poster_sha256": "3d8555865f07ae0f83344580c0bb9b367d09cf75c73bbb7e7c17c4b339fa4ff1",
+    "video_sha256": "8f4bc8cb1a7ec376f22df8972e35312f778113e9fb5524f29f8b33aa56560cfb",
+    "poster_sha256": "bdb5a41521b87879275be572fd85fd44bcbf85a6f077a15c63fc07a4dc891d7e",
     "dependencies": {
-      "examples/synchronized_plots.py": "73af2ca471ba92fd673e76ba5370f42bf09ae62454185a4fb2a18761cd664569",
+      "examples/synchronized_plots.py": "d2f0d7970d8cdb72f687b01edafad68139d0cfa1da0b973cc329927e82f38f70",
       "examples/data/2k39.cif": "a6bf4eed6d432c37089a81aba2ef1ef1bf6500e819ac628c5a5258460e1bb824"
     },
-    "code": "\"\"\"A ubiquitin NMR ensemble, contact map, sequence, and synchronized distance trace.\n\n2K39 contains deposited NMR models. Interpolation illustrates ensemble variation;\nstate indices do not represent elapsed physical time. Frames are aligned on C\u03b1\nresidues 1\u201370 to remove overall translation and rotation.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import (\n    ColorLegend,\n    ColorScale,\n    ContactMap,\n    PlayTrajectory,\n    Protein,\n    ProteinScene,\n    ResidueValues,\n    SequenceTrack,\n    Text,\n    TimeSeriesPlot,\n    linear,\n)\n\nDATA = Path(__file__).parent / \"data\"\n\n\nclass SynchronizedPlots(ProteinScene):\n    def construct(self):\n        protein = Protein.from_file(DATA / \"2k39.cif\").center()\n        core = protein.select(chain=\"A\", residues=(1, 70), atoms=\"CA\")\n        protein.trajectory = protein.trajectory.aligned(indices=core.atom_indices)\n        values = ResidueValues.rmsf(protein, align=False)\n        scale = ColorScale(0, 8)\n        protein.color_by(values, scale=scale)\n        selected = protein.select(chain=\"A\", residues=(23, 34))\n        self.add(protein, selected.highlight(style=\"box\", padding=1.0, color=\"#f5d477\"))\n        self.camera.frame(protein, margin=1.22)\n        # Offset the camera target to leave room for the plots on the right.\n        self.camera.target += [12, 0, 0]\n        self.add(Text(\"An NMR ensemble with synchronized plots\", position=(0.05, 0.05), font_size=35))\n        self.add(Text(\"2K39 \u00b7 deposited model order\", position=(0.05, 0.105), font_size=24))\n        self.add(ContactMap(protein, selection=selected, position=(0.69, 0.16), size=(0.27, 0.36)))\n        self.add(\n            TimeSeriesPlot.distance(\n                protein.select(residues=5, atoms=\"CA\"),\n                protein.select(residues=70, atoms=\"CA\"),\n                title=\"C\u03b1 5 \u2192 C\u03b1 70\",\n                position=(0.64, 0.54),\n                size=(0.32, 0.29),\n            )\n        )\n        self.add(\n            SequenceTrack(\n                protein,\n                selection=selected,\n                title=\"Helix: residues 23\u201334\",\n                position=(0.05, 0.85),\n                size=(0.91, 0.13),\n            )\n        )\n        self.add(\n            ColorLegend(\n                scale, title=\"Aligned ensemble RMSF\", unit=\"\u00c5\", position=(0.05, 0.68), size=(0.29, 0.12)\n            )\n        )\n        self.wait(0.5)\n        self.play(PlayTrajectory(protein), run_time=9, rate_func=linear)\n        self.wait(0.5)"
+    "code": "\"\"\"A ubiquitin NMR ensemble, contact map, sequence, and synchronized distance trace.\n\n2K39 contains deposited NMR models. Interpolation illustrates ensemble variation;\nstate indices do not represent elapsed physical time. Frames are aligned on C\u03b1\nresidues 1\u201370 to remove overall translation and rotation.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import (\n    ColorLegend,\n    ColorScale,\n    ContactMap,\n    PlayTrajectory,\n    Protein,\n    ProteinScene,\n    ResidueValues,\n    SequenceTrack,\n    Text,\n    TimeSeriesPlot,\n    linear,\n)\n\nDATA = Path(__file__).parent / \"data\"\n\n\nclass SynchronizedPlots(ProteinScene):\n    def construct(self):\n        protein = Protein.from_file(DATA / \"2k39.cif\").center()\n        core = protein.select(chain=\"A\", residues=(1, 70), atoms=\"CA\")\n        protein.trajectory = protein.trajectory.aligned(indices=core.atom_indices)\n        values = ResidueValues.rmsf(protein, align=False)\n        scale = ColorScale(0, 8)\n        protein.color_by(values, scale=scale)\n        selected = protein.select(chain=\"A\", residues=(23, 34))\n        self.add(protein, selected.highlight(style=\"box\", padding=1.0, color=\"#f5d477\"))\n        self.camera.frame(protein, margin=1.22)\n        # Offset the camera target to leave room for the plots on the right.\n        self.camera.target += [19, 0, 0]\n        self.add(Text(\"An NMR ensemble with synchronized plots\", position=(0.05, 0.05), font_size=35))\n        self.add(Text(\"2K39 \u00b7 deposited model order\", position=(0.05, 0.105), font_size=24))\n        self.add(ContactMap(protein, selection=selected, position=(0.64, 0.16), size=(0.32, 0.36)))\n        self.add(\n            TimeSeriesPlot.distance(\n                protein.select(residues=5, atoms=\"CA\"),\n                protein.select(residues=70, atoms=\"CA\"),\n                title=\"C\u03b1 5 \u2192 C\u03b1 70\",\n                position=(0.64, 0.54),\n                size=(0.32, 0.29),\n            )\n        )\n        self.add(\n            SequenceTrack(\n                protein,\n                selection=selected,\n                title=\"Helix: residues 23\u201334\",\n                position=(0.05, 0.85),\n                size=(0.91, 0.13),\n            )\n        )\n        self.add(\n            ColorLegend(\n                scale, title=\"Aligned ensemble RMSF\", unit=\"\u00c5\", position=(0.05, 0.68), size=(0.29, 0.12)\n            )\n        )\n        self.wait(0.5)\n        self.play(PlayTrajectory(protein), run_time=9, rate_func=linear)\n        self.wait(0.5)"
   },
   "density-maps": {
     "title": "Electron density and slices",
@@ -486,8 +486,8 @@
     "video": "media/docs/density-maps.mp4",
     "poster": "media/docs/density-maps.jpg",
     "poster_time": 6,
-    "video_sha256": "ef7a1f07d8e51370f4d5198a90fe4622249c1c5751672c5facb76b509cd5e844",
-    "poster_sha256": "940db343f73a6b5a60a0f112edb1c6dcde97a3b4726568fd3d4491ab7c283fdb",
+    "video_sha256": "ba4ec9d646d9d5f492fd6c1cee2ba867754fa843b92d1cca0d181ba17c02ec35",
+    "poster_sha256": "85ff3ab4b864511cc98dc31a507dc88601ca834355510641b8ff8ab6a8355d4f",
     "dependencies": {
       "examples/density_maps.py": "339c58105923d39b131b6b4a5e46579b513e54237707ed0aa0a301323c434fb3",
       "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6",

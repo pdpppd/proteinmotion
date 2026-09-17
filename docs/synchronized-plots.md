@@ -1,6 +1,6 @@
 # Plots that follow the movie
 
-Add a time-series plot, a live Cα contact map, or a sequence strip to a scene. They render as vector overlays in both backends. Positions and sizes use fractions of the viewport, measured from its upper-left corner.
+Add a time-series plot, a live Cα contact map, or a sequence strip to a scene. Axes, text, and data draw directly over the scene background. Both rendering backends use the same vector overlays. Positions and sizes use fractions of the viewport, measured from its upper-left corner.
 
 ## Complete example and output
 
@@ -45,10 +45,10 @@ class SynchronizedPlots(ProteinScene):
         self.add(protein, selected.highlight(style="box", padding=1.0, color="#f5d477"))
         self.camera.frame(protein, margin=1.22)
         # Offset the camera target to leave room for the plots on the right.
-        self.camera.target += [12, 0, 0]
+        self.camera.target += [19, 0, 0]
         self.add(Text("An NMR ensemble with synchronized plots", position=(0.05, 0.05), font_size=35))
         self.add(Text("2K39 · deposited model order", position=(0.05, 0.105), font_size=24))
-        self.add(ContactMap(protein, selection=selected, position=(0.69, 0.16), size=(0.27, 0.36)))
+        self.add(ContactMap(protein, selection=selected, position=(0.64, 0.16), size=(0.32, 0.36)))
         self.add(
             TimeSeriesPlot.distance(
                 protein.select(residues=5, atoms="CA"),
@@ -100,6 +100,8 @@ With `protein=protein`, supply one value and one time for each state in `protein
 
 Omit `protein` to use scene time in seconds as the cursor coordinate. Times must be finite and strictly increasing. A `NaN` value leaves a gap in the trace. `ylim=(low, high)` fixes the vertical range. `reveal=True` shows samples up to the cursor. Values outside `ylim` are clipped at the plot edge. Long traces are reduced for display while retaining the minimum and maximum of each sample group.
 
+Axes use evenly spaced, rounded tick values. Pass `grid=True` for faint horizontal grid lines or `tips=False` for plain axis ends. The moving point has a dashed line to the horizontal axis. Its value appears above the trace.
+
 ## Distance traces
 
 ```python
@@ -126,6 +128,6 @@ self.add(SequenceTrack(protein, selection=helix))
 
 A contact means that two Cα atoms are at most `cutoff` ångströms apart. The diagonal and nearby residues within each chain are excluded using `min_separation`. Contacts update from the coordinates of every displayed frame. Use `region=` to limit the map to a subset; the default limit is 512 Cα residues because the calculation grows with the square of the residue count. Labels use PDB author numbers. Matrix rows follow topology order.
 
-`SequenceTrack` uses the protein's current residue colors, including color animations. Pass `values=` and `scale=` to show a separate fixed measurement. Letters appear when tiles are wide enough. `region=` restricts the displayed sequence. Sharing a `selection` with a 3D highlight gives the views matching residue markers.
+`SequenceTrack` shows the protein's current residue colors in a thin strip, including color animations. Pass `values=` and `scale=` to show a separate fixed measurement. Letters appear above the strip when space allows. Selected residues have colored letters and an underline. `region=` restricts the displayed sequence. Sharing a `selection` with a 3D highlight gives the views matching residue markers.
 
 These overlays export to the movie. They also update when you seek to a frame in an interactive preview. Use `FadeIn`, `FadeOut`, or `.animate.move_to(...)` to arrange them on the timeline.

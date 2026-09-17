@@ -30,9 +30,9 @@ self.add(trace, ContactMap(protein, selection=helix), SequenceTrack(protein, sel
 self.play(PlayTrajectory(protein), run_time=8)
 ```
 
-Use actual selections in the supplied structure. Distance traces measure centroids before scene transforms. `TimeSeriesPlot(times, values, protein=protein)` requires one sample per trajectory state. Without `protein`, the cursor uses scene seconds. A `live_value` callable can measure current interpolated coordinates; it must be deterministic and free of side effects. NaN leaves a trace gap. Labels should include measurement units.
+Use actual selections in the supplied structure. Distance traces measure centroids before scene transforms. `TimeSeriesPlot(times, values, protein=protein)` requires one sample per trajectory state. Without `protein`, the cursor uses scene seconds. A `live_value` callable can measure current interpolated coordinates; it must be deterministic and free of side effects. NaN leaves a trace gap. Labels should include measurement units. Plots draw directly on the scene background. With 0.9.1+, use `grid=True` for faint horizontal grid lines and `tips=False` for plain axis ends.
 
-`ContactMap` is a live binary Cα contact map, with an 8 Å default cutoff and nearby residues excluded. Use `region=` to limit its quadratic calculation for large proteins. `SequenceTrack` follows current residue colors, or accepts fixed `values=` and `scale=`. The same `selection` can mark a 3D region and both overlays. Panel `position` and `size` are viewport fractions; reserve space to keep the molecule visible.
+`ContactMap` is a live binary Cα contact map, with an 8 Å default cutoff and nearby residues excluded. Use `region=` to limit its quadratic calculation for large proteins. `SequenceTrack` follows current residue colors, or accepts fixed `values=` and `scale=`. The same `selection` can mark a 3D region and both overlays. Plot `position` and `size` are viewport fractions; reserve space to keep the molecule visible.
 
 ## Maps and slices
 

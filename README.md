@@ -17,13 +17,13 @@ The demo shows calmodulin as a cartoon, ball-and-stick model, and surface. It in
 
 Use Python 3.11 or later and a GPU. On Macs with Apple silicon, use an arm64 Python installation. ProteinMotion uses Metal for rendering and VideoToolbox for video encoding on macOS.
 
-Install v0.9.0 from GitHub Releases:
+Install v0.9.1 from GitHub Releases:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install \
-  https://github.com/pdpppd/proteinmotion/releases/download/v0.9.0/proteinmotion-0.9.0-py3-none-any.whl
+  https://github.com/pdpppd/proteinmotion/releases/download/v0.9.1/proteinmotion-0.9.1-py3-none-any.whl
 proteinmotion doctor
 ```
 
@@ -106,7 +106,7 @@ Copy the skill to your agent's skills directory:
 proteinmotion install-skill --path /path/to/skills/proteinmotion-movies
 ```
 
-You can also [download the skill ZIP](https://github.com/pdpppd/proteinmotion/releases/download/v0.9.0/proteinmotion-movies-v0.9.0.zip) and extract it there. For agents that read instructions directly, point them to `SKILL.md` and keep the references and assets beside it.
+You can also [download the skill ZIP](https://github.com/pdpppd/proteinmotion/releases/download/v0.9.1/proteinmotion-movies-v0.9.1.zip) and extract it there. For agents that read instructions directly, point them to `SKILL.md` and keep the references and assets beside it.
 
 Example request:
 

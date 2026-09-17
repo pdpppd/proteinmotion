@@ -278,9 +278,11 @@
     "title": "Text displayed above the plot or color bar.",
     "xlabel": "Horizontal axis label, including units when appropriate.",
     "ylabel": "Vertical axis label, including units when appropriate.",
-    "size": "Panel (width, height) as fractions of the viewport.",
+    "size": "Plot (width, height) as fractions of the viewport.",
     "ylim": "Optional fixed (minimum, maximum) vertical limits. Defaults to the finite data range with padding.",
     "reveal": "Show only trace samples at or before the cursor.",
+    "grid": "Show faint horizontal lines at vertical-axis ticks. Defaults to False.",
+    "tips": "Draw small arrowheads at the ends of the plot axes. Defaults to True.",
     "live_value": "Optional pure function returning the measurement at current coordinates for the cursor marker.",
     "first": "First Region for a centroid-to-centroid distance trace.",
     "second": "Second Region from the same protein.",
@@ -1218,14 +1220,14 @@
       }
     },
     "plots.SequenceTrack": {
-      "description": "Residue tiles showing current structure colors or a fixed numerical property.",
+      "description": "A sequence with a thin strip of current structure colors or a fixed numerical property.",
       "example": "synchronized-plots",
       "parameters": {
         "region": "Optional Region limiting which Cα residues appear.",
         "selection": "Region to mark with the highlight color.",
         "values": "Optional ResidueValues or one value per protein residue."
       },
-      "notes": "The same selection can mark residues in a 3D highlight and a contact map. Letters appear when tiles have enough width."
+      "notes": "The same selection can mark residues in a 3D highlight and a contact map. Letters appear above the strip when space allows; selected residues have colored letters and an underline."
     },
     "plots.ContactMap": {
       "description": "A live binary Cα contact map with linked residue markers.",

@@ -28,7 +28,7 @@ from .scene import ProteinScene, Scene
 from .styling import Colorize, SetOpacity
 from .trajectory import Trajectory
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 __all__ = [
     "DensityMap",
     "DensitySurface",

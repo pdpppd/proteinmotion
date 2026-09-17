@@ -1,5 +1,5 @@
 {
-  "version": "0.9.0",
+  "version": "0.9.1",
   "exports": [
     "DensityMap",
     "DensitySurface",
@@ -9428,12 +9428,12 @@
           "annotation": false,
           "default": "(0.3, 0.12)",
           "kind": "keyword only",
-          "description": "Panel (width, height) as fractions of the viewport."
+          "description": "Plot (width, height) as fractions of the viewport."
         }
       ],
       "returns": "",
       "source": "src/proteinmotion/plots.py",
-      "line": 76,
+      "line": 104,
       "bases": [],
       "attributes": {},
       "guide": "numerical-properties",
@@ -9476,12 +9476,12 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 85
+          "line": 113
         },
         {
           "name": "snapshot",
           "kind": "method",
-          "owner": "plots._Panel",
+          "owner": "plots._Plot",
           "inherited": true,
           "signature": "ColorLegend.snapshot()",
           "parameters": [],
@@ -9489,12 +9489,12 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 24
+          "line": 38
         },
         {
           "name": "glyph_count",
           "kind": "property",
-          "owner": "plots._Panel",
+          "owner": "plots._Plot",
           "inherited": true,
           "signature": "ColorLegend.glyph_count",
           "parameters": [],
@@ -9502,7 +9502,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 37
+          "line": 51
         },
         {
           "name": "set_opacity",
@@ -9630,7 +9630,7 @@
       "description": "A vector trace with a cursor linked to scene time or a protein trajectory.",
       "notes": "Without a protein, the cursor uses scene seconds. With a protein, it follows forward, reverse, and eased playback. Supplied samples remain fixed.",
       "import_path": "proteinmotion",
-      "signature": "TimeSeriesPlot(\n    times,\n    values,\n    *,\n    protein=None,\n    title='',\n    xlabel='Time (s)',\n    ylabel='Value',\n    position=(0.64, 0.56),\n    size=(0.32, 0.34),\n    color='#f5d477',\n    ylim=None,\n    reveal=False,\n    live_value=None,\n)",
+      "signature": "TimeSeriesPlot(\n    times,\n    values,\n    *,\n    protein=None,\n    title='',\n    xlabel='Time (s)',\n    ylabel='Value',\n    position=(0.64, 0.56),\n    size=(0.32, 0.34),\n    color='#f5d477',\n    ylim=None,\n    reveal=False,\n    live_value=None,\n    grid=False,\n    tips=True,\n)",
       "parameters": [
         {
           "name": "times",
@@ -9694,7 +9694,7 @@
           "annotation": false,
           "default": "(0.32, 0.34)",
           "kind": "keyword only",
-          "description": "Panel (width, height) as fractions of the viewport."
+          "description": "Plot (width, height) as fractions of the viewport."
         },
         {
           "name": "color",
@@ -9727,11 +9727,27 @@
           "default": "None",
           "kind": "keyword only",
           "description": "Optional pure function returning the measurement at current coordinates for the cursor marker."
+        },
+        {
+          "name": "grid",
+          "type": "",
+          "annotation": false,
+          "default": "False",
+          "kind": "keyword only",
+          "description": "Show faint horizontal lines at vertical-axis ticks. Defaults to False."
+        },
+        {
+          "name": "tips",
+          "type": "",
+          "annotation": false,
+          "default": "True",
+          "kind": "keyword only",
+          "description": "Draw small arrowheads at the ends of the plot axes. Defaults to True."
         }
       ],
       "returns": "",
       "source": "src/proteinmotion/plots.py",
-      "line": 114,
+      "line": 143,
       "bases": [],
       "attributes": {},
       "guide": "synchronized-plots",
@@ -9781,7 +9797,7 @@
           "returns": "",
           "notes": "The marker measures the current interpolated coordinates; the line connects the supplied state measurements. Omitted times use state indices.",
           "source": "src/proteinmotion/plots.py",
-          "line": 171
+          "line": 203
         },
         {
           "name": "current_value",
@@ -9794,7 +9810,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 214
+          "line": 246
         },
         {
           "name": "layout",
@@ -9832,12 +9848,12 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 223
+          "line": 255
         },
         {
           "name": "snapshot",
           "kind": "method",
-          "owner": "plots._Panel",
+          "owner": "plots._Plot",
           "inherited": true,
           "signature": "TimeSeriesPlot.snapshot()",
           "parameters": [],
@@ -9845,12 +9861,12 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 24
+          "line": 38
         },
         {
           "name": "glyph_count",
           "kind": "property",
-          "owner": "plots._Panel",
+          "owner": "plots._Plot",
           "inherited": true,
           "signature": "TimeSeriesPlot.glyph_count",
           "parameters": [],
@@ -9858,7 +9874,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 37
+          "line": 51
         },
         {
           "name": "set_opacity",
@@ -9983,8 +9999,8 @@
       "module": "plots",
       "kind": "class",
       "href": "/reference/plots/SequenceTrack/",
-      "description": "Residue tiles showing current structure colors or a fixed numerical property.",
-      "notes": "The same selection can mark residues in a 3D highlight and a contact map. Letters appear when tiles have enough width.",
+      "description": "A sequence with a thin strip of current structure colors or a fixed numerical property.",
+      "notes": "The same selection can mark residues in a 3D highlight and a contact map. Letters appear above the strip when space allows; selected residues have colored letters and an underline.",
       "import_path": "proteinmotion",
       "signature": "SequenceTrack(\n    protein,\n    *,\n    region=None,\n    selection=None,\n    values=None,\n    scale=None,\n    title='Sequence',\n    position=(0.06, 0.83),\n    size=(0.88, 0.13),\n    highlight_color='#f5d477',\n)",
       "parameters": [
@@ -10050,7 +10066,7 @@
           "annotation": false,
           "default": "(0.88, 0.13)",
           "kind": "keyword only",
-          "description": "Panel (width, height) as fractions of the viewport."
+          "description": "Plot (width, height) as fractions of the viewport."
         },
         {
           "name": "highlight_color",
@@ -10063,7 +10079,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/plots.py",
-      "line": 304,
+      "line": 348,
       "bases": [],
       "attributes": {},
       "guide": "synchronized-plots",
@@ -10106,12 +10122,12 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 340
+          "line": 384
         },
         {
           "name": "snapshot",
           "kind": "method",
-          "owner": "plots._Panel",
+          "owner": "plots._Plot",
           "inherited": true,
           "signature": "SequenceTrack.snapshot()",
           "parameters": [],
@@ -10119,12 +10135,12 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 24
+          "line": 38
         },
         {
           "name": "glyph_count",
           "kind": "property",
-          "owner": "plots._Panel",
+          "owner": "plots._Plot",
           "inherited": true,
           "signature": "SequenceTrack.glyph_count",
           "parameters": [],
@@ -10132,7 +10148,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 37
+          "line": 51
         },
         {
           "name": "set_opacity",
@@ -10316,7 +10332,7 @@
           "annotation": false,
           "default": "(0.27, 0.4)",
           "kind": "keyword only",
-          "description": "Panel (width, height) as fractions of the viewport."
+          "description": "Plot (width, height) as fractions of the viewport."
         },
         {
           "name": "title",
@@ -10353,7 +10369,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/plots.py",
-      "line": 390,
+      "line": 438,
       "bases": [],
       "attributes": {},
       "guide": "synchronized-plots",
@@ -10371,7 +10387,7 @@
           "returns": "4 × 4 array.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 429
+          "line": 477
         },
         {
           "name": "layout",
@@ -10409,12 +10425,12 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 440
+          "line": 488
         },
         {
           "name": "snapshot",
           "kind": "method",
-          "owner": "plots._Panel",
+          "owner": "plots._Plot",
           "inherited": true,
           "signature": "ContactMap.snapshot()",
           "parameters": [],
@@ -10422,12 +10438,12 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 24
+          "line": 38
         },
         {
           "name": "glyph_count",
           "kind": "property",
-          "owner": "plots._Panel",
+          "owner": "plots._Plot",
           "inherited": true,
           "signature": "ContactMap.glyph_count",
           "parameters": [],
@@ -10435,7 +10451,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 37
+          "line": 51
         },
         {
           "name": "set_opacity",
@@ -11432,9 +11448,9 @@
     }
   ],
   "dependencies": {
-    "docs/reference/catalog.json": "a49f59f62f02e6d52b8c20c4f5255e8078cd22b9c731774cc040536ee885d85e",
+    "docs/reference/catalog.json": "5dad00653f62493e150cab65740aeef458db272414f6ced4d518ea755c2cfeac",
     "scripts/build_reference.py": "ae856e77fd527326575f8e45523fa04ca32f72f72b857ff999317e1fdf0ec3a2",
-    "src/proteinmotion/__init__.py": "fa61a393974cacfecaaa8ed20e406182596972ebd1489dd4f78344d8ee73a6a8",
+    "src/proteinmotion/__init__.py": "8f6185b69531258b93eba18ed7abf86d1c5e548a56f0467e824f60c93a383bee",
     "src/proteinmotion/__main__.py": "3129adff95e0f38b87ab34cddfc27082c7892bcaec267ff5d40f160fdf55b44a",
     "src/proteinmotion/_blender_worker.py": "3010c14ed7ddb07d86b8d6163b32591eefb4d9dc3eeba526bde223f6e303ef1e",
     "src/proteinmotion/_eevee_geometry.py": "e481ed75c7f3d6fb86cfba40fa9672a0b167df21432e7e703003bdc6f302c013",
@@ -11453,7 +11469,7 @@
     "src/proteinmotion/math3d.py": "b5fa8b9f6ecbc6108851aa43a600d2bc36c910e2a3f4d9bca765f3a20c8739d4",
     "src/proteinmotion/mesh.py": "e79e92819f0ac0d26e1613ec0ae536bf6f8a12f1664cfe7e248ed77e58f124ec",
     "src/proteinmotion/overlay.py": "60939b7cf950bd6d8650ead5efb3e6090b0722925cb188ebbec857d062af1737",
-    "src/proteinmotion/plots.py": "4d38aca404438211a59e7b331cf476233ce32b1734bb274704aa715730d5537c",
+    "src/proteinmotion/plots.py": "7d76ef084420851bb27940420541274d5f07a38c6f2a63d0b0cc7b68ac657e59",
     "src/proteinmotion/preview.py": "644278261689781cca99840268cc9b7e8f5844bd17150c520615d2b0692dde3f",
     "src/proteinmotion/properties.py": "e8a8b5f2ad6def682e4a4e1bb68837a1e245b2f17926283b5a7deb814adab0e9",
     "src/proteinmotion/protein.py": "5258ec8f8f3f1b6ecf18f8f0bf9f9b317314971d6926148ae67fd6ef9997db8b",

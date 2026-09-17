@@ -2,7 +2,7 @@
 
 [Browse the reference manual](https://pdpppd.github.io/proteinmotion/reference/) for individual class and function pages, parameters, methods, and rendered examples.
 
-This quick reference covers the public Python API in version 0.9.0. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which are in their own modules.
+This quick reference covers the public Python API in version 0.9.1. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which are in their own modules.
 
 ## ProteinScene
 

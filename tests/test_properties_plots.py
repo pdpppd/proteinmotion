@@ -190,8 +190,8 @@ def test_long_trace_preserves_nan_gaps():
     trace = next(line for line in layout.leaders if line.points.ndim == 3)
     # The trace's pixel x coordinate is an affine image of sample index.
     x = trace.points[:, :, 0]
-    left = plot.position[0] * 1920 + 62
-    right = (plot.position[0] + plot.size[0]) * 1920 - 20
+    # Both endpoints are finite and retained, independent of the plot's margins.
+    left, right = x.min(), x.max()
     index = (x - left) / (right - left) * 9999
     for start, end in index:
         assert not (start < 405 and end > 408)

@@ -12,6 +12,10 @@ The lag calculation and two-stage outline/fill behavior of `Write` / `Unwrite` a
 
 This package does not bundle or import Manim/Pango. Text is shaped using HarfBuzz, flattened with FontTools, triangulated with mapbox-earcut and drawn through wgpu/Metal. It is not a full or pixel-identical implementation of Manim Text, MarkupText, or MathTex.
 
+## Plot appearance
+
+Plot axes follow the visual conventions of Manim Community's [Axes](https://docs.manim.community/en/stable/reference/manim.mobject.graphing.coordinate_systems.Axes.html) and [NumberLine](https://docs.manim.community/en/stable/reference/manim.mobject.graphing.number_line.NumberLine.html): independent axis strokes, ticks, labels, and optional tips on the scene background. The plotting code in `src/proteinmotion/plots.py` is implemented in ProteinMotion and uses its native vector renderer.
+
 ## Bundled Source Sans 3 fonts
 
 The unmodified Regular and Semibold OpenType fonts are from [Adobe Source Sans, commit 87b37a2daaed80fcb8e8ccb0085c4d72ddade12e](https://github.com/adobe-fonts/source-sans/tree/87b37a2daaed80fcb8e8ccb0085c4d72ddade12e).
