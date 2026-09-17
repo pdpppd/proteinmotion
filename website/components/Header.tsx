@@ -4,6 +4,7 @@ import Search from "./Search";
 import { searchData } from "@/lib/content";
 import { referenceSearch } from "@/lib/reference";
 import { repo } from "@/lib/config";
+import { version } from "../package.json";
 export default function Header() {
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-paper/95 backdrop-blur-sm">
@@ -19,7 +20,7 @@ export default function Header() {
           </span>
           ProteinMotion
           <span className="ml-1 hidden rounded border border-line px-1.5 py-1 font-mono text-[10px] font-normal tracking-normal text-muted lg:inline">
-            v0.7
+            v{version}
           </span>
         </Link>
         <nav
