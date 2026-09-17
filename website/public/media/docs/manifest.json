@@ -409,5 +409,26 @@
       "skills/proteinmotion-movies/assets/film.py": "dcfe91d802da72cba80238d23ea73528e59a8fe20975690efb126e24a9f32427",
       "skills/proteinmotion-movies/assets/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
     }
+  },
+  "eevee-focus": {
+    "title": "EEVEE lens focus",
+    "caption": "Calmodulin: highlight residues 5\u201319, fade the surrounding cartoon, and change lens focus.",
+    "source": "examples/eevee_focus.py",
+    "scene": "HelixFocus",
+    "duration": 8.0,
+    "frames": 480,
+    "width": 960,
+    "height": 540,
+    "fps": 60,
+    "video": "media/docs/eevee-focus.mp4",
+    "poster": "media/docs/eevee-focus.jpg",
+    "poster_time": 3,
+    "video_sha256": "e9f247d8857210205d69e3d0f17ba53d2dcde4f8c073d366bbb148062bcbc4f3",
+    "poster_sha256": "2306c09171814534eaf322c9dfefc2e119aa8ea31e0c76e2020294349490b254",
+    "dependencies": {
+      "examples/eevee_focus.py": "a654699f22090999807e5cc6863312766cc8e5362935fc8535ffe5f14586a8df",
+      "examples/data/1cll.cif": "a8be375d00d2d5d47ffacae491f775167d1c0488ab8485cabd269410e596d3aa"
+    },
+    "code": "\"\"\"Calmodulin 1CLL: select a helix, fade its context, then pull lens focus.\n\nRender with:\n    proteinmotion render examples/eevee_focus.py HelixFocus --renderer eevee \\\n        --width 960 --height 540 --fps 60 -o helix-focus.mp4\n\nRequires Blender 4.5+. The camera motion illustrates the deposited structure.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import FocusPull, Protein, ProteinScene, SetOpacity, Text, Write\n\nDATA = Path(__file__).resolve().parent / \"data\"\n\n\nclass HelixFocus(ProteinScene):\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1cll.cif\", chains=\"A\").cartoon(color=\"#7299b4\").center()\n        protein.rotate(0.9, axis=(0, 0, 1))\n        helix = protein.select(chain=\"A\", residues=(5, 19))\n        helix.set_color(\"#ffb34c\")\n        # The context selection includes every atom outside the highlighted helix.\n        context = protein.select(chain=\"A\", residues=[4, *range(20, 149)])\n        far_region = protein.select(chain=\"A\", residues=(82, 92), atoms=\"CA\")\n        self.add(protein)\n        self.camera.frame(protein, aspect=self.width / self.height).zoom(1.5)\n        self.camera.set_focus(protein, chain=\"A\", residues=(5, 19), atoms=\"CA\", fstop=4)\n        self.add(Text(\"Calmodulin \u00b7 1CLL\", position=(0.055, 0.9), font_size=30))\n        label = helix.callout(\n            \"Alpha helix\",\n            subtitle=\"Chain A \u00b7 residues 5\u201319\",\n            position=(0.68, 0.13),\n            color=\"#ffb34c\",\n            font_size=38,\n        )\n        self.play(Write(label), run_time=0.8)\n        self.play(SetOpacity(context, 0.06), run_time=1)\n        self.play(self.camera.animate.orbit(theta=0.28), run_time=2)\n        self.wait(0.4)\n        self.play(FocusPull(self.camera, far_region, fstop=2.8), SetOpacity(context, 0.35), run_time=1.4)\n        self.wait(0.4)\n        self.play(FocusPull(self.camera, helix, fstop=4), SetOpacity(context, 0.06), run_time=1.2)\n        self.wait(0.8)"
   }
 }

@@ -73,3 +73,16 @@ self.play(
 ## Text labels and callouts
 
 Use `region.callout("α helix")` to place a label with a line to a selected region. Use `region.label()` for one amino acid, or `protein.label_residues(residues=[8, 44, 70])` for several names. `Write` and `Unwrite` animate these labels. See [text and labels](text.md).
+
+## Lens focus with EEVEE
+
+Set depth of field independently of camera position and zoom:
+
+```python
+self.camera.set_focus(protein, chain="A", residues=5)
+self.camera.set_focus(protein, chain="A", residues=(10, 20), atoms="CA", fstop=4)
+```
+
+These calls focus on the mean position of the selected atoms. `follow=True` keeps focus on that region through motion and deformation. Use `follow=False` to keep the initial world point fixed. A range sets one focus plane through its center; residues far from that plane can still blur.
+
+See [EEVEE and lens focus](eevee.md) for animated focus pulls and rendered output.

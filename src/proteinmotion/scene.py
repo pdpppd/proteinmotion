@@ -127,11 +127,21 @@ class ProteinScene:
                 p._sync()
         return visible
 
-    def render_frame(self, time=0.0, *, output=None, renderer=None):
+    def render_frame(self, time=0.0, *, output=None, renderer=None, eevee=None):
+        """Render a still with 'native', 'eevee', or an existing renderer instance."""
         from .renderer import Renderer
 
-        own = renderer is None
-        renderer = renderer or Renderer(self.width, self.height, msaa=self.msaa)
+        own = renderer is None or isinstance(renderer, str)
+        if renderer is None or renderer == "native":
+            if eevee is not None:
+                raise ValueError("EEVEE settings require renderer='eevee'")
+            renderer = Renderer(self.width, self.height, msaa=self.msaa)
+        elif renderer == "eevee":
+            from .eevee import EEVEE
+
+            renderer = EEVEE(self.width, self.height, options=eevee)
+        elif isinstance(renderer, str):
+            raise ValueError("renderer must be 'native', 'eevee', or a renderer instance")
         try:
             pixels = renderer.render(self.seek(time), self.camera, self.background)
             if output is not None:
@@ -144,15 +154,43 @@ class ProteinScene:
             if own:
                 renderer.close()
 
-    def render(self, output, *, codec="auto", bitrate="20M", progress=True):
+    def render(self, output, *, codec="auto", bitrate="20M", progress=True, renderer="native", eevee=None):
+        """Export a movie with the native GPU renderer or optional Blender EEVEE."""
         import time
 
         from .renderer import Renderer
         from .video import VideoWriter
 
         self.build()
+        if renderer not in ("native", "eevee"):
+            raise ValueError("renderer must be 'native' or 'eevee'")
+        if renderer == "native" and eevee is not None:
+            raise ValueError("EEVEE settings require renderer='eevee'")
         count = max(1, math.ceil(self.duration * self.fps))
         start = time.perf_counter()
+        if renderer == "eevee":
+            from .eevee import EEVEE
+
+            with EEVEE(self.width, self.height, options=eevee) as backend:
+                with VideoWriter(
+                    output, self.width, self.height, self.fps, codec=codec, bitrate=bitrate
+                ) as writer:
+                    for i in range(count):
+                        writer.write(backend.render(self.seek(i / self.fps), self.camera, self.background))
+                        if progress and i % max(1, int(self.fps)) == 0:
+                            print(f"\rEEVEE: {i + 1}/{count} frames", end="", flush=True)
+                adapter = backend.adapter_info
+            elapsed = time.perf_counter() - start
+            if progress:
+                print(f"\rEEVEE: rendered {count} frames in {elapsed:.2f}s → {output}")
+            return {
+                "frames": count,
+                "seconds": elapsed,
+                "fps": count / elapsed,
+                "adapter": adapter,
+                "codec": writer.codec,
+                "output": str(output),
+            }
         with Renderer(self.width, self.height, msaa=self.msaa, readback_format="nv12") as renderer:
             with VideoWriter(
                 output, self.width, self.height, self.fps, codec=codec, bitrate=bitrate, pixel_format="nv12"

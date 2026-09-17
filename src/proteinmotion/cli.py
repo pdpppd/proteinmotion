@@ -57,6 +57,12 @@ def main():
         p.add_argument("--msaa", type=int, choices=(1, 4), default=4)
         if mode != "preview":
             p.add_argument("-o", "--output", type=Path, required=True)
+            p.add_argument("--renderer", choices=("native", "eevee"), default="native")
+            p.add_argument("--blender", help="Blender executable path (EEVEE only)")
+            p.add_argument("--samples", type=int, default=64, help="EEVEE samples per pixel")
+            p.add_argument(
+                "--supersampling", type=float, default=1.5, help="EEVEE spatial resolution multiplier"
+            )
         if mode == "render":
             p.add_argument("--codec", default="auto")
             p.add_argument("--bitrate", default="20M")
@@ -87,7 +93,13 @@ def main():
         import av
         import wgpu
 
+        from .eevee import find_blender
         from .video import available_encoders
+
+        try:
+            blender = find_blender()
+        except RuntimeError:
+            blender = None
 
         encoders = available_encoders()
         print(
@@ -101,6 +113,7 @@ def main():
                     "adapters": [dict(a.info) for a in wgpu.gpu.enumerate_adapters_sync()],
                     "ffmpeg_executable_optional": shutil.which("ffmpeg"),
                     "encoders": encoders,
+                    "blender_executable_optional": blender,
                 },
                 indent=2,
             )
@@ -110,9 +123,26 @@ def main():
         args.file, args.scene, width=args.width, height=args.height, fps=args.fps, msaa=args.msaa
     )
     if args.command == "render":
-        scene.render(args.output, codec=args.codec, bitrate=args.bitrate)
+        from .eevee import EEVEEOptions
+
+        options = EEVEEOptions(blender=args.blender, samples=args.samples, supersampling=args.supersampling)
+        scene.render(
+            args.output,
+            codec=args.codec,
+            bitrate=args.bitrate,
+            renderer=args.renderer,
+            eevee=options if args.renderer == "eevee" else None,
+        )
     elif args.command == "still":
-        scene.render_frame(args.time, output=args.output)
+        from .eevee import EEVEEOptions
+
+        options = EEVEEOptions(blender=args.blender, samples=args.samples, supersampling=args.supersampling)
+        scene.render_frame(
+            args.time,
+            output=args.output,
+            renderer=args.renderer,
+            eevee=options if args.renderer == "eevee" else None,
+        )
     else:
         scene.preview()
 

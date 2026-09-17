@@ -17,13 +17,13 @@ The demo shows calmodulin as a cartoon, ball-and-stick model, and surface. It in
 
 Use Python 3.11 or later and a GPU. On Macs with Apple silicon, use an arm64 Python installation. ProteinMotion uses Metal for rendering and VideoToolbox for video encoding on macOS.
 
-Install v0.7.0 from GitHub Releases:
+Install v0.8.0 from GitHub Releases:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install \
-  https://github.com/pdpppd/proteinmotion/releases/download/v0.7.0/proteinmotion-0.7.0-py3-none-any.whl
+  https://github.com/pdpppd/proteinmotion/releases/download/v0.8.0/proteinmotion-0.8.0-py3-none-any.whl
 proteinmotion doctor
 ```
 
@@ -60,12 +60,32 @@ class MyMovie(ProteinScene):
 
 Use a structure file and residue selection that match your protein. Residue ranges use inclusive PDB author numbers. Coordinates are in ångströms; angles are in radians. Animations in one `play()` call run together. Successive calls run in sequence.
 
+## Render with Blender EEVEE
+
+EEVEE adds depth of field with focus on a protein, residue, or selected region. Install [Blender 4.5 or later](https://www.blender.org/download/) separately. EEVEE is included in Blender. The default native renderer uses the Python dependencies installed above.
+
+```bash
+proteinmotion render my-movie/film.py ProteinMovie --renderer eevee --fps 60 -o film.mp4
+```
+
+ProteinMotion finds Blender on `PATH` or at `/Applications/Blender.app` on macOS. For another location, pass `--blender /path/to/blender` or set `PROTEINMOTION_BLENDER`. On macOS, EEVEE uses Metal.
+
+Set lens focus in your scene before the first animation:
+
+```python
+self.camera.set_focus(protein, chain="A", residues=5, fstop=5.6)
+self.camera.set_focus(protein, chain="A", residues=(10, 20), atoms="CA", fstop=4)
+```
+
+The selected atoms define the focus point and follow the protein during motion. The camera position and zoom stay fixed. Use `FocusPull` to animate a change of lens focus. See the [EEVEE guide and rendered example](https://pdpppd.github.io/proteinmotion/docs/eevee/) for focus pulls, quality settings, and transparency behavior.
+
 ## Features
 
 - **Representations:** cartoon, ribbon, ball-and-stick, and molecular surfaces.
 - **Animation:** rotation, translation, camera movement, deformation, and transitions between representations.
 - **Residue styling:** color and opacity changes, applied together or delayed by residue.
 - **Labels:** text writing and erasing, amino acid names, and callout lines that connect labels to selected regions.
+- **Rendering:** native GPU rendering or Blender EEVEE with depth of field.
 - **Region tools:** camera focus and 3D sphere, box, or atom highlights.
 - **Measurements:** distance labels, hydrogen-bond detection, and screened Coulomb estimates with imported charges.
 - **States and trajectories:** multi-model PDB/mmCIF, NumPy arrays, and MDAnalysis readers for XTC, DCD, TRR, and other formats.
@@ -83,7 +103,7 @@ Copy the skill to your agent's skills directory:
 proteinmotion install-skill --path /path/to/skills/proteinmotion-movies
 ```
 
-You can also [download the skill ZIP](https://github.com/pdpppd/proteinmotion/releases/download/v0.7.0/proteinmotion-movies-v0.7.0.zip) and extract it there. For agents that read instructions directly, point them to `SKILL.md` and keep the references and assets beside it.
+You can also [download the skill ZIP](https://github.com/pdpppd/proteinmotion/releases/download/v0.8.0/proteinmotion-movies-v0.8.0.zip) and extract it there. For agents that read instructions directly, point them to `SKILL.md` and keep the references and assets beside it.
 
 Example request:
 
@@ -97,6 +117,7 @@ These scripts and their input structures are in the repository:
 
 | Example | Source |
 |---|---|
+| EEVEE depth of field and residue focus | [eevee_focus.py](examples/eevee_focus.py) |
 | Calmodulin and troponin C feature demo | [feature_showcase.py](examples/feature_showcase.py) |
 | Residue colors, surfaces, distances, and interactions | [molecular_tools.py](examples/molecular_tools.py) |
 | Text, residue labels, and callouts | [labels_and_callouts.py](examples/labels_and_callouts.py) |

@@ -64,7 +64,7 @@ function exampleHTML(id: string, text: string, language: string) {
   const source = `${repo}/blob/main/${example.source}${example.line ? `#L${example.line}` : ""}`;
   return `<div class="doc-example" data-example="${escape(id)}">
     <div class="doc-example-code">
-      <div class="example-label">Code <span>${language === "bash" ? "Render command" : example.code ? "Scene excerpt" : "Full script"}</span></div>
+      <div class="example-label">Code <span>${language === "bash" ? "Render command" : example.line ? "Scene excerpt" : "Full script"}</span></div>
       ${codeHTML(text, language)}
     </div>
     <figure class="doc-example-output">

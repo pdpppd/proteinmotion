@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "proteinmotion"
-version = "0.7.0"
-description = "Programmatic protein animation with a Manim-inspired API and native Metal rendering"
+version = "0.8.0"
+description = "Programmatic protein animation with a Manim-inspired API and native GPU or Blender EEVEE rendering"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"

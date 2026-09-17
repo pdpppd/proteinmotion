@@ -13,6 +13,51 @@ class Camera:
         self.depth_cue = 0.65
         self.radius = 20.0
         self._tracking = None
+        self.dof = False
+        self.fstop = 5.6
+        self._focus_target = None
+        self._focus_point = np.zeros(3)
+
+    def set_focus(self, target, *, chain=None, residues=None, atoms=None, fstop=5.6, follow=True):
+        """Set EEVEE lens focus on a Protein, Region or world point; None disables DOF.
+
+        Selectors use PDB author residue numbers, with inclusive tuple ranges.
+        This changes lens focus without moving or zooming the camera.
+        """
+        if not np.isfinite(fstop) or fstop <= 0:
+            raise ValueError("fstop must be finite and positive")
+        if any(x is not None for x in (chain, residues, atoms)):
+            from .protein import Protein
+
+            if not isinstance(target, Protein):
+                raise TypeError("Focus selectors require a Protein")
+            target = target.select(chain=chain, residues=residues, atoms=atoms)
+        if target is None:
+            self.dof, self._focus_target = False, None
+            return self
+        point = self._target_point(target)
+        self.dof, self.fstop = True, float(fstop)
+        self._focus_point = point
+        self._focus_target = target if follow and hasattr(target, "positions") else None
+        return self
+
+    @staticmethod
+    def _target_point(target):
+        if hasattr(target, "positions"):
+            m = target.model_matrix
+            point = target.positions.mean(0, dtype=np.float64) @ m[:3, :3].T + m[:3, 3]
+        else:
+            point = np.asarray(target, dtype=float)
+        if point.shape != (3,) or not np.isfinite(point).all():
+            raise ValueError("Focus needs a Protein, nonempty Region, or finite world 3-vector")
+        return point.copy()
+
+    @property
+    def focus_point(self):
+        """Current lens target in world ångströms, following the selected atoms."""
+        if self._focus_target is not None:
+            return self._target_point(self._focus_target)
+        return self._focus_point.copy()
 
     def frame(self, *proteins, margin=1.25, aspect=16 / 9):
         if not proteins or not np.isfinite(margin) or margin <= 0 or not np.isfinite(aspect) or aspect <= 0:

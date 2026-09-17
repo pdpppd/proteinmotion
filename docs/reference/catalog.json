@@ -69,6 +69,11 @@
       "title": "Rendering",
       "description": "Render frames directly with a reusable GPU renderer.",
       "guide": "rendering"
+    },
+    "eevee": {
+      "title": "Blender EEVEE",
+      "description": "Render through Blender with depth of field and smooth group fades.",
+      "guide": "eevee"
     }
   },
   "parameters": {
@@ -235,7 +240,16 @@
     "exc_type": "Exception type supplied by the context manager.",
     "exc_value": "Exception instance supplied by the context manager.",
     "traceback": "Traceback supplied by the context manager.",
-    "args": "Exception information supplied by the context manager."
+    "args": "Exception information supplied by the context manager.",
+    "fstop": "Lens f-number. Lower values produce a shallower depth of field. Must be positive.",
+    "blender": "Optional Blender executable path. Otherwise use PROTEINMOTION_BLENDER, PATH or the macOS application.",
+    "samples": "Positive number of EEVEE samples per pixel; default 64.",
+    "supersampling": "Spatial resolution multiplier of at least 1. Output is downsampled to the requested size.",
+    "max_blur": "Maximum depth-of-field blur size in output pixels.",
+    "max_opacity_layers": "Maximum distinct positive opacity levels per frame. Rendering cost grows with this count.",
+    "timeout": "Seconds allowed for Blender startup or one frame before an error is raised.",
+    "eevee": "Optional EEVEEOptions instance; requires renderer=\"eevee\".",
+    "executable": "Optional Blender executable name or path."
   },
   "members": {
     "construct": {
@@ -555,11 +569,21 @@
       "members": {
         "render": {
           "description": "Export the timeline to a video file.",
-          "returns": "Dictionary containing frames, seconds, fps, adapter, codec, and output. Here fps is render throughput."
+          "returns": "Dictionary containing frames, seconds, fps, adapter, codec, and output. Here fps is render throughput.",
+          "parameters": {
+            "renderer": "\"native\" (default) or \"eevee\"."
+          }
         },
         "focus": {
           "description": "Animate camera focus using the scene’s output aspect ratio.",
           "returns": "The scene."
+        },
+        "render_frame": {
+          "description": "Render one point on the timeline to an image.",
+          "parameters": {
+            "renderer": "\"native\", \"eevee\", an existing renderer instance, or None for native."
+          },
+          "returns": "RGBA uint8 image array."
         }
       }
     },
@@ -587,7 +611,7 @@
       }
     },
     "camera.Camera": {
-      "description": "A perspective camera with orbit, zoom, framing, and depth cueing.",
+      "description": "A perspective camera with orbit, zoom, framing, depth cueing, and EEVEE lens focus.",
       "example": "region-focus",
       "notes": "Each scene creates its own camera at scene.camera. Use frame() for initial setup and Focus or scene.focus() for animated camera movement.",
       "attributes": {
@@ -596,7 +620,9 @@
         "theta, phi": "Horizontal and vertical angles in radians.",
         "fov": "Vertical field of view in radians; initially 38 degrees.",
         "depth_cue": "Distance fog strength; 0 disables it.",
-        "radius": "Framing radius used to choose clipping planes."
+        "radius": "Framing radius used to choose clipping planes.",
+        "dof": "Whether EEVEE depth of field is enabled; initially False.",
+        "fstop": "Lens f-number, initially 5.6. Lower values produce more blur."
       },
       "members": {
         "frame": {
@@ -610,6 +636,15 @@
         "animate": {
           "description": "Create a builder for orbit, zoom, and focus animations.",
           "returns": "Animate"
+        },
+        "set_focus": {
+          "description": "Set lens focus without moving or zooming the camera.",
+          "returns": "The camera.",
+          "parameters": {
+            "target": "Protein, Region, world point, or None to disable DOF.",
+            "follow": "Track the mean selected position through motion; False fixes the initial world point."
+          },
+          "notes": "Selectors apply to a Protein target. Ranges use inclusive PDB author numbers. atoms=\"CA\" focuses on the Cα centroid. A region defines one focus plane, rather than making all selected atoms equally sharp."
         }
       }
     },
@@ -625,7 +660,17 @@
     "animation.Animate": {
       "description": "Build a fluent protein or camera animation through the .animate property.",
       "example": "motion",
-      "notes": "Protein operations include shift(), rotate(), scale(), and set_opacity(). Camera operations include orbit() and zoom(). set_color() returns a separate Colorize animation; focus() returns a Focus animation. Place color and transforms in separate arguments to play()."
+      "notes": "Protein operations include shift(), rotate(), scale(), and set_opacity(). Camera operations include orbit() and zoom(). set_color() returns a separate Colorize animation; focus() returns a Focus animation. Place color and transforms in separate arguments to play().",
+      "members": {
+        "set_focus": {
+          "description": "Create a FocusPull animation for this camera.",
+          "parameters": {
+            "target": "Protein, Region, or world point.",
+            "kwargs": "FocusPull options, including chain, residues, atoms, fstop and follow."
+          },
+          "returns": "FocusPull"
+        }
+      }
     },
     "animation.Rotate": {
       "description": "Rotate a protein around its molecular centroid.",
@@ -1004,6 +1049,51 @@
           }
         }
       }
+    },
+    "eevee.EEVEEOptions": {
+      "description": "Configure the optional EEVEE renderer. Blender 4.5+ is installed separately.",
+      "notes": "Defaults use fixed sampling, 1.5× spatial supersampling, and scene-linear group fades. Each opacity level adds a render layer.",
+      "guide": "eevee",
+      "example": "eevee-focus"
+    },
+    "eevee.EEVEE": {
+      "description": "Keep one Blender process alive while rendering multiple frames.",
+      "parameters": {
+        "options": "EEVEEOptions instance, or None for defaults."
+      },
+      "notes": "Use as a context manager. This backend exports molecular geometry to Blender and composites vector annotations afterward.",
+      "members": {
+        "render": {
+          "description": "Render current objects with EEVEE and composite sharp annotations.",
+          "returns": "An RGBA uint8 array with shape (height, width, 4).",
+          "parameters": {
+            "background": "Three RGB floats in [0, 1].",
+            "objects": "Current Protein and annotation objects, such as the list returned by scene.seek(time)."
+          }
+        }
+      }
+    },
+    "eevee.find_blender": {
+      "description": "Locate the Blender executable and explain how to install it if absent.",
+      "returns": "Absolute executable path.",
+      "notes": "Search order: explicit path, PROTEINMOTION_BLENDER, PATH, /Applications/Blender.app/Contents/MacOS/Blender."
+    },
+    "animation.FocusPull": {
+      "description": "Animate lens focus to a protein, residue selection or world point.",
+      "guide": "eevee",
+      "example": "eevee-focus",
+      "forward_parameters": [
+        "animation.Animation",
+        [
+          "rate_func"
+        ]
+      ],
+      "parameters": {
+        "target": "Protein, Region, or three world coordinates in ångströms.",
+        "fstop": "Destination f-number, or None to keep the current aperture.",
+        "follow": "Follow the selected atoms through motion. False fixes the destination at the start of the clip."
+      },
+      "notes": "Uses an independent lens animation channel, so it can run with camera orbit or zoom. Requires the EEVEE renderer to show depth of field."
     }
   }
 }

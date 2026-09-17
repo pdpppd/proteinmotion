@@ -48,6 +48,13 @@ export const guides = [
       "Select residues, add 3D highlights, and follow moving regions.",
   },
   {
+    slug: "eevee",
+    file: "eevee.md",
+    title: "EEVEE & depth of field",
+    group: "AUTHORING",
+    description: "Render with Blender EEVEE and focus on selected residues.",
+  },
+  {
     slug: "text",
     file: "text.md",
     title: "Text & labels",

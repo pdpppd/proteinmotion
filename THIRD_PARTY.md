@@ -23,3 +23,7 @@ Other dependencies retain their respective upstream licenses. PDB structure prov
 ## Starter structure
 
 The installable starter movie and Codex skill include deposited ubiquitin coordinates, [PDB 1UBQ](https://www.rcsb.org/structure/1UBQ), copied unchanged from `examples/data/1ubq.cif`. The file retains its structural metadata and source citation. These scientific data are separate from the package's original MIT-licensed code.
+
+## Blender (optional external application)
+
+The EEVEE backend runs a separately installed [Blender](https://www.blender.org/) executable. Blender and EEVEE are not bundled with ProteinMotion. Blender is distributed under the [GNU GPL](https://www.blender.org/about/license/). ProteinMotion's exported meshes and frame requests cross a process boundary; the EEVEE integration code in this repository uses the repository's MIT license.

@@ -291,3 +291,11 @@ Morphs interpolate coordinates, with residue order preserved in contact-guided m
 Secondary structure stays fixed during playback. Prepare periodic boundaries before loading trajectories. Bond connectivity is estimated from geometry. Transparency uses approximate weighted blending.
 
 See [rendering](rendering.md), [morphing](morphing.md), and [trajectory preparation](trajectories.md) for the method details and supported inputs.
+
+## EEVEE and lens focus (v0.8.0)
+
+The full test suite passed 116 tests on Apple M3 Max, including native GPU tests and the optional EEVEE integration test. The EEVEE run used Blender 5.2 with Metal. CPU tests cover residue selectors, focus tracking, eased focus pulls with concurrent motion, arbitrary timeline seeks, and mesh export for all four representations.
+
+The Blender test renders actual frames. It checks matching stationary frames, visible lighting, focus changes, annotation composition, camera projection alignment, representation changes, coordinate changes, surface rendering, empty scenes, and opacity-layer errors. Run it with `PROTEINMOTION_TEST_EEVEE=1 pytest`; Blender must be installed. Ordinary CI runs the CPU tests.
+
+The [EEVEE example](eevee.md) renders an eight-second calmodulin sequence at 960×540 and 60 fps. All 480 frames are decoded after export. The source uses PDB 1CLL, chain A, and highlights residues 5–19. It includes a focus pull to residues 82–92 and back. The downloadable wheel is also checked outside the source checkout, including a Blender still render.

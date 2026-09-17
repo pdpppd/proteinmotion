@@ -1,10 +1,21 @@
 """ProteinMotion: programmatic molecular films, rendered through native Metal."""
 
 from . import rates
-from .animation import Deform, FadeIn, FadeOut, Focus, Morph, PlayTrajectory, Representation, Rotate
+from .animation import (
+    Deform,
+    FadeIn,
+    FadeOut,
+    Focus,
+    FocusPull,
+    Morph,
+    PlayTrajectory,
+    Representation,
+    Rotate,
+)
 from .annotations import Callout, ResidueLabel, ResidueLabels, Text, Unwrite, Write
 from .backbone import BackboneMorph
 from .distances import Distance
+from .eevee import EEVEEOptions
 from .interactions import Electrostatics, HydrogenBonds, Interaction, InteractionHighlight, charges_from_pqr
 from .matching import ContactMatch, match_backbones
 from .protein import Protein
@@ -14,7 +25,7 @@ from .scene import ProteinScene, Scene
 from .styling import Colorize, SetOpacity
 from .trajectory import Trajectory
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 __all__ = [
     "Electrostatics",
     "HydrogenBonds",
@@ -44,6 +55,8 @@ __all__ = [
     "FadeIn",
     "FadeOut",
     "Focus",
+    "FocusPull",
+    "EEVEEOptions",
     "Region",
     "RegionHighlight",
     "Representation",

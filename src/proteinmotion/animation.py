@@ -168,6 +168,54 @@ class Focus(Animation):
         camera._tracking = self.region if self.follow and alpha >= 1 else None
 
 
+class FocusPull(Animation):
+    """Ease EEVEE lens focus to a protein, region or world point without reframing."""
+
+    channels = frozenset({"lens"})
+    late = True
+
+    def __init__(
+        self, camera, target, *, chain=None, residues=None, atoms=None, fstop=None, follow=True, **kwargs
+    ):
+        from .camera import Camera
+
+        if not isinstance(camera, Camera):
+            raise TypeError("FocusPull needs a Camera as its first argument")
+        super().__init__(camera, **kwargs)
+        probe = Camera().set_focus(
+            target,
+            chain=chain,
+            residues=residues,
+            atoms=atoms,
+            fstop=fstop if fstop is not None else camera.fstop,
+            follow=True,
+        )
+        if not probe.dof:
+            raise ValueError("FocusPull needs a focus target")
+        self.destination = probe._focus_target or probe.focus_point
+        self.follow, self.fstop = follow, fstop
+
+    def bind(self):
+        super().bind()
+        camera = self.target
+        self.start = camera.focus_point if camera.dof else camera.target.copy()
+        self.start_fstop = camera.fstop
+        self.end_fstop = camera.fstop if self.fstop is None else float(self.fstop)
+        self.end = camera._target_point(self.destination)
+
+    def apply(self, alpha):
+        camera = self.target
+        end = camera._target_point(self.destination) if self.follow else self.end
+        camera.dof = True
+        camera.fstop = self.start_fstop * (self.end_fstop / self.start_fstop) ** alpha
+        camera._focus_point = (1 - alpha) * self.start + alpha * end
+        camera._focus_target = (
+            self.destination
+            if self.follow and alpha >= 1 and hasattr(self.destination, "positions")
+            else None
+        )
+
+
 class FadeIn(Animation):
     channels = frozenset({"opacity"})
 
@@ -274,6 +322,12 @@ class Animate(Animation):
             raise ValueError("Play focus and camera orbit/zoom in separate clips")
         return Focus(self.target, region, margin=margin, aspect=aspect, follow=follow)
 
+    def set_focus(self, target, **kwargs):
+        """Create a lens focus pull; play it alongside orbit or zoom animations."""
+        if self.operations:
+            raise ValueError("Play lens focus and camera movement as separate concurrent animations")
+        return FocusPull(self.target, target, **kwargs)
+
     def bind(self):
         super().bind()
         self.start = self.target.snapshot()
@@ -283,7 +337,10 @@ class Animate(Animation):
     def apply(self, alpha):
         p, s = self.target, self.start
         if "camera" in self.channels:
-            p.restore(s)
+            # A camera movement owns framing, while FocusPull owns the lens.
+            for key in ("target", "distance", "theta", "phi", "fov", "depth_cue", "radius", "_tracking"):
+                value = s[key]
+                setattr(p, key, value.copy() if isinstance(value, np.ndarray) else value)
         if "transform" in self.channels:
             p.position, p.orientation, p.size = s["position"].copy(), s["orientation"].copy(), s["size"]
         if "opacity" in self.channels:

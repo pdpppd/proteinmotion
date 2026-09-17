@@ -1,5 +1,5 @@
 {
-  "version": "0.7.0",
+  "version": "0.8.0",
   "exports": [
     "Electrostatics",
     "HydrogenBonds",
@@ -29,6 +29,8 @@
     "FadeIn",
     "FadeOut",
     "Focus",
+    "FocusPull",
+    "EEVEEOptions",
     "Region",
     "RegionHighlight",
     "Representation",
@@ -122,6 +124,12 @@
       "title": "Rendering",
       "description": "Render frames directly with a reusable GPU renderer.",
       "guide": "rendering"
+    },
+    {
+      "id": "eevee",
+      "title": "Blender EEVEE",
+      "description": "Render through Blender with depth of field and smooth group fades.",
+      "guide": "eevee"
     }
   ],
   "symbols": [
@@ -378,7 +386,7 @@
           "kind": "method",
           "owner": "scene.ProteinScene",
           "inherited": false,
-          "signature": "ProteinScene.render_frame(time=0.0, *, output=None, renderer=None)",
+          "signature": "ProteinScene.render_frame(time=0.0, *, output=None, renderer=None, eevee=None)",
           "parameters": [
             {
               "name": "time",
@@ -402,11 +410,19 @@
               "annotation": false,
               "default": "None",
               "kind": "keyword only",
-              "description": "Existing Renderer to reuse; None creates and closes one for this frame."
+              "description": "\"native\", \"eevee\", an existing renderer instance, or None for native."
+            },
+            {
+              "name": "eevee",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Optional EEVEEOptions instance; requires renderer=\"eevee\"."
             }
           ],
-          "description": "Render an RGBA frame and optionally save it as an image.",
-          "returns": "uint8 array with shape (height, width, 4).",
+          "description": "Render one point on the timeline to an image.",
+          "returns": "RGBA uint8 image array.",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
           "line": 130
@@ -416,7 +432,7 @@
           "kind": "method",
           "owner": "scene.ProteinScene",
           "inherited": false,
-          "signature": "ProteinScene.render(output, *, codec='auto', bitrate='20M', progress=True)",
+          "signature": "ProteinScene.render(\n    output,\n    *,\n    codec='auto',\n    bitrate='20M',\n    progress=True,\n    renderer='native',\n    eevee=None,\n)",
           "parameters": [
             {
               "name": "output",
@@ -449,13 +465,29 @@
               "default": "True",
               "kind": "keyword only",
               "description": "Print frame progress and render timing."
+            },
+            {
+              "name": "renderer",
+              "type": "",
+              "annotation": false,
+              "default": "'native'",
+              "kind": "keyword only",
+              "description": "\"native\" (default) or \"eevee\"."
+            },
+            {
+              "name": "eevee",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Optional EEVEEOptions instance; requires renderer=\"eevee\"."
             }
           ],
           "description": "Export the timeline to a video file.",
           "returns": "Dictionary containing frames, seconds, fps, adapter, codec, and output. Here fps is render throughput.",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
-          "line": 147
+          "line": 157
         },
         {
           "name": "preview",
@@ -468,7 +500,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
-          "line": 182
+          "line": 220
         }
       ],
       "extra_parameters": []
@@ -1280,7 +1312,7 @@
       "module": "camera",
       "kind": "class",
       "href": "/reference/camera/Camera/",
-      "description": "A perspective camera with orbit, zoom, framing, and depth cueing.",
+      "description": "A perspective camera with orbit, zoom, framing, depth cueing, and EEVEE lens focus.",
       "notes": "Each scene creates its own camera at scene.camera. Use frame() for initial setup and Focus or scene.focus() for animated camera movement.",
       "import_path": "proteinmotion.camera",
       "signature": "Camera()",
@@ -1295,12 +1327,89 @@
         "theta, phi": "Horizontal and vertical angles in radians.",
         "fov": "Vertical field of view in radians; initially 38 degrees.",
         "depth_cue": "Distance fog strength; 0 disables it.",
-        "radius": "Framing radius used to choose clipping planes."
+        "radius": "Framing radius used to choose clipping planes.",
+        "dof": "Whether EEVEE depth of field is enabled; initially False.",
+        "fstop": "Lens f-number, initially 5.6. Lower values produce more blur."
       },
       "guide": "regions",
       "example": "region-focus",
       "alias": null,
       "members": [
+        {
+          "name": "set_focus",
+          "kind": "method",
+          "owner": "camera.Camera",
+          "inherited": false,
+          "signature": "Camera.set_focus(\n    target,\n    *,\n    chain=None,\n    residues=None,\n    atoms=None,\n    fstop=5.6,\n    follow=True,\n)",
+          "parameters": [
+            {
+              "name": "target",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Protein, Region, world point, or None to disable DOF."
+            },
+            {
+              "name": "chain",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author chain ID or a collection of IDs; None selects all chains."
+            },
+            {
+              "name": "residues",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author residue number, inclusive (first, last) tuple, or list of individual numbers."
+            },
+            {
+              "name": "atoms",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Atom name or list of names, such as \"CA\"; None selects all atom names."
+            },
+            {
+              "name": "fstop",
+              "type": "",
+              "annotation": false,
+              "default": "5.6",
+              "kind": "keyword only",
+              "description": "Lens f-number. Lower values produce a shallower depth of field. Must be positive."
+            },
+            {
+              "name": "follow",
+              "type": "",
+              "annotation": false,
+              "default": "True",
+              "kind": "keyword only",
+              "description": "Track the mean selected position through motion; False fixes the initial world point."
+            }
+          ],
+          "description": "Set lens focus without moving or zooming the camera.",
+          "returns": "The camera.",
+          "notes": "Selectors apply to a Protein target. Ranges use inclusive PDB author numbers. atoms=\"CA\" focuses on the Cα centroid. A region defines one focus plane, rather than making all selected atoms equally sharp.",
+          "source": "src/proteinmotion/camera.py",
+          "line": 21
+        },
+        {
+          "name": "focus_point",
+          "kind": "property",
+          "owner": "camera.Camera",
+          "inherited": false,
+          "signature": "Camera.focus_point",
+          "parameters": [],
+          "description": "Current lens target in world ångströms, following the selected atoms.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/camera.py",
+          "line": 56
+        },
         {
           "name": "frame",
           "kind": "method",
@@ -1336,7 +1445,7 @@
           "returns": "The camera.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 17
+          "line": 62
         },
         {
           "name": "focus",
@@ -1382,7 +1491,7 @@
           "returns": "The camera.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 28
+          "line": 73
         },
         {
           "name": "update_tracking",
@@ -1395,7 +1504,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 34
+          "line": 79
         },
         {
           "name": "orbit",
@@ -1425,7 +1534,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 42
+          "line": 87
         },
         {
           "name": "zoom",
@@ -1447,7 +1556,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 47
+          "line": 92
         },
         {
           "name": "eye",
@@ -1460,7 +1569,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 54
+          "line": 99
         },
         {
           "name": "matrix",
@@ -1482,7 +1591,7 @@
           "returns": "4 × 4 array.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 59
+          "line": 104
         },
         {
           "name": "animate",
@@ -1495,7 +1604,7 @@
           "returns": "Animate",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 65
+          "line": 110
         },
         {
           "name": "snapshot",
@@ -1508,7 +1617,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 70
+          "line": 115
         },
         {
           "name": "restore",
@@ -1530,7 +1639,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 73
+          "line": 118
         }
       ],
       "extra_parameters": []
@@ -1649,7 +1758,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 222,
+      "line": 270,
       "bases": [
         "animation.Animation"
       ],
@@ -1678,7 +1787,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 240
+          "line": 288
         },
         {
           "name": "rotate",
@@ -1708,7 +1817,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 243
+          "line": 291
         },
         {
           "name": "scale",
@@ -1730,7 +1839,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 247
+          "line": 295
         },
         {
           "name": "set_opacity",
@@ -1752,7 +1861,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 252
+          "line": 300
         },
         {
           "name": "orbit",
@@ -1782,7 +1891,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 257
+          "line": 305
         },
         {
           "name": "zoom",
@@ -1804,7 +1913,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 260
+          "line": 308
         },
         {
           "name": "set_color",
@@ -1833,7 +1942,7 @@
           "returns": "The object or a Colorize animation.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 265
+          "line": 313
         },
         {
           "name": "focus",
@@ -1879,7 +1988,36 @@
           "returns": "The camera, scene, or Focus animation.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 272
+          "line": 320
+        },
+        {
+          "name": "set_focus",
+          "kind": "method",
+          "owner": "animation.Animate",
+          "inherited": false,
+          "signature": "Animate.set_focus(target, **kwargs)",
+          "parameters": [
+            {
+              "name": "target",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Protein, Region, or world point."
+            },
+            {
+              "name": "kwargs",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "FocusPull options, including chain, residues, atoms, fstop and follow."
+            }
+          ],
+          "description": "Create a FocusPull animation for this camera.",
+          "returns": "FocusPull",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 325
         },
         {
           "name": "bind",
@@ -1892,7 +2030,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 277
+          "line": 331
         },
         {
           "name": "apply",
@@ -1914,7 +2052,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 283
+          "line": 337
         },
         {
           "name": "targets",
@@ -2556,7 +2694,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 171,
+      "line": 219,
       "bases": [
         "animation.Animation"
       ],
@@ -2576,7 +2714,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 174
+          "line": 222
         },
         {
           "name": "apply",
@@ -2598,7 +2736,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 178
+          "line": 226
         },
         {
           "name": "targets",
@@ -2646,7 +2784,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 182,
+      "line": 230,
       "bases": [
         "animation.Animation"
       ],
@@ -2666,7 +2804,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 185
+          "line": 233
         },
         {
           "name": "apply",
@@ -2688,7 +2826,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 189
+          "line": 237
         },
         {
           "name": "targets",
@@ -2743,7 +2881,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 193,
+      "line": 241,
       "bases": [
         "animation.Animation"
       ],
@@ -2763,7 +2901,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 204
+          "line": 252
         },
         {
           "name": "apply",
@@ -2785,7 +2923,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 215
+          "line": 263
         },
         {
           "name": "targets",
@@ -8258,20 +8396,428 @@
         }
       ],
       "extra_parameters": []
+    },
+    {
+      "id": "eevee.EEVEEOptions",
+      "name": "EEVEEOptions",
+      "module": "eevee",
+      "kind": "class",
+      "href": "/reference/eevee/EEVEEOptions/",
+      "description": "Configure the optional EEVEE renderer. Blender 4.5+ is installed separately.",
+      "notes": "Defaults use fixed sampling, 1.5× spatial supersampling, and scene-linear group fades. Each opacity level adds a render layer.",
+      "import_path": "proteinmotion",
+      "signature": "EEVEEOptions(\n    blender: str | None=None,\n    samples: int=64,\n    supersampling: float=1.5,\n    max_blur: float=24.0,\n    max_opacity_layers: int=64,\n    timeout: float=180.0,\n)",
+      "parameters": [
+        {
+          "name": "blender",
+          "type": "str | None",
+          "annotation": true,
+          "default": "None",
+          "kind": "positional or keyword",
+          "description": "Optional Blender executable path. Otherwise use PROTEINMOTION_BLENDER, PATH or the macOS application."
+        },
+        {
+          "name": "samples",
+          "type": "int",
+          "annotation": true,
+          "default": "64",
+          "kind": "positional or keyword",
+          "description": "Positive number of EEVEE samples per pixel; default 64."
+        },
+        {
+          "name": "supersampling",
+          "type": "float",
+          "annotation": true,
+          "default": "1.5",
+          "kind": "positional or keyword",
+          "description": "Spatial resolution multiplier of at least 1. Output is downsampled to the requested size."
+        },
+        {
+          "name": "max_blur",
+          "type": "float",
+          "annotation": true,
+          "default": "24.0",
+          "kind": "positional or keyword",
+          "description": "Maximum depth-of-field blur size in output pixels."
+        },
+        {
+          "name": "max_opacity_layers",
+          "type": "int",
+          "annotation": true,
+          "default": "64",
+          "kind": "positional or keyword",
+          "description": "Maximum distinct positive opacity levels per frame. Rendering cost grows with this count."
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "annotation": true,
+          "default": "180.0",
+          "kind": "positional or keyword",
+          "description": "Seconds allowed for Blender startup or one frame before an error is raised."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/eevee.py",
+      "line": 22,
+      "bases": [],
+      "attributes": {
+        "blender": "Optional Blender executable path. Otherwise use PROTEINMOTION_BLENDER, PATH or the macOS application.",
+        "samples": "Positive number of EEVEE samples per pixel; default 64.",
+        "supersampling": "Spatial resolution multiplier of at least 1. Output is downsampled to the requested size.",
+        "max_blur": "Maximum depth-of-field blur size in output pixels.",
+        "max_opacity_layers": "Maximum distinct positive opacity levels per frame. Rendering cost grows with this count.",
+        "timeout": "Seconds allowed for Blender startup or one frame before an error is raised."
+      },
+      "guide": "eevee",
+      "example": "eevee-focus",
+      "alias": null,
+      "members": [],
+      "extra_parameters": []
+    },
+    {
+      "id": "eevee.EEVEE",
+      "name": "EEVEE",
+      "module": "eevee",
+      "kind": "class",
+      "href": "/reference/eevee/EEVEE/",
+      "description": "Keep one Blender process alive while rendering multiple frames.",
+      "notes": "Use as a context manager. This backend exports molecular geometry to Blender and composites vector annotations afterward.",
+      "import_path": "proteinmotion.eevee",
+      "signature": "EEVEE(width=1920, height=1080, *, options=None)",
+      "parameters": [
+        {
+          "name": "width",
+          "type": "",
+          "annotation": false,
+          "default": "1920",
+          "kind": "positional or keyword",
+          "description": "Image width in pixels."
+        },
+        {
+          "name": "height",
+          "type": "",
+          "annotation": false,
+          "default": "1080",
+          "kind": "positional or keyword",
+          "description": "Image height in pixels."
+        },
+        {
+          "name": "options",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "EEVEEOptions instance, or None for defaults."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/eevee.py",
+      "line": 71,
+      "bases": [],
+      "attributes": {},
+      "guide": "eevee",
+      "example": null,
+      "alias": null,
+      "members": [
+        {
+          "name": "render",
+          "kind": "method",
+          "owner": "eevee.EEVEE",
+          "inherited": false,
+          "signature": "EEVEE.render(objects, camera, background)",
+          "parameters": [
+            {
+              "name": "objects",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Current Protein and annotation objects, such as the list returned by scene.seek(time)."
+            },
+            {
+              "name": "camera",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Camera used to project or frame objects."
+            },
+            {
+              "name": "background",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Three RGB floats in [0, 1]."
+            }
+          ],
+          "description": "Render current objects with EEVEE and composite sharp annotations.",
+          "returns": "An RGBA uint8 array with shape (height, width, 4).",
+          "notes": "",
+          "source": "src/proteinmotion/eevee.py",
+          "line": 121
+        },
+        {
+          "name": "close",
+          "kind": "method",
+          "owner": "eevee.EEVEE",
+          "inherited": false,
+          "signature": "EEVEE.close()",
+          "parameters": [],
+          "description": "Release GPU buffers and renderer resources.",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/eevee.py",
+          "line": 177
+        },
+        {
+          "name": "__enter__",
+          "kind": "method",
+          "owner": "eevee.EEVEE",
+          "inherited": false,
+          "signature": "EEVEE.__enter__()",
+          "parameters": [],
+          "description": "Enter a with Renderer(...) context.",
+          "returns": "The renderer.",
+          "notes": "",
+          "source": "src/proteinmotion/eevee.py",
+          "line": 202
+        },
+        {
+          "name": "__exit__",
+          "kind": "method",
+          "owner": "eevee.EEVEE",
+          "inherited": false,
+          "signature": "EEVEE.__exit__(kind, value, traceback)",
+          "parameters": [
+            {
+              "name": "kind",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Surface type: \"vdw\", \"sas\", or \"ses\"."
+            },
+            {
+              "name": "value",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Value to assign; the supported range depends on the property."
+            },
+            {
+              "name": "traceback",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Traceback supplied by the context manager."
+            }
+          ],
+          "description": "Close renderer resources on context exit.",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/eevee.py",
+          "line": 205
+        }
+      ],
+      "extra_parameters": []
+    },
+    {
+      "id": "eevee.find_blender",
+      "name": "find_blender",
+      "module": "eevee",
+      "kind": "function",
+      "href": "/reference/eevee/find_blender/",
+      "description": "Locate the Blender executable and explain how to install it if absent.",
+      "notes": "Search order: explicit path, PROTEINMOTION_BLENDER, PATH, /Applications/Blender.app/Contents/MacOS/Blender.",
+      "import_path": "proteinmotion.eevee",
+      "signature": "find_blender(executable=None)",
+      "parameters": [
+        {
+          "name": "executable",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "positional or keyword",
+          "description": "Optional Blender executable name or path."
+        }
+      ],
+      "returns": "Absolute executable path.",
+      "source": "src/proteinmotion/eevee.py",
+      "line": 51,
+      "bases": [],
+      "attributes": {},
+      "guide": "eevee",
+      "example": null,
+      "alias": null,
+      "members": [],
+      "extra_parameters": []
+    },
+    {
+      "id": "animation.FocusPull",
+      "name": "FocusPull",
+      "module": "animation",
+      "kind": "class",
+      "href": "/reference/animation/FocusPull/",
+      "description": "Animate lens focus to a protein, residue selection or world point.",
+      "notes": "Uses an independent lens animation channel, so it can run with camera orbit or zoom. Requires the EEVEE renderer to show depth of field.",
+      "import_path": "proteinmotion",
+      "signature": "FocusPull(\n    camera,\n    target,\n    *,\n    chain=None,\n    residues=None,\n    atoms=None,\n    fstop=None,\n    follow=True,\n    **kwargs,\n)",
+      "parameters": [
+        {
+          "name": "camera",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Camera used to project or frame objects."
+        },
+        {
+          "name": "target",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Protein, Region, or three world coordinates in ångströms."
+        },
+        {
+          "name": "chain",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Author chain ID or a collection of IDs; None selects all chains."
+        },
+        {
+          "name": "residues",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Author residue number, inclusive (first, last) tuple, or list of individual numbers."
+        },
+        {
+          "name": "atoms",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Atom name or list of names, such as \"CA\"; None selects all atom names."
+        },
+        {
+          "name": "fstop",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Destination f-number, or None to keep the current aperture."
+        },
+        {
+          "name": "follow",
+          "type": "",
+          "annotation": false,
+          "default": "True",
+          "kind": "keyword only",
+          "description": "Follow the selected atoms through motion. False fixes the destination at the start of the clip."
+        },
+        {
+          "name": "kwargs",
+          "type": "",
+          "default": null,
+          "kind": "variadic keyword",
+          "description": "Additional keyword options described below or in the linked constructor."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/animation.py",
+      "line": 171,
+      "bases": [
+        "animation.Animation"
+      ],
+      "attributes": {},
+      "guide": "eevee",
+      "example": "eevee-focus",
+      "alias": null,
+      "members": [
+        {
+          "name": "bind",
+          "kind": "method",
+          "owner": "animation.FocusPull",
+          "inherited": false,
+          "signature": "FocusPull.bind()",
+          "parameters": [],
+          "description": "Capture starting values when the scene schedules the animation.",
+          "returns": "None",
+          "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
+          "source": "src/proteinmotion/animation.py",
+          "line": 198
+        },
+        {
+          "name": "apply",
+          "kind": "method",
+          "owner": "animation.FocusPull",
+          "inherited": false,
+          "signature": "FocusPull.apply(alpha)",
+          "parameters": [
+            {
+              "name": "alpha",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Eased animation progress in [0, 1]."
+            }
+          ],
+          "description": "Evaluate the animation at eased progress alpha. Called by the timeline.",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 206
+        },
+        {
+          "name": "targets",
+          "kind": "property",
+          "owner": "animation.Animation",
+          "inherited": true,
+          "signature": "FocusPull.targets",
+          "parameters": [],
+          "description": "Objects whose state this animation changes.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 24
+        }
+      ],
+      "extra_parameters": [
+        {
+          "name": "rate_func",
+          "type": "",
+          "annotation": false,
+          "default": "smooth",
+          "kind": "keyword only",
+          "description": "Callable that maps progress in [0, 1] to a finite value in [0, 1]."
+        }
+      ]
     }
   ],
   "dependencies": {
-    "docs/reference/catalog.json": "8bd828c7181a0b6741b4aa18d6568041416e70b7dc5372edfb4a0d47d4c683d3",
+    "docs/reference/catalog.json": "bb9f7e332bdae7b87dbfbb55f7216c713c8e0a153da717888848d448274a204c",
     "scripts/build_reference.py": "ae856e77fd527326575f8e45523fa04ca32f72f72b857ff999317e1fdf0ec3a2",
-    "src/proteinmotion/__init__.py": "3e57cef581754da00373240d0633b883cceb4f2c9dac4f4c19ea83a64cffa4da",
+    "src/proteinmotion/__init__.py": "6e73c68614fe3bebfb8fc8161e33c2d48386016ea8ae87feb40233017c1998cc",
     "src/proteinmotion/__main__.py": "3129adff95e0f38b87ab34cddfc27082c7892bcaec267ff5d40f160fdf55b44a",
-    "src/proteinmotion/animation.py": "30c7fdb81dd3047197c11326686e65f209ba115474e556605c09c0525a228c49",
+    "src/proteinmotion/_blender_worker.py": "b2a799e94666690fdf12763f34500526c0be2f585ce39af0c1e140cd191c53fa",
+    "src/proteinmotion/_eevee_geometry.py": "e158a1c7517039d642e95c743b83807d072729356f1d61fd430a8e7bddf0aade",
+    "src/proteinmotion/animation.py": "03fecf27ebde87b7d3aa1b40ffbbcb6896b47631cea70d4af3ac61d9d3400b75",
     "src/proteinmotion/annotations.py": "62eb1b9c7d9d4a6285f9988f0a335c33f2ac138fe8a891b50e9af0debe7878ba",
     "src/proteinmotion/authoring.py": "da24509aaef749da2b2dbaf88557a697ec16c13b6e1f3f261e9702adefcb619f",
     "src/proteinmotion/backbone.py": "d1cbdd5ef3d7aae07d37fd8e5dffcca8c36d7911380b6db674f4f24f605b36d9",
-    "src/proteinmotion/camera.py": "af7684cc34e5091484f6146d16fa11fd92b06639c74dd76a4f5938891f59a108",
-    "src/proteinmotion/cli.py": "fb76c3efc6c654d26aeb3095f39a2cffec475c5a1949f97cbea9099d022ebd2e",
+    "src/proteinmotion/camera.py": "b804890088cd6817d82b934be198245ea1178f8bdba2aa87d7e926668937a241",
+    "src/proteinmotion/cli.py": "da4e8468ed4c0fc592ca2581efc0813f762d04a09f75e01b4b96d53b231691c7",
     "src/proteinmotion/distances.py": "6cbff134bbdf5325b249b84d5417e3f549ea39ce711c7097ccd290a0df0cafd3",
+    "src/proteinmotion/eevee.py": "19272f5a9cbf8ac2d484adad2765b460338e1cc0fad376c83273ec6e6cd37a71",
     "src/proteinmotion/geometry.py": "44c73a0b94f18fe607ca989a95661513814b6c59203e1e6a06fba0e5139a48d6",
     "src/proteinmotion/interactions.py": "892b6d9ad012c2809ae0fa4d810a3485fea2f092b1469a47635682cdc41cefe4",
     "src/proteinmotion/matching.py": "3e846573127daa51306a158fecbee149918b31e3aff0e89e72913b5cfbe278bc",
@@ -8282,7 +8828,7 @@
     "src/proteinmotion/rates.py": "f367d8cd0550b494af67a66b90c17dea4b1239efaa9c9f4bd89316defc2a45ce",
     "src/proteinmotion/regions.py": "01b332bfc68dcadade663b0e82d905214204e06700bd9a9af3c7d2a9dbda3c9b",
     "src/proteinmotion/renderer.py": "206f3b77ec01a300df6e0f4cf466c0fd77d9934a902ce7a8b387982f7a83d9df",
-    "src/proteinmotion/scene.py": "204bb7292e196390d318273cfe1fcfb7704e48b33248b60b2dcf68902d5229a0",
+    "src/proteinmotion/scene.py": "1f371e7ce65015b703fd51651e68961d391c9cc831678800beaf66542affc5e9",
     "src/proteinmotion/structure.py": "9f452a40b430e7560078ef1bc74551a29a7c9fa50929cf372a0397202b211bce",
     "src/proteinmotion/styling.py": "ed2fabc9af4f77d0917f44e3918a2893dd3aa342a30cf5e0da76603424700f21",
     "src/proteinmotion/surface.py": "59d248d116c05d10cdb59650cf4780ef5690bb7596045f2e4f6338d87136ea25",

@@ -29,6 +29,8 @@ def main():
     assert not direct or not json.loads(direct).get("dir_info", {}).get("editable", False)
     assert proteinmotion.__version__ == distribution.version
     for relative in [
+        "_blender_worker.py",
+        "_eevee_geometry.py",
         "shaders/molecule.wgsl",
         "shaders/text.wgsl",
         "shaders/nv12.wgsl",

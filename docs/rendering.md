@@ -2,7 +2,7 @@
 
 Python defines the scene and animation timeline. The GPU renders the molecular geometry, text, and annotations. On macOS, wgpu-native compiles the shaders for Metal, and VideoToolbox encodes the video.
 
-## GPU rendering
+## Native GPU rendering
 
 Coordinate interpolation, backbone curves, ribbons, spheres, lighting, and depth cueing run on the GPU. Rotation and styling reuse geometry buffers and update small parameter buffers.
 
@@ -10,7 +10,25 @@ Residue color and opacity apply across representations. A separate pass draws te
 
 The renderer uses 4× multisample antialiasing (MSAA) to smooth geometry edges. Sphere silhouettes use analytical intersections and receive partial antialiasing. Current rendering limits include shadows, screen-space ambient occlusion, ray tracing, and refractive materials.
 
-## Transparency
+## Blender EEVEE
+
+Use `--renderer eevee` or `scene.render("film.mp4", renderer="eevee")` to export through Blender. Install Blender 4.5+ separately; EEVEE is part of Blender. ProteinMotion starts one background Blender process per export and reuses it for all frames. macOS uses Metal.
+
+The scene timeline evaluates positions, representations, colors, and selections. ProteinMotion exports cartoon, ribbon, sphere, bond, and surface meshes to Blender. EEVEE draws them with studio lighting and optional lens depth of field. The existing vector overlay renderer adds text, Write animations, callouts, and 2D measurements afterward. These overlays stay sharp.
+
+`camera.set_focus()` sets lens focus. `FocusPull` animates it. The native renderer's `camera.focus()` and `scene.focus()` continue to frame or zoom to a selection. See [EEVEE and lens focus](eevee.md) for code and output.
+
+EEVEE uses 64 samples and 1.5× image dimensions by default. It renders each frame independently with fixed sampling settings. Shadows, camera jitter, and screen-space ray tracing are disabled. Output is downsampled with a Lanczos filter. Native `camera.depth_cue` and `msaa` settings apply to the native renderer; EEVEE uses its own lighting and sampling settings.
+
+### EEVEE transparency
+
+EEVEE opacity uses a weighted combination of opaque render layers. Each layer includes geometry at or above one opacity threshold. For a fully visible helix and a context at 6% opacity, the result is 94% isolated helix plus 6% complete protein, mixed in scene-linear color. Each layer receives depth of field before composition.
+
+This produces smooth group fades and reveals a selected region through faded foreground geometry. Geometry with the same opacity retains its opaque visibility ordering. It is useful for region highlights and representation transitions; it approximates translucent overlap. [Blender's post-process DOF has limitations with blended materials](https://docs.blender.org/manual/en/latest/render/eevee/limitations/limitations.html).
+
+Render cost grows with the number of distinct opacity levels. Opacities are rounded to six decimal places; backbone strips use the nearest residue's opacity. The default limit is 64 levels. Scenes exceeding it raise an error with instructions to increase `EEVEEOptions(max_opacity_layers=...)` or simplify the fade. Native rendering is a faster option for long trajectories with many independently fading residues.
+
+## Native transparency
 
 Opaque objects draw first and record their depth. Transparent objects then accumulate color and transmittance in floating-point buffers. A final GPU pass combines these buffers with the opaque image.
 
@@ -37,6 +55,8 @@ Ribbons split at chain changes, missing Cα atoms, and initial Cα gaps greater 
 Morphs and state playback interpolate coordinates. They illustrate structural changes. Use simulation trajectories and an appropriate analysis method when interpreting molecular dynamics.
 
 ## Video export
+
+Both backends encode with PyAV and use VideoToolbox on macOS. EEVEE reads completed RGBA frames from Blender before encoding. The native renderer uses the transfer path below.
 
 A Metal compute pass converts each frame to limited-range BT.709 NV12. PyAV sends the result to VideoToolbox for encoding. NV12 transfers 1.5 bytes per pixel, compared with 4 for RGBA. The current export path maps and copies GPU staging buffers before encoding.
 

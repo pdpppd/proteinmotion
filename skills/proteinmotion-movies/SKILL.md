@@ -14,11 +14,11 @@ Use the task's existing Python environment if it contains ProteinMotion. Otherwi
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install \
-  https://github.com/pdpppd/proteinmotion/releases/download/v0.7.0/proteinmotion-0.7.0-py3-none-any.whl
+  https://github.com/pdpppd/proteinmotion/releases/download/v0.8.0/proteinmotion-0.8.0-py3-none-any.whl
 .venv/bin/proteinmotion doctor
 ```
 
-Use native arm64 Python on Apple silicon. `doctor` should report Metal and `h264_videotoolbox` there. PyAV includes FFmpeg libraries; no separate FFmpeg executable or repository checkout is needed. Add extras only when needed, using the same wheel URL with a direct requirement such as `"proteinmotion[md] @ https://…/proteinmotion-0.7.0-py3-none-any.whl"` (expand the full URL above). `md` adds trajectory readers; `preview` adds an interactive GPU window.
+Use native arm64 Python on Apple silicon. `doctor` should report Metal and `h264_videotoolbox` there. PyAV includes FFmpeg libraries; no separate FFmpeg executable or repository checkout is needed. Add extras only when needed, using the same wheel URL with a direct requirement such as `"proteinmotion[md] @ https://…/proteinmotion-0.8.0-py3-none-any.whl"` (expand the full URL above). `md` adds trajectory readers; `preview` adds an interactive GPU window.
 
 If hardware rendering fails, diagnose the reported adapter/encoder before changing renderers. `--codec libx264` is an explicit CPU encoding fallback; it still needs a GPU for molecular rendering. Other platforms are not as extensively verified as Apple silicon.
 
@@ -55,3 +55,11 @@ Surface rebuilding is CPU-bound during coordinate changes; adjust grid resolutio
 Return the movie and runnable source with a concise description of what was shown. Record PDB IDs, trajectory origin, selections, and any approximations in the script or accompanying description. Morphs, NMR interpolation and procedural deformations are visual illustrations; do not present them as MD or physical pathways. Publish to a site/repository only within the user's requested scope.
 
 For API details beyond these references, use the [official documentation](https://pdpppd.github.io/proteinmotion/docs/api/) or inspect the installed package. Do not invent Manim methods that ProteinMotion does not implement.
+
+## Optional EEVEE depth of field
+
+Use `--renderer eevee` for lens depth of field. Blender 4.5+ must be installed separately; EEVEE is included. Find it with `proteinmotion doctor`, set `PROTEINMOTION_BLENDER`, or pass `--blender /path/to/blender`. macOS uses Metal. The native renderer remains the default for fast previews and large trajectories.
+
+Before the first play/wait, call `self.camera.set_focus(protein, chain="A", residues=(10, 20), atoms="CA", fstop=5.6)` with an actual selection from the input. This sets a focus plane through the mean selected position without moving the camera. Use `FocusPull(self.camera, region, fstop=4)` inside `play()` for an eased change; it can run alongside orbit or zoom. Targets follow motion by default. `camera.set_focus(None)` disables DOF.
+
+EEVEE renders opacity groups as separate opaque layers and mixes them smoothly. Keep the number of distinct simultaneous opacities small for efficient rendering. Same-opacity geometry retains opaque visibility ordering; this is a group fade approximation. Defaults are 64 samples and 1.5× spatial supersampling. Labels are composited after DOF. Inspect focus, silhouettes, fades, and labels during motion. See the [EEVEE guide](https://pdpppd.github.io/proteinmotion/docs/eevee/) for a complete example.

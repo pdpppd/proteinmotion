@@ -4,13 +4,13 @@ ProteinMotion requires Python 3.11 or later and a GPU. On macOS, it uses Metal f
 
 ## Install the release
 
-Create a virtual environment and install v0.7.0 from [GitHub Releases](https://github.com/pdpppd/proteinmotion/releases/tag/v0.7.0):
+Create a virtual environment and install v0.8.0 from [GitHub Releases](https://github.com/pdpppd/proteinmotion/releases/tag/v0.8.0):
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install \
-  https://github.com/pdpppd/proteinmotion/releases/download/v0.7.0/proteinmotion-0.7.0-py3-none-any.whl
+  https://github.com/pdpppd/proteinmotion/releases/download/v0.8.0/proteinmotion-0.8.0-py3-none-any.whl
 proteinmotion --version
 proteinmotion doctor
 ```
@@ -47,7 +47,7 @@ Install extras from the same release URL:
 
 ```bash
 python -m pip install \
-  "proteinmotion[preview,md] @ https://github.com/pdpppd/proteinmotion/releases/download/v0.7.0/proteinmotion-0.7.0-py3-none-any.whl"
+  "proteinmotion[preview,md] @ https://github.com/pdpppd/proteinmotion/releases/download/v0.8.0/proteinmotion-0.8.0-py3-none-any.whl"
 ```
 
 | Extra | Purpose |
@@ -87,3 +87,13 @@ proteinmotion render examples/feature_showcase.py FeatureShowcase --fps 60 -o sh
 See the [feature demo](showcase.md) or [NMR example](full-example.md). The repository contains the input structures for these examples. The release package includes the ubiquitin starter structure.
 
 The [reference manual](https://pdpppd.github.io/proteinmotion/reference/) lists classes, functions, parameters, and methods by module.
+
+## Optional Blender EEVEE renderer
+
+Install [Blender 4.5 or later](https://www.blender.org/download/) for EEVEE depth of field. EEVEE is bundled with Blender; a separate Python `bpy` installation is unnecessary. The native renderer remains the default.
+
+```bash
+proteinmotion render my-movie/film.py ProteinMovie --renderer eevee --fps 60 -o film.mp4
+```
+
+Use `--blender /path/to/blender` for a custom installation. See [EEVEE and lens focus](eevee.md) for residue selections, animated focus pulls, and a complete example.

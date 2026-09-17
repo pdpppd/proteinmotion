@@ -21,7 +21,7 @@ export default function Home() {
         <div>
           <div className="mb-7 flex items-center gap-2.5 text-xs font-medium text-accent">
             <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            PYTHON API · NATIVE METAL
+            PYTHON API · METAL · EEVEE
           </div>
           <h1 className="max-w-lg text-[2.7rem] font-medium leading-[1.05] tracking-[-.055em] sm:text-[3.7rem]">
             Protein animation <br />
@@ -101,6 +101,22 @@ export default function Home() {
           <div dangerouslySetInnerHTML={{ __html: codeHTML(snippet) }} />
         </div>
       </section>
+      <section className="border-t border-line py-10">
+        <h2 className="text-xl font-medium tracking-tight">
+          Depth of field with EEVEE
+        </h2>
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
+          Focus on a residue or selected region while the camera moves. Render
+          through Blender EEVEE, with smooth context fades and animated focus
+          changes. Blender is installed separately.
+        </p>
+        <Link
+          href="/docs/eevee/"
+          className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-accent"
+        >
+          View code and rendered output <ArrowRightIcon />
+        </Link>
+      </section>
       <section className="grid gap-10 border-t border-line py-12 md:grid-cols-[1.1fr_.9fr] md:gap-24">
         <div>
           <p className="eyebrow">MEASURED ON APPLE M3 MAX</p>
@@ -130,11 +146,11 @@ export default function Home() {
             </p>
           </div>
           <div>
-            <p className="font-mono text-4xl tracking-tight">107</p>
+            <p className="font-mono text-4xl tracking-tight">116</p>
             <p className="mt-3 text-xs leading-6 text-muted">
-              Tests passed for v0.7.0
+              Tests passed for v0.8.0
               <br />
-              including native GPU checks
+              including native GPU and EEVEE checks
             </p>
           </div>
         </div>
