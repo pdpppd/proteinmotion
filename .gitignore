@@ -19,3 +19,5 @@ website/public/downloads/
 *.tsbuildinfo
 output/playwright/
 .playwright-cli/
+.*_offsets.npz
+.*_offsets.lock

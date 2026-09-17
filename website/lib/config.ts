@@ -2,6 +2,8 @@ export const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "/proteinmotion";
 export const repo = "https://github.com/pdpppd/proteinmotion";
 export const site = "https://pdpppd.github.io/proteinmotion";
 const assetRevisions: Record<string, string> = {
+  "media/showcase.mp4": "1",
+  "media/showcase.jpg": "1",
   "media/alpha-helix.mp4": "0.6.2",
   "media/alpha-helix.jpg": "0.6.2",
   "downloads/alpha-helix.png": "0.6.2",
@@ -84,6 +86,14 @@ export const guides = [
       "A runnable film with camera focus, highlights, and real NMR models.",
   },
   {
+    slug: "showcase",
+    file: "showcase.md",
+    title: "Complete feature tour",
+    group: "EXAMPLES",
+    description:
+      "One 66-second film covering every major visual capability, with chapters and runnable source.",
+  },
+  {
     slug: "alpha-helix",
     file: "alpha-helix.md",
     title: "Alpha-helix H bonds",
@@ -132,6 +142,18 @@ export const guides = [
   },
 ];
 export const demos = [
+  {
+    id: "showcase",
+    title: "ProteinMotion in 66 seconds",
+    file: "showcase",
+    label: "THE COMPLETE FEATURE TOUR",
+    detail:
+      "Ten chapters: representations, residue styling, focus and labels, ensembles and MD readers, deformation, contact-guided morphs, hydrogen bonds, distance rulers, charge contacts, and a 58,870-atom complex.",
+    source: "examples/feature_showcase.py",
+    scene: "FeatureShowcase",
+    duration: "66 s",
+    pdb: "",
+  },
   {
     id: "alpha-helix",
     title: "The bonds that hold a helix",

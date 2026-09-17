@@ -4,6 +4,12 @@ Tested on 16–17 September 2026 on the local **Apple M3 Max, 40 GPU cores, 64 G
 macOS 26.6.2, arm64 Python 3.12.8. The native adapter reports `backend_type=Metal`.
 wgpu 0.32.0, Gemmi 0.7.5, PyAV 18.1.0, NumPy 2.5.3, and MDAnalysis 2.10.0 were used.
 
+## Complete feature showcase
+
+The ten-chapter homepage film contains **3,972 frames / 66.2 seconds** at 1920×1080, 60 fps and 4× MSAA. It exported in **23.34 seconds (170.2 fps)** using Metal and VideoToolbox on the same local M3 Max. This is one end-to-end run including renderer initialization, surface rebuilding, readback and hardware encoding; caches may be warm. All master frames and all **1,986** 720p/30 fps preview frames decoded successfully. Representative encoded frames from every chapter were inspected.
+
+The MD-reader demonstration uses a supplied XTC conversion of all 116 aligned 2K39 NMR conformers; it is not an MD simulation. Atom identities and all frames were compared to the source, with maximum coordinate error **0.00501 Å** (XTC quantization). Rendering a label scene, jumping to the large complex and seeking backward reproduces identical pixels. The existing **97 tests pass**, including native GPU checks. [Film, chapter guide and source](showcase.md) · [Measured render and input report](showcase-report.json).
+
 ## Version 0.6.2: clean ball-and-stick fades
 
 Covalent cylinders are clipped at the analytic surfaces of their endpoint spheres in both opaque and transparent passes. The clipping uses the current GPU-interpolated positions and transformed atom radii. It removes internal sticks that became visible when the alpha-helix zoom started fading residues; bond-only annotation rulers keep their full endpoints.

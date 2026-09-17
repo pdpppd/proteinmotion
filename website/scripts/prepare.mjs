@@ -12,6 +12,7 @@ for (const filename of [
   "labels_and_callouts.py",
   "molecular_tools.py",
   "alpha_helix_hbonds.py",
+  "feature_showcase.py",
 ])
   await copyFile(`../examples/${filename}`, `${target}/${filename}`);
 await writeFile("public/.nojekyll", "");

@@ -11,7 +11,9 @@ A small, Manim-inspired API for molecular films, with native Metal rendering on 
 
 [**Documentation**](https://pdpppd.github.io/proteinmotion/) · [**Video gallery**](https://pdpppd.github.io/proteinmotion/gallery/) · [**API reference**](https://pdpppd.github.io/proteinmotion/docs/api/) · [**Molecular tools script**](examples/molecular_tools.py) · [**Labeling script**](examples/labels_and_callouts.py) · [**Complete NMR script**](examples/nmr_regions.py)
 
-[![Ubiquitin rendered as a cartoon, ribbon, and ball-and-stick model](docs/assets/representations.png)](https://pdpppd.github.io/proteinmotion/gallery/)
+[![Watch the complete 66-second ProteinMotion feature tour](docs/showcase.png)](https://pdpppd.github.io/proteinmotion/gallery/#showcase)
+
+**One film, ten chapters:** representations, residue styling, focus and labels, NMR/MD playback, deformation, protein morphs, hydrogen bonds, distance rulers, electrostatics, and large complexes. [Chapters and methods](https://pdpppd.github.io/proteinmotion/docs/showcase/) · [Runnable source](examples/feature_showcase.py)
 
 ## What you can make
 

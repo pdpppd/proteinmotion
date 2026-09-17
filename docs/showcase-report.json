@@ -1,0 +1,122 @@
+{
+  "frames": 3972,
+  "seconds": 23.342215833021328,
+  "fps": 170.16379372094426,
+  "adapter": {
+    "vendor": "",
+    "architecture": "",
+    "device": "Apple M3 Max",
+    "description": "",
+    "stackgroup_min_size": 4,
+    "stackgroup_max_size": 128,
+    "vendor_id": 0,
+    "device_id": 0,
+    "adapter_type": "IntegratedGPU",
+    "backend_type": "Metal"
+  },
+  "codec": "h264_videotoolbox",
+  "output": "outputs/proteinmotion-showcase.mp4",
+  "duration_seconds": 66.2,
+  "width": 1920,
+  "height": 1080,
+  "output_fps": 60.0,
+  "chapters": [
+    {
+      "number": "01",
+      "title": "Representations",
+      "start": 0.0,
+      "duration": 9.0
+    },
+    {
+      "number": "02",
+      "title": "Color + transparency",
+      "start": 9.0,
+      "duration": 8.4
+    },
+    {
+      "number": "03",
+      "title": "Focus + annotation",
+      "start": 17.4,
+      "duration": 6.5
+    },
+    {
+      "number": "04",
+      "title": "Ensembles + MD readers",
+      "start": 23.9,
+      "duration": 7.0
+    },
+    {
+      "number": "05",
+      "title": "Deformation + easing",
+      "start": 30.9,
+      "duration": 5.0
+    },
+    {
+      "number": "06",
+      "title": "Contact-guided morphs",
+      "start": 35.9,
+      "duration": 8.0
+    },
+    {
+      "number": "07",
+      "title": "Hydrogen bonds",
+      "start": 43.9,
+      "duration": 6.3
+    },
+    {
+      "number": "08",
+      "title": "Distance labels",
+      "start": 50.2,
+      "duration": 5.0
+    },
+    {
+      "number": "09",
+      "title": "Electrostatics",
+      "start": 55.2,
+      "duration": 5.0
+    },
+    {
+      "number": "10",
+      "title": "Scale + native rendering",
+      "start": 60.2,
+      "duration": 6.0
+    }
+  ],
+  "xtc_source": "2K39 aligned deposited NMR conformers, not MD",
+  "xtc_states_verified": 116,
+  "xtc_max_coordinate_error_angstrom": 0.0050048828125,
+  "cross_chapter_seek_deterministic": true,
+  "charge_source": "Imported array of illustrative formal side-chain charges",
+  "package_version": "0.6.2",
+  "master_verification": {
+    "codec": "h264",
+    "width": 1920,
+    "height": 1080,
+    "fps": 60,
+    "decoded_frames": 3972,
+    "duration_seconds": 66.2
+  },
+  "preview_verification": {
+    "codec": "h264",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "decoded_frames": 1986,
+    "duration_seconds": 66.2
+  },
+  "inputs": {
+    "showcase-nmr.pdb": {
+      "bytes": 47627,
+      "sha256": "7391c67ed107c3423a8c7be9d49fc4e13c3ef93a3f5280399d6829c7def292da"
+    },
+    "showcase-nmr.xtc": {
+      "bytes": 279592,
+      "sha256": "8b982aa93ee7ce29c1eeba84b882acf904cee090609829040cfbdd9ffef2ecaf"
+    },
+    "showcase-formal-charges.npy": {
+      "bytes": 4944,
+      "sha256": "b518112631b042b0919f755ff6a317d3367809437e04a2350afb4b18a459f121"
+    }
+  },
+  "initial_review_scene_construction_seconds": 1.451645166031085
+}

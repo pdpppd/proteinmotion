@@ -88,5 +88,18 @@
     "bytes": 4351418,
     "decoded_frames": 690,
     "package_version": "0.6.2"
+  },
+  "showcase": {
+    "source": "proteinmotion-showcase.mp4",
+    "web_preview": "showcase.mp4",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "bytes": 18161370,
+    "decoded_frames": 1986,
+    "duration_seconds": 66.2,
+    "poster_time_seconds": 2.0,
+    "package_version": "0.6.2",
+    "scene": "examples/feature_showcase.py:FeatureShowcase"
   }
 }
