@@ -1,18 +1,20 @@
 # Residue colors and surfaces
 
+The rendered excerpts use [docs_examples.py](docs_examples.py). Its `ubiquitin()` helper loads PDB 1UBQ, and `frame()` adds the model and sets the camera. Run each excerpt inside `construct()`; the full script includes the imports and setup. Run the full script from a repository checkout, which includes the input structures.
+
 Apply color and opacity to a protein or a selected region. The settings carry across cartoon, ribbon, ball-and-stick, and surface views. Put the animation examples below inside `ProteinScene.construct()`.
 
 ## Choose and color residues
 
-```python
-from proteinmotion import Protein
-
-p = Protein.from_file("examples/data/2k39.cif", chains="A").cartoon().center()
-helix = p.select(chain="A", residues=(23, 34))
-strand = p.select(chain="A", residues=(2, 7))
+```python output=residue-colors
+p = ubiquitin()
+helix = p.select(residues=(23, 34))
+strand = p.select(residues=(2, 7))
 helix.set_color("#50e0d0")
 strand.set_color("#f2ba67")
 p.select(residues=(71, 76)).set_opacity(0.2)
+frame(self, p)
+self.play(Rotate(p, 0.7), run_time=3)
 ```
 
 Select a whole residue to color its atoms, bonds, and backbone. Adding `atoms="CA"` colors the Cα atoms and the associated cartoon or ribbon segments. Residue numbers use PDB author numbering. A tuple selects an inclusive range; a list selects individual residues.
@@ -23,18 +25,19 @@ A color override replaces the base color. Colors blend along bonds and backbone 
 
 ## Animate a color change
 
-```python
-from proteinmotion import Colorize, SetOpacity
-
-self.add(p)
-self.camera.frame(p, aspect=self.width / self.height)
+```python output=color-change
+p = ubiquitin()
+frame(self, p)
+helix = p.select(residues=(23, 34))
+strand = p.select(residues=(2, 7))
 self.play(
-    Colorize(helix, "#a89bfa", residue_delay=0.06),
-    Colorize(strand, "#f59b75", residue_delay=0.1),
-    run_time=2,
+    Colorize(helix, "#50e0d0", residue_delay=0.09),
+    Colorize(strand, "#f2ba67", residue_delay=0.15),
+    run_time=2.5,
 )
-self.play(helix.animate.set_color("#50e0d0"), run_time=1)
-self.play(Colorize(helix, None), run_time=1)  # Fade back to the base palette.
+self.wait(1)
+self.play(Colorize(helix, None), run_time=1.5)
+self.wait(0.5)
 ```
 
 `Colorize(target, color, residue_delay=0, reverse=False, easing="smooth")` accepts a protein or region. With a zero delay, every selected residue changes together. A positive delay is the start-time gap in **seconds**, following topology residue order from N to C within each chain. `reverse=True` reverses that order. Atoms in one residue share its timing.
@@ -47,15 +50,19 @@ Disjoint selections can animate concurrently. Color and opacity can animate on t
 
 ## Control transparency
 
-```python
-# Initial setup:
-p.set_opacity(0.8)                         # Global multiplier.
-p.set_residue_opacity(0.2, residues=(71, 76))
-
-# Timeline animations:
-self.play(SetOpacity(helix, 0.15, residue_delay=0.05), run_time=1.5)
-self.play(helix.animate.set_opacity(1), run_time=0.8)
-self.play(p.animate.set_opacity(1), run_time=0.8)
+```python output=opacity
+p = ubiquitin().ball_and_stick()
+helix = p.select(residues=(23, 34))
+helix.set_color("#50e0d0")
+frame(self, p)
+self.wait(0.5)
+self.play(
+    SetOpacity(helix, 0.1, residue_delay=0.06),
+    run_time=2,
+)
+self.wait(0.7)
+self.play(SetOpacity(helix, 1), run_time=1.5)
+self.wait(0.5)
 ```
 
 `SetOpacity` uses the same delay, order, and easing options as `Colorize`. It changes the opacity of selected atoms. `p.set_opacity()` and `p.animate.set_opacity()` apply a separate multiplier to the whole protein. The final opacity combines both settings and any morph fades. Use `SetOpacity(region, 1)` to restore a local fade.
@@ -64,8 +71,8 @@ Fades use weighted blended transparency with approximate depth ordering. Bonds u
 
 ## Render a molecular surface
 
-```python
-p.surface(
+```python output=surface
+p = ubiquitin().surface(
     kind="ses",
     probe_radius=1.4,
     resolution=0.7,
@@ -73,6 +80,8 @@ p.surface(
     update="rebuild",
     max_voxels=8_000_000,
 )
+frame(self, p)
+self.play(Rotate(p, 0.8), run_time=3)
 ```
 
 All distances above are ångströms. `resolution` is voxel spacing: a smaller value improves detail and increases preparation time and memory.
@@ -89,15 +98,13 @@ The solvent-excluded surface (SES) is calculated on a voxel grid. Enclosed inacc
 
 ### Switch representations
 
-```python
-from proteinmotion import Representation
-
-# Configure surface settings, then start the scene as a cartoon.
-p.surface(kind="ses", resolution=0.5).cartoon()
-self.add(p)
-self.camera.frame(p, aspect=self.width / self.height)
-self.play(Representation(p, "surface"), run_time=1.2)
-self.play(Representation(p, "ball_and_stick"), run_time=1.2)
+```python output=representations
+p = ubiquitin().surface(resolution=0.7).cartoon()
+frame(self, p)
+self.wait(1)
+for name in ("ribbon", "ball_and_stick", "surface"):
+    self.play(Representation(p, name), run_time=1.2)
+    self.play(Rotate(p, 0.45), run_time=1.5)
 ```
 
 Surface settings and residue styles persist across transitions. Calling a representation method during initial setup switches immediately; `Representation` crossfades on the timeline.

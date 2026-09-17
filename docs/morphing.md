@@ -1,19 +1,20 @@
 # Morphs and contact matching
 
-```python
-target = Protein.from_file("alternate-conformation.cif")
-self.play(Morph(p, target, align=True), run_time=2)
+The rendered excerpts use [docs_examples.py](docs_examples.py). Its `ubiquitin()` helper loads PDB 1UBQ, and `frame()` adds the model and sets the camera. Run each excerpt inside `construct()`; the full script includes the imports and setup. Run the full script from a repository checkout, which includes the input structures.
 
+```python output=deformation
+p = ubiquitin()
+frame(self, p, margin=1.05)
 rest = p.positions.copy()
-
 
 def stretch(xyz):
     center = xyz.mean(axis=0)
-    return center + (xyz - center) * [1.25, 1, 1]
-
+    return center + (xyz - center) * [1.4, 1, 1]
 
 self.play(Deform(p, stretch), run_time=2)
+self.wait(0.5)
 self.play(Morph(p, rest, align=False), run_time=2)
+self.wait(0.5)
 ```
 
 `Morph` matches atoms by `(chain, residue number, insertion code, residue name, atom name)`. Input atom order can differ. By default, it aligns matched Cα atoms with a Kabsch rigid fit. It uses all atoms if Cα atoms are insufficient.
@@ -93,11 +94,23 @@ For ball-and-stick, call `.ball_and_stick()` on both proteins before the morph. 
 
 Bonds use the lower opacity of their endpoints. Inter-residue bonds can stretch during the transition. The `BallAndStickDemo` and `BackboneDemo` examples use the same residue mapping, camera, and timing.
 
-```bash
+```bash output=gallery-morph
 proteinmotion render examples/backbone_morph.py BackboneDemo -o backbone-morph.mp4 --fps 60
+```
+
+```bash output=gallery-morph-atoms
 proteinmotion render examples/backbone_morph.py BallAndStickDemo -o ball-and-stick-morph.mp4 --fps 60
+```
+
+```bash
 proteinmotion render examples/large_protein.py GroELSubunit -o groel-subunit.mp4 --fps 60
+```
+
+```bash output=gallery-groel
 proteinmotion render examples/large_protein.py GroELComplex -o groel-complex.mp4 --fps 60
+```
+
+```bash
 pip install -e '.[plots]'
 python examples/contact_report.py --output contact-report
 ```

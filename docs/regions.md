@@ -1,16 +1,23 @@
 # Regions and focus
 
+The rendered excerpts use [docs_examples.py](docs_examples.py). Its `ubiquitin()` helper loads PDB 1UBQ, and `frame()` adds the model and sets the camera. Run each excerpt inside `construct()`; the full script includes the imports and setup. Run the full script from a repository checkout, which includes the input structures.
+
 Select a region once, then reuse it for camera focus, annotations, or alignment:
 
-```python
-# Inside construct(), after adding p and framing the camera:
+```python output=region-focus
+p = ubiquitin()
+frame(self, p)
 helix = p.select(chain="A", residues=(23, 34))
-marker = helix.highlight(style="box", color="#f2ba67", padding=1.5)
+marker = helix.highlight(
+    style="box",
+    color="#f2ba67",
+    padding=1.5,
+)
 self.play(FadeIn(marker), run_time=0.6)
-self.focus(helix, run_time=1.5, margin=1.6)
-self.play(PlayTrajectory(p, state_easing=smooth), run_time=8)
+self.focus(helix, margin=1.6, run_time=1.5)
+self.play(self.camera.animate.orbit(0.4), run_time=2)
 self.play(FadeOut(marker), run_time=0.6)
-self.focus(p, run_time=1.5)  # Return to the whole protein.
+self.focus(p, run_time=1.5)
 ```
 
 Selections use **PDB author residue numbers**. A tuple `(23, 34)` selects the inclusive range; a list `[8, 44, 70]` selects those three residues. `residues=23` selects one residue.
@@ -26,6 +33,22 @@ Three highlight styles are available:
 | `"sphere"` | Translucent sphere enclosing selected atom centers | `opacity=0.18`, `padding=2.0` |
 | `"box"` | Wire box aligned with the protein's local axes | `opacity=0.9`, `padding=2.0`, `line_width=0.12` |
 | `"atoms"` | Enlarged tinted halos around selected atoms | `opacity=0.18`, `padding=0.3` |
+
+```python output=highlights
+p = ubiquitin()
+frame(self, p)
+helix = p.select(residues=(23, 34))
+for style in ("sphere", "box", "atoms"):
+    marker = helix.highlight(
+        style=style,
+        color="#f2ba67",
+        padding=1.0,
+        opacity=0.3,
+    )
+    self.play(FadeIn(marker), run_time=0.6)
+    self.wait(1.2)
+    self.play(FadeOut(marker), run_time=0.6)
+```
 
 All highlight styles accept `color="#RRGGBB"`. Padding and line width are in ångströms. Highlights are 3D shapes that move with the selected region. Nearby atoms can hide parts of them.
 

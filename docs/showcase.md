@@ -30,6 +30,9 @@ Use the repository checkout so the included structures and fixtures are availabl
 
 ```bash
 python -m pip install -e '.[md]'
+```
+
+```bash output=gallery-showcase
 proteinmotion render examples/feature_showcase.py FeatureShowcase \
   --fps 60 -o proteinmotion-showcase.mp4
 ```

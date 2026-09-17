@@ -21,7 +21,7 @@ On Apple silicon, use native arm64 Python. `doctor` reports the GPU backend and 
 
 ## Create and render a video
 
-```bash
+```bash output=starter
 proteinmotion init my-movie
 proteinmotion render my-movie/film.py ProteinMovie \
   --fps 60 --width 1920 --height 1080 -o my-movie/film.mp4

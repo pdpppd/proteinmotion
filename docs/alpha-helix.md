@@ -29,7 +29,7 @@ The zoom starts at 8.4 seconds and fades the surrounding residues. Covalent stic
 
 From the repository root:
 
-```bash
+```bash output=gallery-alpha-helix
 proteinmotion render examples/alpha_helix_hbonds.py AlphaHelixHBonds -o alpha-helix-hbonds.mp4 --fps 60
 ```
 

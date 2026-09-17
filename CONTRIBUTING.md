@@ -44,6 +44,18 @@ The build exports static HTML into `website/out/`. `PAGES_BASE_PATH` defaults to
 
 Follow the [writing guide](docs/writing-guide.md) when editing page text, headings, captions, and metadata.
 
+### Rendered documentation examples
+
+Short examples are defined in `examples/docs_examples.py`. Their marked code sections appear beside the rendered output in the guides. To update the clips and snippets, run:
+
+```bash
+python scripts/render_docs_examples.py
+```
+
+This requires a working GPU. The command renders 720p/60 fps clips, checks every encoded frame, saves posters, and updates the matching Markdown snippets. Run it before building the website. The build checks source, input, and media hashes to catch outdated previews.
+
+Use `output=<example-id>` after the language in a Markdown code fence to pair a snippet with its clip. Existing gallery videos use `output=gallery-<demo-id>` beside their render commands.
+
 ## Publishing
 
 The Pages workflow builds on pull requests and pushes. Only `main` pushes or a manual workflow run from `main` deploy. GitHub Pages must use **GitHub Actions** as its source. The workflow uploads the static export and deploys it with the official Pages actions. GitHub Pages serves the exported static files.

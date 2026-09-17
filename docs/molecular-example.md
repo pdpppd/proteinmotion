@@ -6,8 +6,11 @@ Two scripts use the [2K39 ubiquitin ensemble](https://www.rcsb.org/structure/2K3
 
 Run from the repository root:
 
-```bash
+```bash output=gallery-surfaces
 proteinmotion render examples/molecular_tools.py StylingAndSurface -o styling-and-surface.mp4 --fps 60
+```
+
+```bash output=gallery-interactions
 proteinmotion render examples/molecular_tools.py InteractionsAndDistances -o interactions-and-distances.mp4 --fps 60
 ```
 

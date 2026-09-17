@@ -149,6 +149,61 @@
   .prose-doc img {
     @apply my-6 max-w-full rounded-lg;
   }
+  .prose-doc > p,
+  .prose-doc > ul,
+  .prose-doc > ol,
+  .prose-doc > blockquote {
+    max-width: 78ch;
+  }
+  .doc-example {
+    @apply my-8 grid min-w-0 gap-5;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .doc-example-code,
+  .doc-example-output {
+    min-width: 0;
+  }
+  .doc-example-output {
+    margin: 0;
+  }
+  .example-label {
+    @apply mb-2 flex items-center justify-between gap-3 text-xs font-medium text-ink;
+  }
+  .example-label span {
+    @apply text-[11px] font-normal text-muted;
+  }
+  .prose-doc .doc-example .code-block {
+    margin: 0;
+  }
+  .doc-example .code-block pre {
+    max-height: 34rem;
+    scrollbar-gutter: stable;
+  }
+  .doc-example video {
+    @apply block aspect-video w-full rounded-lg bg-[#0b1220];
+  }
+  .doc-example figcaption {
+    @apply pt-3 text-xs leading-6 text-muted;
+  }
+  .doc-example figcaption strong {
+    @apply text-sm font-medium text-ink;
+  }
+  .doc-example figcaption p {
+    margin: 0.35rem 0 0.65rem;
+  }
+  .example-links {
+    @apply flex flex-wrap gap-x-5 gap-y-1;
+  }
+  @media (min-width: 1280px) {
+    .doc-example {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: start;
+    }
+    .doc-example-output {
+      position: sticky;
+      top: 100px;
+    }
+  }
   .hljs-comment {
     color: #7b8d80;
   }

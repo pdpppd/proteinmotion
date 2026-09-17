@@ -6,9 +6,15 @@ PDB 2K39 contains 116 models of ubiquitin. This example interpolates between mod
 
 ## Run a scene
 
-```bash
+```bash output=gallery-regions
 proteinmotion render examples/nmr_regions.py RegionTour -o regions.mp4 --fps 60
+```
+
+```bash output=gallery-nmr-cartoon
 proteinmotion render examples/nmr_regions.py NMRStates -o cartoon.mp4 --fps 60
+```
+
+```bash output=gallery-nmr-atoms
 proteinmotion render examples/nmr_regions.py NMRAtoms -o atoms.mp4 --fps 60
 ```
 

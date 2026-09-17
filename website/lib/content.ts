@@ -3,13 +3,14 @@ import path from "node:path";
 import { Marked } from "marked";
 import hljs from "highlight.js/lib/common";
 import { asset, guides, repo } from "./config";
+import { docExample } from "./doc-examples";
 
 export const readGuide = (file: string) =>
   fs
     .readFileSync(path.join(process.cwd(), "..", "docs", file), "utf8")
     .replace(
       "{{NMR_SOURCE}}",
-      "```python\n" +
+      "```python output=gallery-regions\n" +
         fs.readFileSync(
           path.join(process.cwd(), "..", "examples/nmr_regions.py"),
           "utf8",
@@ -18,7 +19,7 @@ export const readGuide = (file: string) =>
     )
     .replace(
       "{{LABEL_SOURCE}}",
-      "```python\n" +
+      "```python output=gallery-labels\n" +
         fs.readFileSync(
           path.join(process.cwd(), "..", "examples/labels_and_callouts.py"),
           "utf8",
@@ -27,7 +28,7 @@ export const readGuide = (file: string) =>
     )
     .replace(
       "{{MOLECULAR_SOURCE}}",
-      "```python\n" +
+      "```python output=gallery-surfaces\n" +
         fs.readFileSync(
           path.join(process.cwd(), "..", "examples/molecular_tools.py"),
           "utf8",
@@ -55,6 +56,34 @@ export function codeHTML(text: string, language = "python") {
     : escape(text);
   return `<div class="code-block"><div class="code-toolbar"><span>${escape(language)}</span><button type="button" class="copy-code" aria-label="Copy code">Copy</button></div><pre tabindex="0"><code class="hljs language-${escape(language)}">${highlighted}</code></pre></div>`;
 }
+function exampleHTML(id: string, text: string, language: string) {
+  const example = docExample(id, text);
+  const revision = example.video_sha256?.slice(0, 12);
+  const media = (file: string) =>
+    asset(file) + (revision ? `?v=${revision}` : "");
+  const source = `${repo}/blob/main/${example.source}${example.line ? `#L${example.line}` : ""}`;
+  return `<div class="doc-example" data-example="${escape(id)}">
+    <div class="doc-example-code">
+      <div class="example-label">Code <span>${language === "bash" ? "Render command" : example.code ? "Scene excerpt" : "Full script"}</span></div>
+      ${codeHTML(text, language)}
+    </div>
+    <figure class="doc-example-output">
+      <div class="example-label">Output <span>Preview · ${example.duration.toFixed(1)} s · ${example.fps} fps</span></div>
+      <video controls muted playsinline preload="none" poster="${escape(media(example.poster))}" aria-label="${escape(example.title)}">
+        <source src="${escape(media(example.video))}" type="video/mp4" />
+        <a href="${escape(media(example.video))}">Download the video</a>
+      </video>
+      <figcaption>
+        <strong>${escape(example.title)}</strong>
+        <p>${escape(example.caption)}</p>
+        <div class="example-links">
+          <a href="${escape(source)}">Full source: ${escape(example.scene)}</a>
+          <a href="${escape(media(example.video))}" download>Download MP4</a>
+        </div>
+      </figcaption>
+    </figure>
+  </div>`;
+}
 export function compile(markdown: string) {
   const toc: { id: string; title: string; depth: number }[] = [];
   const used = new Map<string, number>();
@@ -74,7 +103,11 @@ export function compile(markdown: string) {
         return `<h${depth} id="${id}">${this.parser.parseInline(tokens)}<a class="heading-anchor" href="#${id}" aria-label="Link to ${escape(plain)}">#</a></h${depth}>`;
       },
       code({ text, lang }) {
-        return codeHTML(text, lang?.split(" ")[0] || "text");
+        const [language = "text", ...options] = lang?.split(/\s+/) ?? [];
+        const output = options.find((option) => option.startsWith("output="));
+        return output
+          ? exampleHTML(output.slice(7), text, language)
+          : codeHTML(text, language);
       },
       link({ href, tokens }) {
         if (!/^(https?:|mailto:|#)/.test(href)) {

@@ -1,16 +1,24 @@
 # Text, labels, and callouts
 
+The rendered excerpts use [docs_examples.py](docs_examples.py). Its `ubiquitin()` helper loads PDB 1UBQ, and `frame()` adds the model and sets the camera. Run each excerpt inside `construct()`; the full script includes the imports and setup. Run the full script from a repository checkout, which includes the input structures.
+
 Add text, amino acid names, and labels for selected regions. A callout connects a label to a region with a line. These annotations work in preview windows, still images, and exported videos.
 
 Watch the [label and text animation examples](https://pdpppd.github.io/proteinmotion/gallery/#labels), or run the [complete script](labels_and_callouts.py).
 
 ## Manim-style writing
 
-```python
-from proteinmotion import Text, Write, Unwrite
-
-title = Text("A protein in motion", font_size=64, font="semibold")
-self.play(Write(title, lag_ratio=0.12, stroke_width=1.8), run_time=2.5)
+```python output=writing
+title = Text(
+    "Protein motion",
+    font_size=130,
+    font="semibold",
+    position=(0.1, 0.38),
+)
+self.play(
+    Write(title, lag_ratio=0.12, stroke_width=1.8),
+    run_time=2.5,
+)
 self.wait(1)
 self.play(Unwrite(title), run_time=1.5)
 ```
@@ -34,13 +42,18 @@ The animation timing comes from MIT-licensed Manim. ProteinMotion renders the te
 
 ## Place text
 
-```python
-title = Text("α helix / β sheet", font_size=48, color="#50e0d0",
-             position=(0.06, 0.08))
-footer = Text("PDB 2K39", font_size=24).to_corner("DR", buff=0.06)
+```python output=text-placement
+title = Text(
+    "α helix / β sheet",
+    font_size=80,
+    color="#50e0d0",
+    position=(0.06, 0.08),
+)
+footer = Text("PDB 1UBQ", font_size=40).to_corner("DR")
 self.play(Write(title), Write(footer), run_time=2)
-self.play(title.animate.move_to((0.10, 0.15)), run_time=1)
+self.play(title.animate.move_to((0.10, 0.35)), run_time=1)
 self.play(title.animate.set_opacity(0.4), run_time=0.5)
+self.wait(1)
 ```
 
 Positions use fractions of the image width and height: `(0, 0)` is the top-left corner and `(1, 1)` is the bottom-right. Font sizes, outline widths, and residue-label offsets use pixels at a 1080-pixel image height. They scale with the output height.
@@ -53,17 +66,22 @@ The bundled fonts are Source Sans 3 `"regular"` and `"semibold"`. To use another
 
 ## Point to a region
 
-```python
-helix = protein.select(chain="A", residues=(23, 34), atoms="CA")
-callout = helix.callout(
-    "α helix", subtitle="Residues 23–34",
-    position=(0.73, 0.25), font_size=36,
-    color="#f2ba67", line_width=1.5, tip="arrow",
+```python output=callout
+p = ubiquitin()
+frame(self, p, margin=1.05)
+helix = p.select(residues=(23, 34), atoms="CA")
+note = helix.callout(
+    "α helix",
+    subtitle="Residues 23–34",
+    position=(0.07, 0.38),
+    font_size=48,
+    color="#f2ba67",
+    tip="arrow",
 )
-highlight = helix.highlight(style="box", color="#f2ba67")
-self.play(Write(callout), FadeIn(highlight), run_time=2)
-self.focus(helix, margin=1.8, run_time=1.5)
-self.play(PlayTrajectory(protein), run_time=8)
+box = helix.highlight(style="box", color="#f2ba67")
+self.play(Write(note), FadeIn(box), run_time=2)
+self.play(self.camera.animate.orbit(0.5), run_time=3)
+self.wait(1)
 ```
 
 `Callout(region, text, ...)` creates the same annotation. The label stays at the specified image position. A line connects it to the center of the selected atoms and updates as the protein or camera moves.
@@ -80,19 +98,19 @@ A callout remains attached to its original selection. After a morph to a differe
 
 ## Label amino acids
 
-```python
-# A single label follows its Cα atom. Default text: “A · Leu 8”.
-leu = protein.select(chain="A", residues=8).label(offset=(-180, -60))
-self.play(Write(leu), run_time=1)
-self.play(leu.animate.set_offset((-220, -90)), run_time=0.8)
-
-# Lists mean specific author residue numbers; tuples mean an inclusive range.
-labels = protein.label_residues(
-    chain="A", residues=[8, 44, 70],
-    font_size=30, color="#f2ba67", format="three_letter",
-    offsets={8: (-220, -60), 44: (180, -40)},
+```python output=residue-labels
+p = ubiquitin()
+frame(self, p, margin=1.05)
+labels = p.label_residues(
+    chain="A",
+    residues=[8, 44, 70],
+    font_size=40,
+    color="#f2ba67",
+    offsets={8: (-270, -90), 44: (440, -100), 70: (380, 150)},
 )
 self.play(Write(labels, lag_ratio=0.08), run_time=2)
+self.play(self.camera.animate.orbit(0.35), run_time=2)
+self.wait(1)
 ```
 
 The direct constructors are `ResidueLabel(region, text=None, ...)` and `ResidueLabels(region, ...)`. Names include the chain, amino-acid name, PDB author number and insertion code. Set `format="one_letter"` for `A · L 8`, `include_chain=False` to hide the chain, or supply custom text to a single label.
@@ -119,8 +137,11 @@ Overlap avoidance checks labels within one group. Check the rendered frames for 
 
 The source checkout includes the required 2K39 data file.
 
-```bash
+```bash output=gallery-labels
 proteinmotion render examples/labels_and_callouts.py ProteinLabels -o labels.mp4 --fps 60
+```
+
+```bash output=gallery-writing
 proteinmotion render examples/labels_and_callouts.py WritingStudy -o writing.mp4 --fps 60
 ```
 

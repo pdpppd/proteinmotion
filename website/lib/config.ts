@@ -158,7 +158,7 @@ export const demos = [
       "Calmodulin changes representation, color, and conformation, then morphs into troponin C. The video also shows labels, camera focus, distances, hydrogen bonds, and electrostatic estimates.",
     source: "examples/feature_showcase.py",
     scene: "FeatureShowcase",
-    duration: "101 s",
+    duration: "100.5 s",
     pdb: "",
   },
   {

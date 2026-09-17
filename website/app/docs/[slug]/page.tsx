@@ -65,7 +65,7 @@ export default async function Guide({
   return (
     <main
       id="main"
-      className="mx-auto grid max-w-[1400px] gap-10 px-5 py-8 md:px-10 lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-12 lg:py-12 xl:grid-cols-[200px_minmax(0,1fr)_180px]"
+      className="mx-auto grid max-w-[1600px] gap-10 px-5 py-8 md:px-10 lg:grid-cols-[190px_minmax(0,1fr)] lg:gap-10 lg:py-12"
     >
       <aside className="hidden lg:block">
         <div className="sticky top-28 max-h-[calc(100dvh-140px)] overflow-y-auto pb-8">
@@ -89,6 +89,25 @@ export default async function Guide({
         <p className="mt-4 border-b border-line pb-8 text-base leading-relaxed text-muted">
           {guide.description}
         </p>
+        <details className="doc-toc mt-6 rounded-lg border border-line px-4 py-3">
+          <summary className="text-sm text-muted">On this page</summary>
+          <nav
+            aria-label="On this page"
+            className="mt-4 grid gap-3 text-sm sm:grid-cols-2"
+          >
+            {toc
+              .filter((item) => item.depth <= 3)
+              .map((item) => (
+                <a
+                  key={item.id}
+                  href={`#${item.id}`}
+                  className="text-accent hover:underline"
+                >
+                  {item.title}
+                </a>
+              ))}
+          </nav>
+        </details>
         <div
           className="prose-doc mt-8"
           dangerouslySetInnerHTML={{ __html: html }}
@@ -123,27 +142,6 @@ export default async function Guide({
           )}
         </div>
       </article>
-      <aside className="hidden xl:block">
-        <nav
-          aria-label="On this page"
-          className="sticky top-28 max-h-[calc(100dvh-140px)] overflow-y-auto"
-        >
-          <p className="mb-5 font-mono text-[10px] tracking-widest text-muted">
-            ON THIS PAGE
-          </p>
-          {toc
-            .filter((t) => t.depth <= 3)
-            .map((t) => (
-              <a
-                key={t.id}
-                href={`#${t.id}`}
-                className={`mb-3 block text-xs leading-relaxed text-muted hover:text-accent ${t.depth === 3 ? "pl-3" : ""}`}
-              >
-                {t.title}
-              </a>
-            ))}
-        </nav>
-      </aside>
     </main>
   );
 }

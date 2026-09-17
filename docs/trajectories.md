@@ -1,5 +1,7 @@
 # NMR and MD trajectories
 
+The rendered excerpts use [docs_examples.py](docs_examples.py). Its `ubiquitin()` helper loads PDB 1UBQ, and `frame()` adds the model and sets the camera. Run each excerpt inside `construct()`; the full script includes the imports and setup. Run the full script from a repository checkout, which includes the input structures.
+
 ```python
 # PDB MODEL records / mmCIF model numbers, with strict identity checks:
 p = Protein.from_file("ensemble.pdb").cartoon().center()
@@ -42,16 +44,19 @@ To supply assignments, call `p.with_secondary_structure("HHHCCEEE…")` before a
 an RDC-derived solution NMR ensemble of ubiquitin: **116 deposited models, 76 residues,
 602 selected heavy atoms per model**. Atom identities/order are checked in every model.
 Each conformer is rigidly aligned on the Cα atoms of residues 1–70, leaving the
-C-terminal tail free to move:
+C-terminal tail free to move. This shorter excerpt plays the first three models:
 
-```python
-p = Protein.from_file("examples/data/2k39.cif", chains="A")
-core = p.select(residues=(1, 70), atoms="CA")
-aligned = p.trajectory.aligned(indices=core.atom_indices)
+```python output=nmr-states
+loaded = Protein.from_file(DATA / "2k39.cif", chains="A")
+core = loaded.select(residues=(1, 70), atoms="CA")
+aligned = loaded.trajectory.aligned(indices=core.atom_indices)
 p = Protein.from_trajectory(aligned).cartoon().center()
-self.add(p)
-self.camera.frame(p, aspect=self.width / self.height)
-self.play(PlayTrajectory(p, state_easing=smooth), run_time=23)
+frame(self, p)
+self.play(
+    PlayTrajectory(p, start=0, end=2, state_easing=smooth),
+    run_time=6,
+)
+self.wait(0.5)
 ```
 
 ```bash

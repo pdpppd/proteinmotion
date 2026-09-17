@@ -1,22 +1,30 @@
 # Distances and interactions
 
+The rendered excerpts use [docs_examples.py](docs_examples.py). Its `ubiquitin()` helper loads PDB 1UBQ, and `frame()` adds the model and sets the camera. Run each excerpt inside `construct()`; the full script includes the imports and setup. Run the full script from a repository checkout, which includes the input structures.
+
 Draw a line between two atoms or residues and label its distance. Use the same line styles to highlight hydrogen bonds and electrostatic contacts. Measurements update as the coordinates change.
 
 ## Measure between residues or atoms
 
-```python
-from proteinmotion import Distance, Write
+The `helix_view()` helper selects residues 23–34, dims the rest of ubiquitin, and frames the selected helix.
 
-a = p.select(chain="A", residues=23)
-b = p.select(chain="A", residues=34)
-ruler = Distance(a, b, mode="2d", color="#50e0d0", prefix="Cα · ")
-self.play(Write(ruler), run_time=1.5)
-
-# Explicit atom selections measure those atoms instead.
-oxygen = p.select(chain="A", residues=23, atoms="O")
-nitrogen = p.select(chain="A", residues=27, atoms="N")
-atomic_ruler = oxygen.distance_to(nitrogen, mode="3d", style="dashed")
-self.add(atomic_ruler)
+```python output=distances
+p = helix_view(self)
+a = p.select(residues=23, atoms="CA")
+b = p.select(residues=34, atoms="CA")
+for mode in ("3d", "2d"):
+    ruler = Distance(
+        a,
+        b,
+        mode=mode,
+        font_size=42,
+        color="#50e0d0",
+        prefix="Cα · ",
+    )
+    title = Text(f"{mode.upper()} line", font_size=48)
+    self.play(Write(ruler), Write(title), run_time=1.5)
+    self.play(self.camera.animate.orbit(0.35), run_time=2)
+    self.play(FadeOut(ruler), FadeOut(title), run_time=0.5)
 ```
 
 A whole single-residue selection uses its Cα by default, if one exists. A one-atom selection always uses that atom. `anchor="centroid"` uses the mean of the selected coordinates; selections spanning multiple residues also use their centroid. Set `unit="nm"` to convert the displayed distance from ångströms to nanometers, or `unit=""` for no suffix. The `.distance` property remains in ångströms for model space.
@@ -49,25 +57,25 @@ The [alpha-helix example](alpha-helix.md) shows all 12 expected i→i+4 hydrogen
 
 ## Compute hydrogen bonds
 
-```python
-from proteinmotion import HydrogenBonds
-
+```python output=hydrogen-bonds
+p = helix_view(self)
 hb = HydrogenBonds(
     p,
-    donors=p.select(chain="A", residues=(23, 34), atoms="N"),
+    donors=p.select(residues=(23, 34), atoms="N"),
     max_distance=3.5,
     min_angle=150,
-    hydrogens="auto",
+    hydrogens="backbone",
 )
-for pair in hb.pairs:
-    print(pair.a, pair.b, pair.distance, pair.angle, pair.inferred_hydrogen)
-
-bonds = hb.highlight(
-    mode="3d", color="#50e0d0", radius=0.08,
-    style="dashed", dash_count=7,
-    show_distances=True, font_size=24, max_pairs=12,
+lines = hb.highlight(
+    mode="3d",
+    color="#f2ba67",
+    radius=0.07,
+    dash_count=5,
+    show_distances=False,
 )
-self.play(Write(bonds), run_time=1.5)
+self.play(Write(lines), run_time=2)
+self.play(self.camera.animate.orbit(0.6), run_time=3)
+self.wait(1)
 ```
 
 `p.hydrogen_bonds(**options)` is equivalent. `.pairs` returns immutable `Interaction` records: zero-based donor/acceptor atom indices `a`/`b`, donor–acceptor distance in Å, D–H–A angle in degrees, an explicit hydrogen index when available, and an `inferred_hydrogen` flag. The default labels show **donor–acceptor** distance. Set `hb.highlight(endpoints="hydrogen_acceptor", ...)` to draw H···acceptor lines and label that distance instead; `Interaction.distance` remains donor–acceptor distance. `hb.hydrogen_position(pair)` returns the explicit or virtual H position in model Å.
@@ -92,20 +100,34 @@ The default donor and acceptor templates cover common standard amino-acid groups
 
 ## Screened Coulomb electrostatics
 
-```python
-from proteinmotion import Electrostatics
-
-# q is one charge in elementary-charge units per selected atom, in topology order.
+```python output=charge-contacts
+p = ubiquitin().ball_and_stick()
 field = Electrostatics(
-    p, charges=q,
-    dielectric=80, screening_length=8, cutoff=12, min_energy=0.05,
+    p,
+    charges="formal",
+    dielectric=80,
+    screening_length=8,
+    cutoff=6,
+    min_energy=0.08,
 )
+pair = field.pairs[0]
+endpoints = Region(p, [pair.a, pair.b])
+residues = [p.topology.atoms[i].resid for i in (pair.a, pair.b)]
+selected = p.select(residues=residues)
+other = Region(p, np.setdiff1d(np.arange(len(p.topology.atoms)), selected.atom_indices))
+other.set_opacity(0.06)
+frame(self, p, endpoints, margin=4.5)
 contacts = field.highlight(
-    mode="2d", show_distances=True, style="solid",
-    attractive_color="#58b8fa", repulsive_color="#ef7484",
-    max_pairs=20,
+    mode="2d",
+    max_pairs=1,
+    show_distances=True,
+    font_size=42,
+    style="solid",
+    line_width=2,
 )
 self.play(Write(contacts), run_time=1.5)
+self.play(self.camera.animate.orbit(0.5), run_time=3)
+self.wait(1)
 ```
 
 `p.electrostatics(charges=q, **options)` is equivalent. Pair energies use:
