@@ -88,8 +88,7 @@ export default async function Guide({
           </summary>
           <div className="pt-4">{menu}</div>
         </details>
-        <p className="eyebrow">DOCUMENTATION / {guide.group}</p>
-        <h1 className="mt-4 text-4xl font-medium leading-tight tracking-[-.045em]">
+        <h1 className="text-4xl font-medium leading-tight tracking-[-.045em]">
           {guide.title}
         </h1>
         <p className="mt-4 border-b border-line pb-8 text-base leading-relaxed text-muted">

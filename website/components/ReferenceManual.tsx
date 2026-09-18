@@ -169,7 +169,6 @@ export function SymbolTable({ symbols }: { symbols: Symbol[] }) {
 export function ReferenceIndex() {
   return (
     <>
-      <p className="eyebrow">PYTHON API · v{reference.version}</p>
       <h1 className="reference-title">Reference manual</h1>
       <p className="reference-intro">
         Classes, functions, and methods for building protein animations. Browse
@@ -241,7 +240,6 @@ export function ModulePage({ id }: { id: string }) {
   const symbols = reference.symbols.filter((s) => s.module === id);
   return (
     <>
-      <p className="eyebrow">MODULE · v{reference.version}</p>
       <h1 className="reference-title">{m.title}</h1>
       <p className="font-mono text-sm text-muted">proteinmotion.{id}</p>
       <p className="reference-intro">
@@ -288,9 +286,6 @@ export function SymbolPage({ symbol: s }: { symbol: Symbol }) {
   const alias = s.alias ? symbolById(s.alias) : undefined;
   return (
     <>
-      <p className="eyebrow">
-        {s.kind.toUpperCase()} · v{reference.version}
-      </p>
       <h1 className="reference-title font-mono">{s.name}</h1>
       <p className="reference-intro">{s.description}</p>
       <div className="mb-6 flex flex-wrap gap-5 text-xs text-muted">

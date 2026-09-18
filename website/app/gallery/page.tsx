@@ -14,8 +14,7 @@ export default function Gallery() {
       id="main"
       className="mx-auto max-w-[1400px] px-5 py-12 md:px-10 md:py-16"
     >
-      <p className="eyebrow">RENDERED WITH PROTEINMOTION</p>
-      <h1 className="mt-4 text-4xl font-medium tracking-[-.045em] md:text-5xl">
+      <h1 className="text-4xl font-medium tracking-[-.045em] md:text-5xl">
         Video examples
       </h1>
       <p className="mt-5 max-w-2xl text-base leading-7 text-muted">
@@ -24,20 +23,15 @@ export default function Gallery() {
         Each render command lists the settings used for its preview.
       </p>
       <div className="mt-14 grid gap-x-10 gap-y-16 md:grid-cols-2">
-        {demos.map((demo, i) => (
+        {demos.map((demo) => (
           <section id={demo.id} key={demo.id} className="min-w-0 scroll-mt-24">
-            <div className="mb-3 flex justify-between font-mono text-[10px] tracking-wide text-muted">
-              <span>
-                {String(i + 1).padStart(2, "0")} / {demo.label}
-              </span>
-              <span>{demo.duration}</span>
-            </div>
             <Video file={demo.file} title={demo.title} />
             <h2 className="mt-5 text-xl font-medium tracking-tight">
               {demo.title}
             </h2>
             <p className="mt-2 text-sm leading-7 text-muted">{demo.detail}</p>
             <div className="mt-4 flex flex-wrap items-center gap-5 text-xs">
+              <span className="text-muted">{demo.duration}</span>
               <a
                 href={`${repo}/blob/main/${demo.source}`}
                 className="inline-flex items-center gap-1.5 font-medium text-accent"

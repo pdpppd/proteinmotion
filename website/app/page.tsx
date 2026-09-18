@@ -19,10 +19,6 @@ export default function Home() {
     <main id="main" className="mx-auto max-w-[1400px] px-5 md:px-10">
       <section className="grid items-center gap-12 pb-14 pt-12 lg:grid-cols-[.85fr_1.15fr] lg:gap-14 lg:pb-20 lg:pt-20">
         <div>
-          <div className="mb-7 flex items-center gap-2.5 text-xs font-medium text-accent">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            PYTHON API · METAL · EEVEE
-          </div>
           <h1 className="max-w-lg text-[2.7rem] font-medium leading-[1.05] tracking-[-.055em] sm:text-[3.7rem]">
             Molecular animation <br />
             <span className="text-muted">in Python</span>
@@ -52,17 +48,15 @@ export default function Home() {
       >
         {[
           [
-            "01",
             "Molecular representations",
             "Cartoon, ribbon, atoms & surfaces",
           ],
-          ["02", "Animation", "Movement, color & transparency"],
-          ["03", "Labels & measurements", "Residues, distances & interactions"],
-          ["04", "States & trajectories", "NMR ensembles & MD playback"],
-        ].map(([n, title, detail]) => (
-          <div key={n}>
-            <span className="font-mono text-[10px] text-accent">{n}</span>
-            <h2 className="mt-2 text-sm font-medium">{title}</h2>
+          ["Animation", "Movement, color & transparency"],
+          ["Labels & measurements", "Residues, distances & interactions"],
+          ["States & trajectories", "NMR ensembles & MD playback"],
+        ].map(([title, detail]) => (
+          <div key={title}>
+            <h2 className="text-sm font-medium">{title}</h2>
             <p className="mt-1.5 text-xs leading-relaxed text-muted">
               {detail}
             </p>
@@ -71,8 +65,7 @@ export default function Home() {
       </section>
       <section className="grid gap-10 py-16 lg:grid-cols-[.8fr_1.2fr] lg:gap-24 lg:py-24">
         <div>
-          <p className="eyebrow">PYTHON SCENES</p>
-          <h2 className="mt-4 max-w-sm text-3xl font-medium leading-tight tracking-[-.035em]">
+          <h2 className="max-w-sm text-3xl font-medium leading-tight tracking-[-.035em]">
             Define each animation <br />
             in a Python script.
           </h2>
@@ -96,7 +89,6 @@ export default function Home() {
         <div className="min-w-0">
           <div className="mb-3 flex justify-between font-mono text-[11px] text-muted">
             <span>scene.py</span>
-            <span>INSIDE A PROTEINSCENE</span>
           </div>
           <div dangerouslySetInnerHTML={{ __html: codeHTML(snippet) }} />
         </div>

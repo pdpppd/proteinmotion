@@ -46,9 +46,6 @@
   .button-secondary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line px-5 py-3 text-sm font-medium transition hover:border-ink/30 active:scale-[.98];
   }
-  .eyebrow {
-    @apply font-mono text-[10px] font-medium tracking-[.12em] text-accent;
-  }
   .brand-mark {
     @apply relative block h-7 w-6;
   }
@@ -240,7 +237,7 @@
 
 @layer components {
   .reference-title {
-    @apply mb-5 mt-4 break-words text-3xl font-medium leading-tight tracking-tight sm:text-4xl;
+    @apply mb-5 break-words text-3xl font-medium leading-tight tracking-tight sm:text-4xl;
   }
   .reference-intro {
     @apply my-5 max-w-[85ch] text-sm leading-7;
