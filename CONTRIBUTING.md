@@ -60,7 +60,7 @@ Use `output=<example-id>` after the language in a Markdown code fence to pair a 
 
 The Pages workflow builds on pull requests and pushes. Only `main` pushes or a manual workflow run from `main` deploy. GitHub Pages must use **GitHub Actions** as its source. The workflow uploads the static export and deploys it with the official Pages actions. GitHub Pages serves the exported static files.
 
-Compressed web previews are committed in `website/public/media/`. They are 720p versions of the original 1080p/60 fps films (the continuous tour retains 60 fps; other previews use 30 fps). Their source filenames and sizes are recorded in `provenance.json`; the scientific data provenance lives in the documentation. Original rendered videos, caches, local environments, and build outputs are ignored.
+Compressed web previews are committed in `website/public/media/`. Calmodulin in focus retains 1080p/60 fps. Other previews use 720p, with the continuous feature tour at 60 fps and shorter examples at 30 fps. Their source filenames and sizes are recorded in `provenance.json`; the scientific data provenance lives in the documentation. Original rendered videos, caches, local environments, and build outputs are ignored.
 
 ## Changes and issues
 

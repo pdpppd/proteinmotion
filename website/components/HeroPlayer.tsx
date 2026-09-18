@@ -6,18 +6,18 @@ export default function HeroPlayer() {
   return (
     <div>
       <div className="mb-3 flex items-center justify-between gap-3 font-mono text-[10px] tracking-wide text-muted">
-        <span>FEATURE DEMO</span>
-        <span>01:41 · 60 FPS</span>
+        <span>CALMODULIN IN FOCUS</span>
+        <span>01:08 · EEVEE · 60 FPS</span>
       </div>
       <Video
-        file="showcase"
-        title="ProteinMotion demo with calmodulin and troponin C"
+        file="calmodulin-in-focus"
+        title="Calmodulin with depth of field, helix close-ups, and molecular surfaces"
         autoplay
       />
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
-        <span>Calmodulin → troponin C</span>
+        <span>Depth of field · atomic detail · surfaces</span>
         <Link
-          href="/docs/showcase/"
+          href="/docs/calmodulin-in-focus/"
           className="inline-flex items-center gap-1.5 font-medium text-accent"
         >
           Chapters and code <ArrowRightIcon />

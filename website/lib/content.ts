@@ -9,6 +9,15 @@ export const readGuide = (file: string) =>
   fs
     .readFileSync(path.join(process.cwd(), "..", "docs", file), "utf8")
     .replace(
+      "{{CALMODULIN_FOCUS_SOURCE}}",
+      "```python output=calmodulin-in-focus\n" +
+        fs.readFileSync(
+          path.join(process.cwd(), "..", "examples/calmodulin_in_focus.py"),
+          "utf8",
+        ) +
+        "```",
+    )
+    .replace(
       "{{NMR_SOURCE}}",
       "```python output=gallery-regions\n" +
         fs.readFileSync(

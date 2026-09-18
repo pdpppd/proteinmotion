@@ -6,9 +6,18 @@ import numpy as np
 import pytest
 
 from proteinmotion import Deform, EEVEEOptions, FocusPull, ProteinScene, Rotate
-from proteinmotion._eevee_geometry import MeshExporter
+from proteinmotion._eevee_geometry import MeshExporter, _sphere
 from proteinmotion.camera import Camera
 from proteinmotion.eevee import find_blender
+
+
+def test_atom_sphere_faces_point_outward():
+    vertices, faces = _sphere()
+    triangles = vertices[faces]
+    normals = np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0])
+    # Every nondegenerate face must face away from the sphere center. A reversed
+    # band makes Blender shade the visible sphere interior even with radial normals.
+    assert np.all(np.sum(normals * triangles.mean(1), axis=1) > 0)
 
 
 def test_focus_selectors_and_follow(protein):

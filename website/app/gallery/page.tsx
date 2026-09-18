@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRightIcon, DownloadIcon } from "@radix-ui/react-icons";
 import Video from "@/components/Video";
-import { asset, demos, repo } from "@/lib/config";
+import { asset, demoCommand, demos, repo } from "@/lib/config";
 import { codeHTML } from "@/lib/content";
 export const metadata: Metadata = {
   title: "Example gallery",
@@ -19,9 +19,9 @@ export default function Gallery() {
         Video examples
       </h1>
       <p className="mt-5 max-w-2xl text-base leading-7 text-muted">
-        Each video includes its Python script and render command. Previews are
-        compressed to 720p. The feature demo plays at 60 fps; other previews
-        play at 30 fps. The original videos were rendered at 1080p/60 fps.
+        Each video includes its Python script and render command. Calmodulin in
+        focus plays at 1080p/60 fps. Other previews use 720p, with the feature
+        demo at 60 fps and shorter examples at 30 fps.
       </p>
       <div className="mt-14 grid gap-x-10 gap-y-16 md:grid-cols-2">
         {demos.map((demo, i) => (
@@ -60,11 +60,7 @@ export default function Gallery() {
             <div
               className="mt-4"
               dangerouslySetInnerHTML={{
-                __html: codeHTML(
-                  `proteinmotion render ${demo.source} ${demo.scene} \
-  -o ${demo.file}.mp4 --fps 60`,
-                  "bash",
-                ),
+                __html: codeHTML(demoCommand(demo), "bash"),
               }}
             />
           </section>

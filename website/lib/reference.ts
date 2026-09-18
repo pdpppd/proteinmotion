@@ -1,6 +1,6 @@
 import data from "./reference-data.json";
 import rendered from "../public/media/docs/manifest.json";
-import { demos } from "./config";
+import { demoCommand, demos } from "./config";
 import { docExample } from "./doc-examples";
 
 export type Parameter = {
@@ -92,7 +92,7 @@ export function referenceExample(id: string) {
   if (id.startsWith("gallery-")) {
     const demo = demos.find((d) => d.id === id.slice(8));
     if (!demo) throw new Error(`Unknown reference example ${id}`);
-    return `\`\`\`bash output=${id}\nproteinmotion render ${demo.source} ${demo.scene} \\\n  --fps ${id === "gallery-showcase" ? 60 : 30} -o example.mp4\n\`\`\``;
+    return `\`\`\`bash output=${id}\n${demoCommand(demo)}\n\`\`\``;
   }
   // The existing renderer validates this exact source against its clip manifest.
   const example = docExampleForReference(id);

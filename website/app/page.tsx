@@ -136,15 +136,16 @@ export default function Home() {
           Depth of field with EEVEE
         </h2>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
-          Focus on a residue or selected region while the camera moves. Render
-          through Blender EEVEE, with smooth context fades and animated focus
-          changes. Blender is installed separately.
+          Set lens focus on selected residues and animate focus changes as the
+          camera moves. The homepage film uses EEVEE for helix close-ups,
+          transparent surroundings, and molecular surfaces. Install Blender
+          separately to render the scene.
         </p>
         <Link
-          href="/docs/eevee/"
+          href="/docs/calmodulin-in-focus/"
           className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-accent"
         >
-          View code and rendered output <ArrowRightIcon />
+          View the film and full script <ArrowRightIcon />
         </Link>
       </section>
       <section className="border-t border-line py-10">

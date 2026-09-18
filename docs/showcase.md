@@ -1,6 +1,6 @@
 # Feature demo
 
-The homepage video is a **100.5-second scene at 60 fps**. It demonstrates representations, styling, labels, and state playback with calmodulin. A backbone morph changes calmodulin into troponin C, which is then used for the interaction measurements.
+This feature demo is a **100.5-second scene at 60 fps**. It demonstrates representations, styling, labels, and state playback with calmodulin. A backbone morph changes calmodulin into troponin C, which is then used for the interaction measurements.
 
 [Watch the film](https://pdpppd.github.io/proteinmotion/gallery/#showcase) · [Download the scene script](feature_showcase.py) · [Source and input files on GitHub](https://github.com/pdpppd/proteinmotion/blob/main/examples/feature_showcase.py)
 
@@ -50,4 +50,4 @@ proteinmotion render examples/feature_showcase.py FeatureShowcase \
 - Troponin C's hydrogen bonds are detected using N···O ≤ 3.5 Å and N–H···O ≥ 150°. The angle uses **inferred backbone amide H**, and the drawn line connects the measured donor N and acceptor O. The analysis uses coordinates from the deposited troponin C structure.
 - The imported 1NCX charge array contains **example formal side-chain charges**. Screened-Coulomb parameters are dielectric 80 and screening length 8 Å. The contact energy is an approximation under those settings.
 
-The master is **1920×1080 at 60 fps**, rendered through Metal with 4× MSAA and VideoToolbox encoding. The homepage/gallery preview is **1280×720 at 60 fps**, with muted playback, standard video controls, and respect for reduced-motion preferences on the homepage. [Render measurements, continuity checks and input verification](showcase-report.json).
+The master is **1920×1080 at 60 fps**, rendered through Metal with 4× MSAA and VideoToolbox encoding. The gallery preview is **1280×720 at 60 fps**, with muted playback and standard video controls. [Render measurements, continuity checks and input verification](showcase-report.json).

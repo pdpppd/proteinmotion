@@ -22,7 +22,13 @@ export const metadata: Metadata = {
     title: "ProteinMotion",
     description: "Protein animation in Python.",
     type: "website",
-    images: [{ url: `${site}/media/regions.jpg`, width: 1280, height: 720 }],
+    images: [
+      {
+        url: `${site}/media/calmodulin-in-focus.jpg`,
+        width: 1920,
+        height: 1080,
+      },
+    ],
   },
 };
 export default function RootLayout({

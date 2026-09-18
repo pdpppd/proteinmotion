@@ -126,6 +126,14 @@ export const guides = [
       "Animate a ubiquitin NMR ensemble with camera focus and region highlights.",
   },
   {
+    slug: "calmodulin-in-focus",
+    file: "calmodulin-in-focus.md",
+    title: "Calmodulin in focus",
+    group: "EXAMPLES",
+    description:
+      "A 68-second EEVEE film with helix close-ups, focus pulls, and molecular surfaces.",
+  },
+  {
     slug: "showcase",
     file: "showcase.md",
     title: "Feature demo",
@@ -178,7 +186,38 @@ export const guides = [
     description: "Set up development tools, build the website, and run checks.",
   },
 ];
-export const demos = [
+export type Demo = {
+  id: string;
+  title: string;
+  file: string;
+  label: string;
+  detail: string;
+  source: string;
+  scene: string;
+  duration: string;
+  pdb: string;
+  fps?: number;
+  renderCommand?: string;
+};
+export const demoCommand = (demo: Demo) =>
+  demo.renderCommand ??
+  `proteinmotion render ${demo.source} ${demo.scene} \\\n  -o ${demo.file}.mp4 --fps 60`;
+export const demos: Demo[] = [
+  {
+    id: "calmodulin-in-focus",
+    title: "Calmodulin in focus",
+    file: "calmodulin-in-focus",
+    label: "EEVEE · DEPTH OF FIELD",
+    detail:
+      "A continuous camera tour with helix close-ups, focus pulls, transparent surroundings, backbone atoms, and a surface colored by B factor. Rendered with Blender EEVEE at 1080p/60 fps.",
+    source: "examples/calmodulin_in_focus.py",
+    scene: "CalmodulinInFocus",
+    duration: "68 s",
+    pdb: "1CLL",
+    fps: 60,
+    renderCommand:
+      "python examples/calmodulin_in_focus.py \\\n  --output calmodulin-in-focus.mp4",
+  },
   {
     id: "showcase",
     title: "Calmodulin and troponin C",
@@ -190,6 +229,7 @@ export const demos = [
     scene: "FeatureShowcase",
     duration: "100.5 s",
     pdb: "",
+    fps: 60,
   },
   {
     id: "alpha-helix",

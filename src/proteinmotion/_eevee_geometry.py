@@ -87,7 +87,9 @@ def _sphere():
     ).reshape(-1, 3)
     vertices = np.vstack((vertices, [0, 0, 1], [0, 0, -1]))
     top, bottom = len(vertices) - 2, len(vertices) - 1
-    faces = _triangles(rings - 1, sides)
+    # Latitude increases from north to south, opposite the sweep direction used
+    # by tubes. Reverse the body triangles so geometric and radial normals agree.
+    faces = _triangles(rings - 1, sides)[:, ::-1]
     caps = [[top, j, (j + 1) % sides] for j in range(sides)]
     offset = (rings - 2) * sides
     caps += [[bottom, offset + (j + 1) % sides, offset + j] for j in range(sides)]

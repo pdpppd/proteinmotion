@@ -9,9 +9,11 @@ ProteinMotion is a Python package for protein animation. Load a structure or tra
 
 [Documentation](https://pdpppd.github.io/proteinmotion/) · [Video examples](https://pdpppd.github.io/proteinmotion/gallery/) · [Reference manual](https://pdpppd.github.io/proteinmotion/reference/) · [Releases](https://github.com/pdpppd/proteinmotion/releases)
 
-[![Calmodulin and troponin C animation](docs/showcase.png)](https://pdpppd.github.io/proteinmotion/gallery/#showcase)
+[![Calmodulin helix with depth of field](website/public/media/calmodulin-in-focus.jpg)](https://pdpppd.github.io/proteinmotion/docs/calmodulin-in-focus/)
 
-The demo shows calmodulin as a cartoon, ball-and-stick model, and surface. It includes residue colors, labels, camera movement, and NMR conformations. A backbone morph connects calmodulin to troponin C, followed by distance measurements and interaction highlights. [Demo script](examples/feature_showcase.py) · [Chapter list](https://pdpppd.github.io/proteinmotion/docs/showcase/)
+**Calmodulin in focus** is a 68-second EEVEE film at 1080p/60 fps. It shows helix close-ups, focus pulls, transparent surroundings, backbone atoms, and a surface colored by B factor. [Full script and output](https://pdpppd.github.io/proteinmotion/docs/calmodulin-in-focus/) · [Python source](examples/calmodulin_in_focus.py)
+
+The [calmodulin and troponin C demo](https://pdpppd.github.io/proteinmotion/docs/showcase/) also covers NMR conformations, backbone morphing, distance measurements, and interaction highlights.
 
 ## Install
 
@@ -123,6 +125,7 @@ These scripts and their input structures are in the repository:
 | B factors, residue colors, and cartoon thickness | [numerical_properties.py](examples/numerical_properties.py) |
 | NMR playback with distance, contact, and sequence plots | [synchronized_plots.py](examples/synchronized_plots.py) |
 | Electron-density contours and slices | [density_maps.py](examples/density_maps.py) |
+| Calmodulin in focus: 68-second EEVEE film | [calmodulin_in_focus.py](examples/calmodulin_in_focus.py) |
 | EEVEE depth of field and residue focus | [eevee_focus.py](examples/eevee_focus.py) |
 | Calmodulin and troponin C feature demo | [feature_showcase.py](examples/feature_showcase.py) |
 | Residue colors, surfaces, distances, and interactions | [molecular_tools.py](examples/molecular_tools.py) |

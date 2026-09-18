@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { demos } from "./config";
+import { demoCommand, demos } from "./config";
 
 export type DocExample = {
   title: string;
@@ -26,7 +26,7 @@ export function docExample(id: string, code: string): DocExample {
   if (id.startsWith("gallery-")) {
     const demo = demos.find((item) => item.id === id.slice(8));
     if (!demo) throw new Error(`Unknown gallery example: ${id}`);
-    if (!code.includes(demo.scene))
+    if (!code.includes(demo.scene) && code.trim() !== demoCommand(demo))
       throw new Error(`Example ${id} must include its scene ${demo.scene}`);
     return {
       title: demo.title,
@@ -34,7 +34,7 @@ export function docExample(id: string, code: string): DocExample {
       source: demo.source,
       scene: demo.scene,
       duration: Number.parseFloat(demo.duration),
-      fps: demo.id === "showcase" ? 60 : 30,
+      fps: demo.fps ?? 30,
       video: `media/${demo.file}.mp4`,
       poster: `media/${demo.file}.jpg`,
     };

@@ -102,5 +102,30 @@
     "package_version": "0.6.3",
     "scene": "examples/feature_showcase.py:FeatureShowcase",
     "revision": "2"
+  },
+  "calmodulin-in-focus": {
+    "source": "calmodulin-in-focus.mp4",
+    "web_preview": "calmodulin-in-focus.mp4",
+    "width": 1920,
+    "height": 1080,
+    "fps": 60,
+    "bytes": 5461911,
+    "decoded_frames": 4080,
+    "duration_seconds": 68,
+    "poster_time_seconds": 14,
+    "scene": "examples/calmodulin_in_focus.py:CalmodulinInFocus",
+    "renderer": {
+      "renderer": "EEVEE",
+      "blender": "5.2.0 LTS",
+      "backend": "METAL"
+    },
+    "settings": {
+      "samples": 64,
+      "supersampling": 1.25,
+      "max_blur": 28
+    },
+    "original_sha256": "ee12313fcfe7c26ee19171a1b6b6b2508a73f1804ca02c7cfd8ecf959d2d403c",
+    "web_sha256": "c73efda22a17844fa917d3ba0a3144d3a5891ab5516fcbdd80feb7c5081ee650",
+    "web_encoding": "H.264, libx264 slow, CRF 20; original dimensions and frame rate"
   }
 }

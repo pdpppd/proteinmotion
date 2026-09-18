@@ -14,7 +14,7 @@ The `proteinmotion-movies` skill passed the skill-creator validator and an indep
 
 ## Version 0.6.3: continuous feature tour and stable fade endpoints
 
-The homepage film now uses one camera and a single timeline: calmodulin stays on screen until the contact-guided morph, and the actual troponin C destination carries the subsequent interaction demonstrations. All **55 animation boundaries** were checked for continuity of camera, visible atom coordinates, opacity, color and representation. Frames immediately before/after the styling-to-focus boundary at 21 seconds are pixel-identical at a ±1 μs interval. Backward seeking reproduces the same pixels, the troponin C pose is preserved after the morph, and the first/last frames meet on the same background for a gentle loop.
+The calmodulin and troponin C feature demo uses one camera and a single timeline: calmodulin stays on screen until the contact-guided morph, and the actual troponin C destination carries the subsequent interaction demonstrations. All **55 animation boundaries** were checked for continuity of camera, visible atom coordinates, opacity, color and representation. Frames immediately before/after the styling-to-focus boundary at 21 seconds are pixel-identical at a ±1 μs interval. Backward seeking reproduces the same pixels, the troponin C pose is preserved after the morph, and the first/last frames meet on the same background for a gentle loop.
 
 The GPU quintic easing function now mirrors its upper half, like the CPU implementation. This avoids floating-point cancellation near opacity 1 that could send apparently opaque cartoon fragments through the transparency pass and cause a brightness pop. Four new native GPU cases cover cartoon and ball-and-stick fades at 1×/4× MSAA and nonzero timeline offsets. All four fail against the previous shader and pass with the fix. **101 local tests pass.**
 
@@ -299,3 +299,9 @@ The full test suite passed 116 tests on Apple M3 Max, including native GPU tests
 The Blender test renders actual frames. It checks matching stationary frames, visible lighting, focus changes, annotation composition, camera projection alignment, representation changes, coordinate changes, surface rendering, empty scenes, and opacity-layer errors. Run it with `PROTEINMOTION_TEST_EEVEE=1 pytest`; Blender must be installed. Ordinary CI runs the CPU tests.
 
 The [EEVEE example](eevee.md) renders an eight-second calmodulin sequence at 960×540 and 60 fps. All 480 frames are decoded after export. The source uses PDB 1CLL, chain A, and highlights residues 5–19. It includes a focus pull to residues 82–92 and back. The downloadable wheel is also checked outside the source checkout, including a Blender still render.
+
+## Calmodulin film and atom shading
+
+[Calmodulin in focus](calmodulin-in-focus.md) was rendered with Blender 5.2 LTS on Metal at 1920×1080 and 60 fps. The 68-second scene uses 64 samples, 1.25× spatial supersampling, and a 28-pixel blur limit. All 4,080 frames in both the original export and the compressed web copy were decoded; dimensions and every presentation timestamp were checked. The camera and representation transitions were reviewed in rendered frames and motion samples.
+
+The atomic close-up exposed reversed triangle winding in the EEVEE atom sphere mesh. The body triangles now face outward, matching their radial shading normals. A regression test checks the direction of every sphere face. The EEVEE tests passed with the Blender integration check enabled.

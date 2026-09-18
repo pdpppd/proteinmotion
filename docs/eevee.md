@@ -2,6 +2,8 @@
 
 Render a ProteinMotion scene through Blender EEVEE and focus on selected atoms or residues. Camera movement, colors, opacity, labels, trajectories, and morphs use the existing scene API.
 
+[Watch Calmodulin in focus](calmodulin-in-focus.md): a 68-second film with helix close-ups, focus pulls, atomic detail, and a molecular surface. The page includes the full script beside its output.
+
 ## Install Blender
 
 Install [Blender 4.5 or later](https://www.blender.org/download/) separately. EEVEE is included with Blender. ProteinMotion starts it in the background; the Blender interface can stay closed. This integration was tested with Blender 5.2 on an Apple M3 Max using Metal.

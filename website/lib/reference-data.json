@@ -11453,7 +11453,7 @@
     "src/proteinmotion/__init__.py": "8f6185b69531258b93eba18ed7abf86d1c5e548a56f0467e824f60c93a383bee",
     "src/proteinmotion/__main__.py": "3129adff95e0f38b87ab34cddfc27082c7892bcaec267ff5d40f160fdf55b44a",
     "src/proteinmotion/_blender_worker.py": "3010c14ed7ddb07d86b8d6163b32591eefb4d9dc3eeba526bde223f6e303ef1e",
-    "src/proteinmotion/_eevee_geometry.py": "e481ed75c7f3d6fb86cfba40fa9672a0b167df21432e7e703003bdc6f302c013",
+    "src/proteinmotion/_eevee_geometry.py": "02229f6c98719633d91f337971c4bc0eba40e194d580cac15e9f71b96ce9cf01",
     "src/proteinmotion/animation.py": "d5e3d81bb29783e903fb1ac89d65cc574e0818d1787a6bdcc963e2ef8e145fda",
     "src/proteinmotion/annotations.py": "b0e92626f03228dca889aa0998f9199d4aa55140c2278632ec68061591a5d562",
     "src/proteinmotion/authoring.py": "da24509aaef749da2b2dbaf88557a697ec16c13b6e1f3f261e9702adefcb619f",

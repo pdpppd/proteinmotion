@@ -22,6 +22,7 @@ for (const filename of await readdir("../docs")) {
 for (const filename of [
   "quickstart.py",
   "eevee_focus.py",
+  "calmodulin_in_focus.py",
   "numerical_properties.py",
   "synchronized_plots.py",
   "density_maps.py",
@@ -33,6 +34,8 @@ for (const filename of [
   "feature_showcase.py",
 ])
   await copyFile(`../examples/${filename}`, `${target}/${filename}`);
+await mkdir(`${target}/data`, { recursive: true });
+await copyFile("../examples/data/1cll.cif", `${target}/data/1cll.cif`);
 await writeFile("public/.nojekyll", "");
 
 // A preview must correspond to the checked-in scene and data.
