@@ -305,3 +305,15 @@ The [EEVEE example](eevee.md) renders an eight-second calmodulin sequence at 960
 [Calmodulin in focus](calmodulin-in-focus.md) was rendered with Blender 5.2 LTS on Metal at 1920×1080 and 60 fps. The 68-second scene uses 64 samples, 1.25× spatial supersampling, and a 28-pixel blur limit. All 4,080 frames in both the original export and the compressed web copy were decoded; dimensions and every presentation timestamp were checked. The camera and representation transitions were reviewed in rendered frames and motion samples.
 
 The atomic close-up exposed reversed triangle winding in the EEVEE atom sphere mesh. The body triangles now face outward, matching their radial shading normals. A regression test checks the direction of every sphere face. The EEVEE tests passed with the Blender integration check enabled.
+
+## DNA/RNA and C1′ morphing (v0.10.0)
+
+The full suite passed 174 tests on Apple M3 Max with `PROTEINMOTION_TEST_EEVEE=1 pytest -q`. Blender 5.2 LTS used Metal. Lint and formatting checks passed. The wheel was installed outside the source checkout and checked with actual native and EEVEE renders.
+
+New checks cover nucleotide classification, modified tRNA parent bases, C4′ traces, legacy prime/star atom names, base-mesh normals, residue appearance, surfaces, MD trajectory round trips, and deterministic GPU replay. C1′ matching is tested with deliberately conflicting C4′ coordinates. Morph checks verify C1′ alignment, ordered delays, whole-residue motion, complementary fades, missing-anchor errors, saved correspondences, and unchanged protein Cα report fields.
+
+The DNA base-style video contains 1,393 frames; the tRNA video contains 870 frames; the DNA morph contains 732 frames. Each is 1280×720 at 60 fps, and every frame and presentation timestamp was checked after encoding. Native and EEVEE stills cover base styles, residue transparency, surfaces, and morph start/midpoint/end. An additional EEVEE DNA video contains 1,393 verified frames.
+
+The morph uses chain A of PDB 1BNA and 2DCG. Five C1′ pairs match with a maximum soft-contact discrepancy of 0.16070 under the 0.20 bound. The completed full-candidate search proves the result for this configured objective. Seven source nucleotides fade out and one target nucleotide fades in. The 0.25-second delay gives a one-second start-time span and four seconds of motion per matched nucleotide in the five-second transition.
+
+DNA/RNA matching uses one selected strand per endpoint. Cartoon traces use C4′/P; morph anchors use C1′. Morph interpolation preserves each endpoint residue’s internal geometry while crossfading, and does not constrain inter-residue bonds or calculate a physical pathway.

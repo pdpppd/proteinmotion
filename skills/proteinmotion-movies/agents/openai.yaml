@@ -1,4 +1,4 @@
 interface:
   display_name: "ProteinMotion Movies"
-  short_description: "Create animated protein films with ProteinMotion"
-  default_prompt: "Use $proteinmotion-movies to turn my protein structure into an animated movie with labels and focused camera moves."
+  short_description: "Animate proteins, DNA, and RNA with ProteinMotion"
+  default_prompt: "Use $proteinmotion-movies to turn my protein, DNA, or RNA structure into an animated movie with labels and focused camera moves."

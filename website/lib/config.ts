@@ -40,6 +40,14 @@ export const guides = [
     description: "Load a protein, choose a representation, and animate it.",
   },
   {
+    slug: "dna-rna",
+    file: "dna-rna.md",
+    title: "DNA & RNA",
+    group: "AUTHORING",
+    description:
+      "Draw base slabs, rings, sticks, and surfaces. Animate nucleotide colors and opacity.",
+  },
+  {
     slug: "regions",
     file: "regions.md",
     title: "Regions & focus",
@@ -203,6 +211,51 @@ export const demoCommand = (demo: Demo) =>
   demo.renderCommand ??
   `proteinmotion render ${demo.source} ${demo.scene} \\\n  -o ${demo.file}.mp4 --fps 60`;
 export const demos: Demo[] = [
+  {
+    id: "dna-morph",
+    title: "DNA morph with C1′ anchors",
+    file: "docs/dna-morph",
+    label: "DNA · CONTACT-GUIDED MORPH",
+    detail:
+      "C1′ contact maps select five matching nucleotides between two DNA strands. Matched residues move in order with a 0.25-second delay; unmatched residues fade out and in.",
+    source: "examples/dna_morph.py",
+    scene: "DNAMorph",
+    duration: "12.2 s",
+    pdb: "1BNA → 2DCG",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/dna_morph.py DNAMorph --fps 60 -o dna-morph.mp4",
+  },
+  {
+    id: "dna-styles",
+    title: "DNA base styles",
+    file: "docs/dna-styles",
+    label: "DNA · BASE REPRESENTATIONS",
+    detail:
+      "A DNA double helix with slabs, filled rings, sticks, and ladder rods. Residue colors and strand transparency carry through to atoms and a molecular surface.",
+    source: "examples/dna_styles.py",
+    scene: "DNAStyles",
+    duration: "23.2 s",
+    pdb: "1BNA",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/dna_styles.py DNAStyles --fps 60 -o dna.mp4",
+  },
+  {
+    id: "rna-styles",
+    title: "Transfer RNA",
+    file: "docs/rna-styles",
+    label: "RNA · REGIONS AND SURFACES",
+    detail:
+      "Select the anticodon loop of yeast tRNA, fade its surroundings, then color a molecular surface by deposited B factors. Modified nucleotides retain their names and parent-base colors.",
+    source: "examples/rna_styles.py",
+    scene: "RNAStyles",
+    duration: "14.5 s",
+    pdb: "1EHZ",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/rna_styles.py RNAStyles --fps 60 -o rna.mp4",
+  },
   {
     id: "calmodulin-in-focus",
     title: "Calmodulin in focus",

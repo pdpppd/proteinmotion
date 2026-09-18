@@ -1,22 +1,24 @@
-"""Contact-guided, staggered backbone morphing between different protein topologies."""
+"""Contact-guided, staggered backbone morphing between molecular topologies."""
 
 import numpy as np
 
 from .animation import Animation
-from .matching import ContactMatch, fit_transform, match_backbones
+from .matching import ContactMatch, fit_transform, match_backbones, morph_anchors
 from .rates import linear
 from .structure import coordinates
 
 
 class BackboneMorph(Animation):
-    """Move selected CAs N-to-C; crossfade unmatched source/destination residues.
+    """Move matched Cα/C1′ anchors in chain order; crossfade unmatched residues.
 
     residue_delay is seconds between successive matched residue starts.
     run_time comes from Scene.play; each residue moves for run_time-(K-1)*delay.
     fade_out and fade_in are normalized intervals for unmatched residues.
-    align=True rigidly aligns the destination's matched CAs to the source first.
-    In ball-and-stick mode, every atom in a residue translates with its CA and
-    source/target atom sets crossfade. Side-chain atoms are not individually mapped.
+    C1′ anchors are used for DNA/RNA, Cα for proteins. Delays follow deposited
+    residue order, normally 5′ to 3′ for nucleotides and N to C for amino acids.
+    align=True rigidly aligns the destination's matched anchors to the source first.
+    Every atom in a residue translates with its anchor; source/target geometry
+    crossfades. Base and side-chain atoms are not individually mapped.
     This animation owns both objects' geometry/transform/opacity channels. Animate
     the camera concurrently, rather than independently rotating either endpoint.
     """
@@ -66,7 +68,9 @@ class BackboneMorph(Animation):
         if len(a) < 3 or len(a) != len(b) or a.dtype.kind not in "iu" or b.dtype.kind not in "iu":
             raise ValueError("Match must contain at least three integer residue pairs")
         if (np.diff(a) <= 0).any() or (np.diff(b) <= 0).any():
-            raise ValueError("Matched residue indices must increase strictly N-to-C in both proteins")
+            raise ValueError(
+                "Matched residue indices must increase strictly in chain order in both structures"
+            )
         for p, ids, keys in [(source, a, self.match.source_keys), (dest, b, self.match.target_keys)]:
             if ids.min() < 0 or ids.max() >= len(p.topology.residues):
                 raise ValueError("Matched residue index is out of bounds")
@@ -81,10 +85,17 @@ class BackboneMorph(Animation):
             )
             if keys and actual != keys:
                 raise ValueError("Match residue identities do not belong to these proteins")
-            if any(p.topology.residues[i].ca < 0 for i in ids):
-                raise ValueError("Each matched residue must have a C-alpha")
             if len({p.topology.residues[i].chain for i in ids}) != 1:
-                raise ValueError("A BackboneMorph correspondence must describe one chain in each protein")
+                raise ValueError("A BackboneMorph correspondence must describe one chain in each structure")
+        ac, source_anchor = morph_anchors(source, a)
+        bc, target_anchor = morph_anchors(dest, b)
+        if source_anchor != target_anchor:
+            raise ValueError("Source and target must use the same morph anchor (CA or C1')")
+        for endpoint, anchor in (("source", source_anchor), ("target", target_anchor)):
+            stored = self.match.report.get(f"{endpoint}_anchor_atom", anchor)
+            if stored != anchor:
+                raise ValueError(f"Saved {endpoint} morph anchor {stored!r} does not match {anchor!r}")
+        self.source_anchor_indices, self.target_anchor_indices = ac, bc
         self.run_time = getattr(self, "run_time", 1.0)
         span = self.run_time - (len(a) - 1) * self.residue_delay
         if span <= 0:
@@ -98,8 +109,6 @@ class BackboneMorph(Animation):
         sm, dm = source.model_matrix, dest.model_matrix
         sw = self.source_start @ sm[:3, :3].T + sm[:3, 3]
         tw = destination_original @ dm[:3, :3].T + dm[:3, 3]
-        ac = np.array([source.topology.residues[i].ca for i in a])
-        bc = np.array([dest.topology.residues[i].ca for i in b])
         if self.align:
             rotation, translation = fit_transform(tw[bc], sw[ac])
             tw = tw @ rotation + translation
@@ -114,7 +123,7 @@ class BackboneMorph(Animation):
         for rank, (si, ti, satom, tatom) in enumerate(zip(a, b, ac, bc)):
             s_mask, d_mask = sr == si, dr == ti
             delta = tw[tatom] - sw[satom]
-            # Translate whole residues with their CA, retaining each endpoint's internal geometry.
+            # Translate whole residues with Cα/C1′, retaining endpoint internal geometry.
             source_end_world[s_mask] += delta
             destination_start_world[d_mask] -= delta
             begin = rank * self.residue_delay / self.run_time

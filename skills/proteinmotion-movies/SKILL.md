@@ -1,11 +1,11 @@
 ---
 name: proteinmotion-movies
-description: Create and render programmatic protein movies with ProteinMotion from PDB/mmCIF structures or trajectories, including molecular representations, eased motion, region annotations, and protein morphs. Use for making or revising molecular animation scripts and their rendered videos.
+description: Create and render protein, DNA, and RNA movies with ProteinMotion from PDB/mmCIF structures or trajectories, including base representations, surfaces, eased motion, region annotations, and protein morphs. Use for making or revising molecular animation scripts and their rendered videos.
 ---
 
 # ProteinMotion Movies
 
-Deliver an editable Python scene and a rendered movie using ProteinMotion. Preserve the user's protein, selected regions, scientific message, duration, and output format. This is a standalone renderer with Manim-inspired syntax, not a Manim Mobject plugin.
+Deliver an editable Python scene and a rendered movie using ProteinMotion. Preserve the user's molecular structure, selected regions, scientific message, duration, and output format. ProteinMotion is a standalone renderer with Manim-inspired syntax.
 
 ## Get a working renderer
 
@@ -14,11 +14,13 @@ Use the task's existing Python environment if it contains ProteinMotion. Otherwi
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install \
-  https://github.com/pdpppd/proteinmotion/releases/download/v0.9.1/proteinmotion-0.9.1-py3-none-any.whl
+  https://github.com/pdpppd/proteinmotion/releases/download/v0.10.0/proteinmotion-0.10.0-py3-none-any.whl
 .venv/bin/proteinmotion doctor
 ```
 
-Use native arm64 Python on Apple silicon. `doctor` should report Metal and `h264_videotoolbox` there. PyAV includes FFmpeg libraries; no separate FFmpeg executable or repository checkout is needed. Add extras only when needed, using the same wheel URL with a direct requirement such as `"proteinmotion[md] @ https://…/proteinmotion-0.9.1-py3-none-any.whl"` (expand the full URL above). `md` adds trajectory readers; `preview` adds an interactive GPU window.
+Use native arm64 Python on Apple silicon. `doctor` should report Metal and `h264_videotoolbox` there. PyAV includes FFmpeg libraries; no separate FFmpeg executable or repository checkout is needed. Add extras only when needed, using the same wheel URL with a direct requirement such as `"proteinmotion[md] @ https://…/proteinmotion-0.10.0-py3-none-any.whl"` (expand the full URL above). `md` adds trajectory readers; `preview` adds an interactive GPU window.
+
+DNA/RNA features require ProteinMotion 0.10.0 or later. Check the installed version before authoring nucleotide scenes.
 
 If hardware rendering fails, diagnose the reported adapter/encoder before changing renderers. `--codec libx264` is an explicit CPU encoding fallback; it still needs a GPU for molecular rendering. Other platforms are not as extensively verified as Apple silicon.
 
@@ -34,6 +36,7 @@ For an explanatory tour, prefer a continuous model and eased focus/representatio
 
 Read only the relevant supporting reference:
 
+- [DNA and RNA](references/nucleic-acids.md): nucleotide backbones, base styles, modified residues, surfaces, color, opacity, and trajectories.
 - [Animation and state changes](references/animation.md): representations, residue styling, timelines, trajectories, same-topology deformation, and different-protein contact-map morphs.
 - [Numerical values, plots, and density](references/data-visualization.md): B factors, RMSF, custom residue values, synchronized plots, MRC/CCP4 contours, and slices.
 - [Annotations and interactions](references/annotations-and-interactions.md): selectors, focus, text, 3D regions, distance rulers, hydrogen bonds, and imported-charge electrostatics.

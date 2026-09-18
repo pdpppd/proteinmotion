@@ -1,4 +1,4 @@
-"""Order-preserving C-alpha correspondence via contact-map compatibility.
+"""Order-preserving Cα/C1′ correspondence via contact-map compatibility.
 
 Objective: maximize cardinality under a pairwise soft-contact error bound, then
 minimize squared contact error at that cardinality. Bounded search reports its
@@ -14,28 +14,50 @@ import numpy as np
 from scipy.spatial.distance import cdist
 
 
-def ca_selection(protein, chain=None):
+def morph_anchors(protein, ids):
+    """Validate one polymer type and return its required Cα or C1′ atom indices."""
+    residues = [protein.topology.residues[i] for i in ids]
+    names = {r.morph_atom_name for r in residues}
+    if len(names) != 1:
+        raise ValueError("A morph correspondence must select one polymer type per endpoint")
+    name = next(iter(names))
+    if any(r.morph_atom < 0 for r in residues):
+        raise ValueError(f"Each matched residue must have a {name} morph anchor")
+    return np.array([r.morph_atom for r in residues], dtype=int), name
+
+
+def backbone_selection(protein, chain=None):
     ids = np.array(
         [
             i
             for i, r in enumerate(protein.topology.residues)
-            if r.ca >= 0 and (chain is None or r.chain == chain)
+            if r.morph_atom >= 0 and (chain is None or r.chain == chain)
         ],
         dtype=int,
     )
     if len(ids) < 3:
-        raise ValueError("Select a chain containing at least three C-alpha atoms")
+        raise ValueError(
+            "Select a chain containing at least three morph anchors: C1' for DNA/RNA or CA for proteins"
+        )
     chains = {protein.topology.residues[i].chain for i in ids}
     if len(chains) != 1:
         raise ValueError(
-            "Contact matching requires one chain from each protein; set source_chain/target_chain"
+            "Contact matching requires one chain from each structure; set source_chain/target_chain"
         )
-    indices = np.array([protein.topology.residues[i].ca for i in ids])
-    return ids, protein.positions[indices].astype(float), next(iter(chains))
+    indices, anchor = morph_anchors(protein, ids)
+    return ids, protein.positions[indices].astype(float), next(iter(chains)), anchor
+
+
+def ca_selection(protein, chain=None):
+    """Legacy protein-only selection helper; nucleotide matching uses backbone_selection."""
+    ids, xyz, chain, anchor = backbone_selection(protein, chain)
+    if anchor != "CA":
+        raise ValueError("ca_selection requires protein C-alpha atoms")
+    return ids, xyz, chain
 
 
 def contact_map(xyz, cutoff=8.0, softness=1.5):
-    """Soft contacts: sigmoid((cutoff - CA distance)/softness), diagonal zero."""
+    """Soft contacts: sigmoid((cutoff - anchor distance)/softness), diagonal zero."""
     if not np.isfinite(cutoff) or cutoff <= 0 or not np.isfinite(softness) or softness <= 0:
         raise ValueError("cutoff and softness must be finite and positive")
     d = cdist(xyz, xyz)
@@ -111,7 +133,7 @@ def _seeds(x, y, ca, cb, tolerance):
     n, m = len(x), len(y)
     seeds, candidates = [], set()
 
-    # Distance/contact fingerprints do not use amino-acid sequence identity.
+    # Distance/contact fingerprints do not use residue sequence identity.
     def features(c, xyz):
         d = cdist(xyz, xyz)
         order = np.arange(len(c))
@@ -267,7 +289,7 @@ class _CliqueSearch:
 
 @dataclass(frozen=True)
 class ContactMatch:
-    """Topology residue indices in N-to-C order, and an auditable optimization report."""
+    """Topology residue indices in chain order, and an auditable optimization report."""
 
     source_indices: np.ndarray
     target_indices: np.ndarray
@@ -308,12 +330,23 @@ class ContactMatch:
                 for i in indices
             )
 
+        source_keys, target_keys = keys(source, a), keys(target, b)
+        _, source_anchor = morph_anchors(source, a)
+        _, target_anchor = morph_anchors(target, b)
+        if source_anchor != target_anchor:
+            raise ValueError("Source and target must use the same morph anchor (CA or C1')")
         return cls(
             a,
             b,
-            {"selected_by": "user", "matched_count": len(a), "global_optimal": False},
-            keys(source, a),
-            keys(target, b),
+            {
+                "selected_by": "user",
+                "matched_count": len(a),
+                "global_optimal": False,
+                "source_anchor_atom": source_anchor,
+                "target_anchor_atom": target_anchor,
+            },
+            source_keys,
+            target_keys,
         )
 
     @classmethod
@@ -360,7 +393,9 @@ def match_backbones(
 ):
     """Maximize a monotone matched subset under a per-pair contact discrepancy bound.
 
-    Set max_candidates=None to search all CA pairings (limited to 30,000 candidate
+    Uses C1′ for DNA/RNA and Cα for proteins, in deposited chain order (normally
+    5′ to 3′ or N to C). Residues missing the required atom remain unmatched.
+    Set max_candidates=None to search all anchor pairings (limited to 30,000 candidate
     vertices). The report distinguishes full-space proofs from candidate-restricted
     or time-limited solutions. The cutoff/softness are ångströms; max_contact_error
     is in [0,1]. The time budget covers branch-and-bound, not seed/graph preparation.
@@ -372,10 +407,12 @@ def match_backbones(
     if max_candidates is not None and (not isinstance(max_candidates, int) or max_candidates < 3):
         raise ValueError("max_candidates must be None or an integer >= 3")
     started = time.perf_counter()
-    source_ids, x, sc = ca_selection(source, source_chain)
-    target_ids, y, tc = ca_selection(target, target_chain)
+    source_ids, x, sc, source_anchor = backbone_selection(source, source_chain)
+    target_ids, y, tc, target_anchor = backbone_selection(target, target_chain)
+    if source_anchor != target_anchor:
+        raise ValueError("Source and target must use the same morph anchor (CA or C1')")
     if min(len(x), len(y)) > 800:
-        raise ValueError("Select chains/domains with at most 800 CA residues in the shorter structure")
+        raise ValueError("Select chains/domains with at most 800 anchored residues in the shorter structure")
     ca, cb = contact_map(x, cutoff, softness), contact_map(y, cutoff, softness)
     if len(x) * len(y) > 30000 and max_candidates is None:
         raise ValueError(
@@ -400,7 +437,7 @@ def match_backbones(
     a, b = selected.T
     sse, rms, worst = _error(ca, cb, selected)
     r, t = fit_transform(y[b], x[a])
-    ca_rmsd = float(np.sqrt(np.mean(np.sum((y[b] @ r + t - x[a]) ** 2, axis=1))))
+    anchor_rmsd = float(np.sqrt(np.mean(np.sum((y[b] @ r + t - x[a]) ** 2, axis=1))))
     cardinality_proved = (full and solver.completed) or len(a) == min(len(x), len(y))
     optimal = (full and solver.completed) or (cardinality_proved and sse < 1e-14)
     src_idx, dst_idx = source_ids[a], target_ids[b]
@@ -420,8 +457,10 @@ def match_backbones(
         objective="maximize matched count under pairwise contact-error bound, then minimize sum squared error",
         source_chain=sc,
         target_chain=tc,
-        source_ca_count=len(x),
-        target_ca_count=len(y),
+        source_anchor_atom=source_anchor,
+        target_anchor_atom=target_anchor,
+        source_anchor_count=len(x),
+        target_anchor_count=len(y),
         matched_count=len(a),
         source_coverage=len(a) / len(x),
         target_coverage=len(b) / len(y),
@@ -430,7 +469,7 @@ def match_backbones(
         max_contact_error=max_contact_error,
         contact_rms_error=rms,
         contact_max_error=worst,
-        aligned_ca_rmsd_angstrom=ca_rmsd,
+        aligned_anchor_rmsd_angstrom=anchor_rmsd,
         full_candidate_space=full,
         candidate_count=len(pairs),
         search_completed=solver.completed,
@@ -441,4 +480,7 @@ def match_backbones(
         seconds=time.perf_counter() - started,
         search_seconds=search_seconds,
     )
+    if source_anchor == "CA":
+        # Preserve report keys used by saved protein workflows.
+        report.update(source_ca_count=len(x), target_ca_count=len(y), aligned_ca_rmsd_angstrom=anchor_rmsd)
     return ContactMatch(src_idx, dst_idx, report, keys(source, src_idx), keys(target, dst_idx))

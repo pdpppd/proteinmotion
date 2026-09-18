@@ -156,6 +156,7 @@ def _atoms(p, xyz, tint):
 class MeshExporter:
     def __init__(self):
         self.surfaces = {}
+        self.bases = {}
 
     def meshes(self, p):
         if hasattr(p, "_export_mesh"):
@@ -168,6 +169,14 @@ class MeshExporter:
             part = _cartoon(p, xyz, tint)
             if part is not None:
                 pieces.append(part)
+            if any(r.is_nucleic for r in p.topology.residues) and np.any(p.base_style > 0):
+                from .nucleic import BaseGeometry
+
+                if p not in self.bases or not self.bases[p].matches(p):
+                    self.bases[p] = BaseGeometry(p)
+                for i, weight in enumerate(p.base_style):
+                    if weight > 0 and len(self.bases[p].parts[i][1]):
+                        pieces.append(self.bases[p].evaluate(p, i))
         if p.representation[2] > 0:
             pieces.extend(_atoms(p, xyz, tint))
         if p.surface_opacity > 0:
@@ -186,8 +195,11 @@ class MeshExporter:
             vertices = mesh.vertices + np.sum(
                 (xyz - mesh.reference)[mesh.neighbors] * mesh.weights[..., None], axis=1
             )
-            palette = residue_colors(p)
-            base = palette[[a.residue_index for a in p.topology.atoms]][mesh.owners]
+            base = (
+                atom_metadata(p)[mesh.owners, :3]
+                if p.color_scheme == "element"
+                else residue_colors(p)[[a.residue_index for a in p.topology.atoms]][mesh.owners]
+            )
             col = _tint(base, tint[mesh.owners])
             alpha = (p.atom_opacities[mesh.owners] * p.surface_opacity)[mesh.faces].min(1)
             # Recompute smooth normals for deformed surfaces.

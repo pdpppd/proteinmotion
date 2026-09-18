@@ -5,7 +5,7 @@ from collections import OrderedDict
 import numpy as np
 
 from .math3d import align_coordinates
-from .structure import Atom, Residue, Topology, coordinates, infer_bonds, make_chains
+from .structure import Atom, Topology, coordinates, infer_bonds, make_chains, residue_record
 
 
 class Trajectory:
@@ -47,7 +47,7 @@ class Trajectory:
         return cls(frames, topology=topology, units=units)
 
     @classmethod
-    def from_mdanalysis(cls, topology_file, trajectory_file, *, selection="protein", stride=1):
+    def from_mdanalysis(cls, topology_file, trajectory_file, *, selection="protein or nucleic", stride=1):
         """Lazy XTC/DCD/TRR/etc. reader. Install proteinmotion[md]."""
         try:
             import MDAnalysis as mda
@@ -74,20 +74,22 @@ class Trajectory:
                     Atom(chain, int(a.resid), getattr(a, "icode", "").strip(), a.resname, a.name, element, ri)
                 )
             residues.append(
-                Residue(
+                residue_record(
                     atoms[-1].chain,
                     int(res.resid),
                     getattr(res, "icode", "").strip(),
                     res.resname,
-                    names.get("CA", -1),
-                    names.get("O", -1),
+                    names,
+                    atoms,
                 )
             )
         # AtomGroup order is authoritative; reject unusual interleaved residue order.
         if [a.name for a in atoms] != list(group.names):
             raise ValueError("Selection atoms must be grouped by residue")
         xyz = coordinates(group.positions)
-        topo = Topology(tuple(atoms), tuple(residues), infer_bonds(atoms, xyz), make_chains(residues, xyz))
+        topo = Topology(
+            tuple(atoms), tuple(residues), infer_bonds(atoms, xyz), make_chains(residues, xyz, atoms)
+        )
         source = _MDFrames(universe, group.indices, stride)
         return cls(source, topology=topo)
 

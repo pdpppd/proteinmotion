@@ -1,6 +1,8 @@
 {
-  "version": "0.9.1",
+  "version": "0.10.0",
   "exports": [
+    "NucleicAcid",
+    "BaseStyle",
     "DensityMap",
     "DensitySurface",
     "DensitySlice",
@@ -59,7 +61,7 @@
     },
     {
       "id": "protein",
-      "title": "Proteins",
+      "title": "Molecular structures",
       "description": "Load structures, choose representations, and change coordinates or appearance.",
       "guide": "scenes"
     },
@@ -84,7 +86,7 @@
     {
       "id": "annotations",
       "title": "Text and labels",
-      "description": "Write text, label amino acids, and connect labels to regions.",
+      "description": "Write text, label amino acids and nucleotides, and connect labels to regions.",
       "guide": "text"
     },
     {
@@ -102,7 +104,7 @@
     {
       "id": "matching",
       "title": "Contact matching",
-      "description": "Match ordered Cα subsets and save residue correspondences.",
+      "description": "Match ordered Cα or C1′ subsets and save residue correspondences.",
       "guide": "morphing"
     },
     {
@@ -158,6 +160,12 @@
       "title": "Density maps",
       "description": "Read MRC/CCP4 grids, extract contours, and animate slices.",
       "guide": "density-maps"
+    },
+    {
+      "id": "nucleic",
+      "title": "DNA and RNA bases",
+      "description": "Choose nucleotide base shapes and animate transitions between styles.",
+      "guide": "dna-rna"
     }
   ],
   "symbols": [
@@ -685,7 +693,7 @@
           "returns": "Region",
           "notes": "A residue tuple is an inclusive range. A list selects individual numbers. Empty selections raise ValueError.",
           "source": "src/proteinmotion/protein.py",
-          "line": 46
+          "line": 52
         },
         {
           "name": "label_residues",
@@ -722,7 +730,7 @@
           "returns": "ResidueLabels",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 52
+          "line": 58
         },
         {
           "name": "hydrogen_bonds",
@@ -743,7 +751,7 @@
           "returns": "HydrogenBonds",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 58
+          "line": 64
         },
         {
           "name": "electrostatics",
@@ -772,7 +780,7 @@
           "returns": "Electrostatics",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 63
+          "line": 69
         },
         {
           "name": "from_file",
@@ -801,7 +809,7 @@
           "returns": "Protein",
           "notes": "Keyword options: chains=None, include_water=False, include_hydrogens=False. Other hetero atoms are retained.",
           "source": "src/proteinmotion/protein.py",
-          "line": 69
+          "line": 75
         },
         {
           "name": "from_trajectory",
@@ -823,7 +831,7 @@
           "returns": "Protein",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 74
+          "line": 80
         },
         {
           "name": "positions",
@@ -836,7 +844,7 @@
           "returns": "Array with shape (selected atoms, 3), in ångströms.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 80
+          "line": 86
         },
         {
           "name": "atom_progress",
@@ -849,7 +857,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 85
+          "line": 91
         },
         {
           "name": "atom_opacities",
@@ -862,7 +870,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 94
+          "line": 100
         },
         {
           "name": "set_positions",
@@ -884,7 +892,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 107
+          "line": 113
         },
         {
           "name": "copy",
@@ -897,7 +905,7 @@
           "returns": "Protein",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 112
+          "line": 118
         },
         {
           "name": "center",
@@ -910,7 +918,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 117
+          "line": 123
         },
         {
           "name": "shift",
@@ -932,7 +940,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 121
+          "line": 127
         },
         {
           "name": "rotate",
@@ -962,7 +970,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 128
+          "line": 134
         },
         {
           "name": "scale",
@@ -984,7 +992,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 136
+          "line": 142
         },
         {
           "name": "set_opacity",
@@ -1006,7 +1014,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 144
+          "line": 150
         },
         {
           "name": "set_color",
@@ -1028,7 +1036,7 @@
           "returns": "The object or a Colorize animation.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 150
+          "line": 156
         },
         {
           "name": "color_by",
@@ -1066,7 +1074,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 155
+          "line": 161
         },
         {
           "name": "color_residues",
@@ -1104,7 +1112,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 161
+          "line": 167
         },
         {
           "name": "set_residue_opacity",
@@ -1142,7 +1150,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 165
+          "line": 171
         },
         {
           "name": "surface",
@@ -1181,7 +1189,7 @@
               "annotation": false,
               "default": "'secondary'",
               "kind": "keyword only",
-              "description": "Base palette: \"secondary\", \"rainbow\", \"chain\", or a fixed color."
+              "description": "Palette: secondary, base, rainbow, chain, or a fixed color. Surfaces also accept element."
             },
             {
               "name": "update",
@@ -1203,14 +1211,14 @@
           "returns": "The protein.",
           "notes": "Additional option: max_voxels=8000000 limits the grid size. Configure surface settings before the first play() call. The ses surface is a voxel approximation.",
           "source": "src/proteinmotion/protein.py",
-          "line": 169
+          "line": 175
         },
         {
           "name": "cartoon",
           "kind": "method",
           "owner": "protein.Protein",
           "inherited": false,
-          "signature": "Protein.cartoon(*, color='secondary')",
+          "signature": "Protein.cartoon(\n    *,\n    color='secondary',\n    bases='slabs',\n    backbone_radius=0.38,\n    base_thickness=0.36,\n    base_radius=0.16,\n)",
           "parameters": [
             {
               "name": "color",
@@ -1218,21 +1226,53 @@
               "annotation": false,
               "default": "'secondary'",
               "kind": "keyword only",
-              "description": "Base palette: \"secondary\", \"rainbow\", \"chain\", or a fixed color."
+              "description": "Palette: secondary, base, rainbow, chain, or a fixed color. Surfaces also accept element."
+            },
+            {
+              "name": "bases",
+              "type": "",
+              "annotation": false,
+              "default": "'slabs'",
+              "kind": "keyword only",
+              "description": "Nucleotide base style: slabs, rings, sticks, ladder, or none. None in Representation preserves the current style."
+            },
+            {
+              "name": "backbone_radius",
+              "type": "",
+              "annotation": false,
+              "default": "0.38",
+              "kind": "keyword only",
+              "description": "Positive nucleotide cartoon tube radius in ångströms."
+            },
+            {
+              "name": "base_thickness",
+              "type": "",
+              "annotation": false,
+              "default": "0.36",
+              "kind": "keyword only",
+              "description": "Positive slab/ring thickness in ångströms."
+            },
+            {
+              "name": "base_radius",
+              "type": "",
+              "annotation": false,
+              "default": "0.16",
+              "kind": "keyword only",
+              "description": "Positive base-stick and connector radius in ångströms."
             }
           ],
-          "description": "Show helices, sheet arrows, and coils as a cartoon.",
+          "description": "Show protein secondary structure and nucleotide backbone tubes with selectable base shapes.",
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 187
+          "line": 193
         },
         {
           "name": "ribbon",
           "kind": "method",
           "owner": "protein.Protein",
           "inherited": false,
-          "signature": "Protein.ribbon(*, color='rainbow', width=1.05)",
+          "signature": "Protein.ribbon(*, color='rainbow', width=1.05, bases='none')",
           "parameters": [
             {
               "name": "color",
@@ -1240,7 +1280,7 @@
               "annotation": false,
               "default": "'rainbow'",
               "kind": "keyword only",
-              "description": "Base palette: \"secondary\", \"rainbow\", \"chain\", or a fixed color."
+              "description": "Palette: secondary, base, rainbow, chain, or a fixed color. Surfaces also accept element."
             },
             {
               "name": "width",
@@ -1249,20 +1289,74 @@
               "default": "1.05",
               "kind": "keyword only",
               "description": "Ribbon width in ångströms."
+            },
+            {
+              "name": "bases",
+              "type": "",
+              "annotation": false,
+              "default": "'none'",
+              "kind": "keyword only",
+              "description": "Nucleotide base style: slabs, rings, sticks, ladder, or none. None in Representation preserves the current style."
             }
           ],
           "description": "Show a continuous backbone ribbon.",
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 193
+          "line": 209
+        },
+        {
+          "name": "set_bases",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": false,
+          "signature": "Protein.set_bases(style, *, backbone_radius=None, base_thickness=None, base_radius=None)",
+          "parameters": [
+            {
+              "name": "style",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "slabs, rings, sticks, ladder, or none."
+            },
+            {
+              "name": "backbone_radius",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Positive nucleotide cartoon tube radius in ångströms."
+            },
+            {
+              "name": "base_thickness",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Positive slab/ring thickness in ångströms."
+            },
+            {
+              "name": "base_radius",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Positive base-stick and connector radius in ångströms."
+            }
+          ],
+          "description": "Set nucleotide base shapes and optional dimensions before a scene begins. Use BaseStyle for an animated change.",
+          "returns": "The molecule.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 218
         },
         {
           "name": "ball_and_stick",
           "kind": "method",
           "owner": "protein.Protein",
           "inherited": false,
-          "signature": "Protein.ball_and_stick(*, atom_scale=0.3, bond_radius=0.14)",
+          "signature": "Protein.ball_and_stick(*, atom_scale=0.3, bond_radius=0.14, color='element')",
           "parameters": [
             {
               "name": "atom_scale",
@@ -1279,13 +1373,21 @@
               "default": "0.14",
               "kind": "keyword only",
               "description": "Covalent bond cylinder radius in ångströms."
+            },
+            {
+              "name": "color",
+              "type": "",
+              "annotation": false,
+              "default": "'element'",
+              "kind": "keyword only",
+              "description": "Palette: element, base, chain, rainbow, secondary, or a fixed color."
             }
           ],
-          "description": "Show element-colored atom spheres and covalent bond cylinders.",
+          "description": "Show atom spheres and covalent bond cylinders, with element colors by default.",
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 201
+          "line": 235
         },
         {
           "name": "with_secondary_structure",
@@ -1307,7 +1409,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 209
+          "line": 244
         },
         {
           "name": "animate",
@@ -1320,7 +1422,7 @@
           "returns": "Animate",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 218
+          "line": 253
         },
         {
           "name": "model_matrix",
@@ -1333,7 +1435,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 224
+          "line": 259
         },
         {
           "name": "snapshot",
@@ -1346,7 +1448,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 230
+          "line": 265
         },
         {
           "name": "restore",
@@ -1368,7 +1470,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 258
+          "line": 298
         }
       ],
       "extra_parameters": []
@@ -1825,7 +1927,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 272,
+      "line": 286,
       "bases": [
         "animation.Animation"
       ],
@@ -1854,7 +1956,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 290
+          "line": 304
         },
         {
           "name": "rotate",
@@ -1884,7 +1986,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 293
+          "line": 307
         },
         {
           "name": "scale",
@@ -1906,7 +2008,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 297
+          "line": 311
         },
         {
           "name": "set_opacity",
@@ -1928,7 +2030,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 302
+          "line": 316
         },
         {
           "name": "orbit",
@@ -1958,7 +2060,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 307
+          "line": 321
         },
         {
           "name": "zoom",
@@ -1980,7 +2082,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 310
+          "line": 324
         },
         {
           "name": "set_color",
@@ -2009,7 +2111,7 @@
           "returns": "The object or a Colorize animation.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 315
+          "line": 329
         },
         {
           "name": "focus",
@@ -2055,7 +2157,7 @@
           "returns": "The camera, scene, or Focus animation.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 322
+          "line": 336
         },
         {
           "name": "set_focus",
@@ -2084,7 +2186,7 @@
           "returns": "FocusPull",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 327
+          "line": 341
         },
         {
           "name": "bind",
@@ -2097,7 +2199,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 333
+          "line": 347
         },
         {
           "name": "apply",
@@ -2119,7 +2221,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 339
+          "line": 353
         },
         {
           "name": "targets",
@@ -2258,7 +2360,7 @@
       "kind": "class",
       "href": "/reference/animation/Morph/",
       "description": "Interpolate matching atoms to a protein or coordinate array.",
-      "notes": "Protein inputs match atoms by chain, residue number, insertion code, residue name, and atom name. atom_map can supply an explicit one-to-one mapping. Raw arrays use their given atom order. Alignment uses matching Cα atoms when at least three exist.",
+      "notes": "Inputs match atoms by chain, residue number, insertion code, residue name, and atom name. atom_map can supply an explicit one-to-one mapping. Raw arrays use source atom order. Alignment uses Cα for proteins and C1′ for DNA/RNA. Nucleotide alignment requires at least three anchors; use align=False to preserve supplied coordinates.",
       "import_path": "proteinmotion",
       "signature": "Morph(protein, target, *, align=True, atom_map=None, **kwargs)",
       "parameters": [
@@ -2346,7 +2448,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 89
+          "line": 95
         },
         {
           "name": "targets",
@@ -2410,7 +2512,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 93,
+      "line": 99,
       "bases": [
         "animation.Morph"
       ],
@@ -2430,7 +2532,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 100
+          "line": 106
         },
         {
           "name": "apply",
@@ -2452,7 +2554,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 89
+          "line": 95
         },
         {
           "name": "targets",
@@ -2541,7 +2643,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 105,
+      "line": 111,
       "bases": [
         "animation.Animation"
       ],
@@ -2570,7 +2672,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 124
+          "line": 130
         },
         {
           "name": "bind",
@@ -2662,7 +2764,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 137,
+      "line": 143,
       "bases": [
         "animation.Animation"
       ],
@@ -2682,7 +2784,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 147
+          "line": 153
         },
         {
           "name": "apply",
@@ -2704,7 +2806,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 160
+          "line": 166
         },
         {
           "name": "targets",
@@ -2761,7 +2863,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 221,
+      "line": 227,
       "bases": [
         "animation.Animation"
       ],
@@ -2781,7 +2883,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 224
+          "line": 230
         },
         {
           "name": "apply",
@@ -2803,7 +2905,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 228
+          "line": 234
         },
         {
           "name": "targets",
@@ -2851,7 +2953,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 232,
+      "line": 238,
       "bases": [
         "animation.Animation"
       ],
@@ -2871,7 +2973,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 235
+          "line": 241
         },
         {
           "name": "apply",
@@ -2893,7 +2995,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 239
+          "line": 245
         },
         {
           "name": "targets",
@@ -2917,10 +3019,10 @@
       "module": "animation",
       "kind": "class",
       "href": "/reference/animation/Representation/",
-      "description": "Transition between cartoon, ribbon, ball-and-stick, and surface.",
+      "description": "Transition between cartoon, ribbon, ball-and-stick and surface, with optional nucleotide base styles.",
       "notes": "",
       "import_path": "proteinmotion",
-      "signature": "Representation(protein, representation, **kwargs)",
+      "signature": "Representation(protein, representation, *, bases=None, **kwargs)",
       "parameters": [
         {
           "name": "protein",
@@ -2939,6 +3041,14 @@
           "description": "\"cartoon\", \"ribbon\", \"ball_and_stick\", or \"surface\"."
         },
         {
+          "name": "bases",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Nucleotide base style: slabs, rings, sticks, ladder, or none. None in Representation preserves the current style."
+        },
+        {
           "name": "kwargs",
           "type": "",
           "default": null,
@@ -2948,7 +3058,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 243,
+      "line": 249,
       "bases": [
         "animation.Animation"
       ],
@@ -2968,7 +3078,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 254
+          "line": 265
         },
         {
           "name": "apply",
@@ -2990,7 +3100,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 265
+          "line": 277
         },
         {
           "name": "targets",
@@ -4226,7 +4336,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/annotations.py",
-      "line": 314,
+      "line": 318,
       "bases": [
         "annotations.Callout"
       ],
@@ -4255,7 +4365,7 @@
           "returns": "The label or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 348
+          "line": 352
         },
         {
           "name": "glyph_count",
@@ -4580,7 +4690,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/annotations.py",
-      "line": 353,
+      "line": 357,
       "bases": [
         "annotations.Annotation"
       ],
@@ -4600,7 +4710,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 381
+          "line": 385
         },
         {
           "name": "text_progress",
@@ -4613,7 +4723,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 385
+          "line": 389
         },
         {
           "name": "layout",
@@ -4651,7 +4761,7 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 388
+          "line": 392
         },
         {
           "name": "set_opacity",
@@ -4857,7 +4967,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/annotations.py",
-      "line": 444,
+      "line": 448,
       "bases": [
         "animation.Animation"
       ],
@@ -4886,7 +4996,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 464
+          "line": 468
         },
         {
           "name": "bind",
@@ -4971,7 +5081,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/annotations.py",
-      "line": 471,
+      "line": 475,
       "bases": [
         "annotations.Write"
       ],
@@ -5000,7 +5110,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 474
+          "line": 478
         },
         {
           "name": "bind",
@@ -5053,7 +5163,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/annotations.py",
-      "line": 478,
+      "line": 482,
       "bases": [
         "animation.Animation"
       ],
@@ -5082,7 +5192,7 @@
           "returns": "The annotation or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 485
+          "line": 489
         },
         {
           "name": "shift",
@@ -5104,7 +5214,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 492
+          "line": 496
         },
         {
           "name": "set_offset",
@@ -5126,7 +5236,7 @@
           "returns": "The label or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 498
+          "line": 502
         },
         {
           "name": "set_opacity",
@@ -5148,7 +5258,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 505
+          "line": 509
         },
         {
           "name": "bind",
@@ -5161,7 +5271,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/annotations.py",
-          "line": 512
+          "line": 516
         },
         {
           "name": "apply",
@@ -5183,7 +5293,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 516
+          "line": 520
         },
         {
           "name": "targets",
@@ -5299,7 +5409,7 @@
           "returns": "Array with shape (selected atoms, 3), in ångströms.",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 65
+          "line": 67
         },
         {
           "name": "model_matrix",
@@ -5312,7 +5422,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 70
+          "line": 72
         },
         {
           "name": "position",
@@ -5325,7 +5435,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 74
+          "line": 76
         },
         {
           "name": "world_positions",
@@ -5338,7 +5448,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 78
+          "line": 80
         },
         {
           "name": "__or__",
@@ -5360,7 +5470,7 @@
           "returns": "Region",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 82
+          "line": 84
         },
         {
           "name": "highlight",
@@ -5414,7 +5524,7 @@
           "returns": "RegionHighlight",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 87
+          "line": 89
         },
         {
           "name": "set_color",
@@ -5436,7 +5546,7 @@
           "returns": "The object or a Colorize animation.",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 92
+          "line": 94
         },
         {
           "name": "set_opacity",
@@ -5458,7 +5568,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 97
+          "line": 99
         },
         {
           "name": "animate",
@@ -5471,7 +5581,7 @@
           "returns": "RegionAnimate",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 103
+          "line": 105
         },
         {
           "name": "distance_to",
@@ -5500,7 +5610,7 @@
           "returns": "Distance",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 108
+          "line": 110
         },
         {
           "name": "callout",
@@ -5529,7 +5639,7 @@
           "returns": "Callout",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 113
+          "line": 115
         },
         {
           "name": "label",
@@ -5558,7 +5668,7 @@
           "returns": "ResidueLabel",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 119
+          "line": 121
         }
       ],
       "extra_parameters": []
@@ -5625,7 +5735,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/regions.py",
-      "line": 126,
+      "line": 128,
       "bases": [
         "protein.Protein"
       ],
@@ -5645,7 +5755,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 197
+          "line": 199
         },
         {
           "name": "select",
@@ -5683,7 +5793,7 @@
           "returns": "Region",
           "notes": "A residue tuple is an inclusive range. A list selects individual numbers. Empty selections raise ValueError.",
           "source": "src/proteinmotion/protein.py",
-          "line": 46
+          "line": 52
         },
         {
           "name": "label_residues",
@@ -5720,7 +5830,7 @@
           "returns": "ResidueLabels",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 52
+          "line": 58
         },
         {
           "name": "hydrogen_bonds",
@@ -5741,7 +5851,7 @@
           "returns": "HydrogenBonds",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 58
+          "line": 64
         },
         {
           "name": "electrostatics",
@@ -5770,7 +5880,7 @@
           "returns": "Electrostatics",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 63
+          "line": 69
         },
         {
           "name": "from_file",
@@ -5799,7 +5909,7 @@
           "returns": "Protein",
           "notes": "Keyword options: chains=None, include_water=False, include_hydrogens=False. Other hetero atoms are retained.",
           "source": "src/proteinmotion/protein.py",
-          "line": 69
+          "line": 75
         },
         {
           "name": "from_trajectory",
@@ -5821,7 +5931,7 @@
           "returns": "Protein",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 74
+          "line": 80
         },
         {
           "name": "positions",
@@ -5834,7 +5944,7 @@
           "returns": "Array with shape (selected atoms, 3), in ångströms.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 80
+          "line": 86
         },
         {
           "name": "atom_progress",
@@ -5847,7 +5957,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 85
+          "line": 91
         },
         {
           "name": "atom_opacities",
@@ -5860,7 +5970,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 94
+          "line": 100
         },
         {
           "name": "set_positions",
@@ -5882,7 +5992,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 107
+          "line": 113
         },
         {
           "name": "center",
@@ -5895,7 +6005,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 117
+          "line": 123
         },
         {
           "name": "shift",
@@ -5917,7 +6027,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 121
+          "line": 127
         },
         {
           "name": "rotate",
@@ -5947,7 +6057,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 128
+          "line": 134
         },
         {
           "name": "scale",
@@ -5969,7 +6079,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 136
+          "line": 142
         },
         {
           "name": "set_opacity",
@@ -5991,7 +6101,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 144
+          "line": 150
         },
         {
           "name": "set_color",
@@ -6013,7 +6123,7 @@
           "returns": "The object or a Colorize animation.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 150
+          "line": 156
         },
         {
           "name": "color_by",
@@ -6051,7 +6161,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 155
+          "line": 161
         },
         {
           "name": "color_residues",
@@ -6089,7 +6199,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 161
+          "line": 167
         },
         {
           "name": "set_residue_opacity",
@@ -6127,7 +6237,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 165
+          "line": 171
         },
         {
           "name": "surface",
@@ -6166,7 +6276,7 @@
               "annotation": false,
               "default": "'secondary'",
               "kind": "keyword only",
-              "description": "Base palette: \"secondary\", \"rainbow\", \"chain\", or a fixed color."
+              "description": "Palette: secondary, base, rainbow, chain, or a fixed color. Surfaces also accept element."
             },
             {
               "name": "update",
@@ -6188,14 +6298,14 @@
           "returns": "The protein.",
           "notes": "Additional option: max_voxels=8000000 limits the grid size. Configure surface settings before the first play() call. The ses surface is a voxel approximation.",
           "source": "src/proteinmotion/protein.py",
-          "line": 169
+          "line": 175
         },
         {
           "name": "cartoon",
           "kind": "method",
           "owner": "protein.Protein",
           "inherited": true,
-          "signature": "RegionHighlight.cartoon(*, color='secondary')",
+          "signature": "RegionHighlight.cartoon(\n    *,\n    color='secondary',\n    bases='slabs',\n    backbone_radius=0.38,\n    base_thickness=0.36,\n    base_radius=0.16,\n)",
           "parameters": [
             {
               "name": "color",
@@ -6203,21 +6313,53 @@
               "annotation": false,
               "default": "'secondary'",
               "kind": "keyword only",
-              "description": "Base palette: \"secondary\", \"rainbow\", \"chain\", or a fixed color."
+              "description": "Palette: secondary, base, rainbow, chain, or a fixed color. Surfaces also accept element."
+            },
+            {
+              "name": "bases",
+              "type": "",
+              "annotation": false,
+              "default": "'slabs'",
+              "kind": "keyword only",
+              "description": "Nucleotide base style: slabs, rings, sticks, ladder, or none. None in Representation preserves the current style."
+            },
+            {
+              "name": "backbone_radius",
+              "type": "",
+              "annotation": false,
+              "default": "0.38",
+              "kind": "keyword only",
+              "description": "Positive nucleotide cartoon tube radius in ångströms."
+            },
+            {
+              "name": "base_thickness",
+              "type": "",
+              "annotation": false,
+              "default": "0.36",
+              "kind": "keyword only",
+              "description": "Positive slab/ring thickness in ångströms."
+            },
+            {
+              "name": "base_radius",
+              "type": "",
+              "annotation": false,
+              "default": "0.16",
+              "kind": "keyword only",
+              "description": "Positive base-stick and connector radius in ångströms."
             }
           ],
-          "description": "Show helices, sheet arrows, and coils as a cartoon.",
+          "description": "Show protein secondary structure and nucleotide backbone tubes with selectable base shapes.",
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 187
+          "line": 193
         },
         {
           "name": "ribbon",
           "kind": "method",
           "owner": "protein.Protein",
           "inherited": true,
-          "signature": "RegionHighlight.ribbon(*, color='rainbow', width=1.05)",
+          "signature": "RegionHighlight.ribbon(*, color='rainbow', width=1.05, bases='none')",
           "parameters": [
             {
               "name": "color",
@@ -6225,7 +6367,7 @@
               "annotation": false,
               "default": "'rainbow'",
               "kind": "keyword only",
-              "description": "Base palette: \"secondary\", \"rainbow\", \"chain\", or a fixed color."
+              "description": "Palette: secondary, base, rainbow, chain, or a fixed color. Surfaces also accept element."
             },
             {
               "name": "width",
@@ -6234,20 +6376,74 @@
               "default": "1.05",
               "kind": "keyword only",
               "description": "Ribbon width in ångströms."
+            },
+            {
+              "name": "bases",
+              "type": "",
+              "annotation": false,
+              "default": "'none'",
+              "kind": "keyword only",
+              "description": "Nucleotide base style: slabs, rings, sticks, ladder, or none. None in Representation preserves the current style."
             }
           ],
           "description": "Show a continuous backbone ribbon.",
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 193
+          "line": 209
+        },
+        {
+          "name": "set_bases",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "RegionHighlight.set_bases(\n    style,\n    *,\n    backbone_radius=None,\n    base_thickness=None,\n    base_radius=None,\n)",
+          "parameters": [
+            {
+              "name": "style",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "slabs, rings, sticks, ladder, or none."
+            },
+            {
+              "name": "backbone_radius",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Positive nucleotide cartoon tube radius in ångströms."
+            },
+            {
+              "name": "base_thickness",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Positive slab/ring thickness in ångströms."
+            },
+            {
+              "name": "base_radius",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Positive base-stick and connector radius in ångströms."
+            }
+          ],
+          "description": "Set nucleotide base shapes and optional dimensions before a scene begins. Use BaseStyle for an animated change.",
+          "returns": "The molecule.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 218
         },
         {
           "name": "ball_and_stick",
           "kind": "method",
           "owner": "protein.Protein",
           "inherited": true,
-          "signature": "RegionHighlight.ball_and_stick(*, atom_scale=0.3, bond_radius=0.14)",
+          "signature": "RegionHighlight.ball_and_stick(*, atom_scale=0.3, bond_radius=0.14, color='element')",
           "parameters": [
             {
               "name": "atom_scale",
@@ -6264,13 +6460,21 @@
               "default": "0.14",
               "kind": "keyword only",
               "description": "Covalent bond cylinder radius in ångströms."
+            },
+            {
+              "name": "color",
+              "type": "",
+              "annotation": false,
+              "default": "'element'",
+              "kind": "keyword only",
+              "description": "Palette: element, base, chain, rainbow, secondary, or a fixed color."
             }
           ],
-          "description": "Show element-colored atom spheres and covalent bond cylinders.",
+          "description": "Show atom spheres and covalent bond cylinders, with element colors by default.",
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 201
+          "line": 235
         },
         {
           "name": "with_secondary_structure",
@@ -6292,7 +6496,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 209
+          "line": 244
         },
         {
           "name": "animate",
@@ -6305,7 +6509,7 @@
           "returns": "Animate",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 218
+          "line": 253
         },
         {
           "name": "model_matrix",
@@ -6318,7 +6522,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 224
+          "line": 259
         },
         {
           "name": "snapshot",
@@ -6331,7 +6535,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 230
+          "line": 265
         },
         {
           "name": "restore",
@@ -6353,7 +6557,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 258
+          "line": 298
         }
       ],
       "extra_parameters": []
@@ -6484,7 +6688,7 @@
           "kind": "class method",
           "owner": "trajectory.Trajectory",
           "inherited": false,
-          "signature": "Trajectory.from_mdanalysis(\n    topology_file,\n    trajectory_file,\n    *,\n    selection='protein',\n    stride=1,\n)",
+          "signature": "Trajectory.from_mdanalysis(\n    topology_file,\n    trajectory_file,\n    *,\n    selection='protein or nucleic',\n    stride=1,\n)",
           "parameters": [
             {
               "name": "topology_file",
@@ -6506,7 +6710,7 @@
               "name": "selection",
               "type": "",
               "annotation": false,
-              "default": "'protein'",
+              "default": "'protein or nucleic'",
               "kind": "keyword only",
               "description": "MDAnalysis atom selection expression."
             },
@@ -6553,7 +6757,7 @@
           "returns": "Trajectory",
           "notes": "",
           "source": "src/proteinmotion/trajectory.py",
-          "line": 94
+          "line": 96
         }
       ],
       "extra_parameters": []
@@ -6612,7 +6816,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/matching.py",
-      "line": 269,
+      "line": 291,
       "bases": [],
       "attributes": {
         "source_indices": "Strictly increasing zero-based source topology residue indices.",
@@ -6669,7 +6873,7 @@
           "returns": "ContactMatch",
           "notes": "",
           "source": "src/proteinmotion/matching.py",
-          "line": 288
+          "line": 310
         },
         {
           "name": "load",
@@ -6691,7 +6895,7 @@
           "returns": "ContactMatch",
           "notes": "",
           "source": "src/proteinmotion/matching.py",
-          "line": 320
+          "line": 353
         },
         {
           "name": "save",
@@ -6713,7 +6917,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/matching.py",
-          "line": 333
+          "line": 366
         }
       ],
       "extra_parameters": []
@@ -6725,7 +6929,7 @@
       "kind": "function",
       "href": "/reference/matching/match_backbones/",
       "description": "Find the largest ordered residue match under a contact-error limit.",
-      "notes": "For equally sized matches, the search minimizes contact-map discrepancy. Check the report for full-space, candidate-restricted, or time-limited optimality. Each input must resolve to one chain with at least three Cα atoms. The shorter chain supports at most 800 Cα residues; full candidate search supports at most 30,000 pairings.",
+      "notes": "Uses Cα for proteins and C1′ for DNA/RNA. Each input selects one chain with at least three anchors of the same type. Missing anchors are skipped. For equal-sized matches, the search minimizes contact-map discrepancy. Check the report for full-space, candidate-restricted, or time-limited optimality. The shorter chain supports at most 800 anchored residues; full candidate search supports at most 30,000 pairings. Reports include the anchor atom names, counts, and aligned_anchor_rmsd_angstrom.",
       "import_path": "proteinmotion",
       "signature": "match_backbones(\n    source,\n    target,\n    *,\n    source_chain=None,\n    target_chain=None,\n    cutoff=8.0,\n    softness=1.5,\n    max_contact_error=0.3,\n    search_seconds=8.0,\n    max_candidates=6000,\n)",
       "parameters": [
@@ -6751,7 +6955,7 @@
           "annotation": false,
           "default": "None",
           "kind": "keyword only",
-          "description": "Source chain ID; required if several chains contain Cα atoms."
+          "description": "Source chain ID; select one chain with protein Cα or nucleotide C1′ anchors."
         },
         {
           "name": "target_chain",
@@ -6759,7 +6963,7 @@
           "annotation": false,
           "default": "None",
           "kind": "keyword only",
-          "description": "Target chain ID; required if several chains contain Cα atoms."
+          "description": "Target chain ID; select one chain with protein Cα or nucleotide C1′ anchors."
         },
         {
           "name": "cutoff",
@@ -6804,7 +7008,7 @@
       ],
       "returns": "ContactMatch",
       "source": "src/proteinmotion/matching.py",
-      "line": 349,
+      "line": 382,
       "bases": [],
       "attributes": {},
       "guide": "morphing",
@@ -6820,7 +7024,7 @@
       "kind": "class",
       "href": "/reference/backbone/BackboneMorph/",
       "description": "Move matched backbone residues in order and fade unmatched residues.",
-      "notes": "Each matched residue moves for run_time − (matched count − 1) × residue_delay seconds. Unmatched source and destination residues use fade_out and fade_in intervals. Both proteins’ geometry, transforms, and opacity belong to this animation. In ball-and-stick mode, atoms translate with their residue Cα and the atom sets crossfade. Side-chain atoms use their original residue geometry.",
+      "notes": "Matched residues move with their Cα (protein) or C1′ (DNA/RNA) in deposited chain order. Each move lasts run_time − (matched count − 1) × residue_delay seconds. Whole residues retain their internal geometry as source and target representations crossfade. Unmatched source and destination residues use fade_out and fade_in intervals. Both objects’ geometry, transforms, and opacity belong to this animation. Each endpoint selects one chain. Explicit pairs require the correct anchor atom.",
       "import_path": "proteinmotion",
       "signature": "BackboneMorph(\n    source,\n    destination,\n    *,\n    match=None,\n    residue_delay=0.008,\n    fade_out=(0.0, 0.35),\n    fade_in=(0.65, 1.0),\n    align=True,\n    motion_easing='smooth',\n    **match_options,\n)",
       "parameters": [
@@ -6918,7 +7122,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/backbone.py",
-          "line": 55
+          "line": 57
         },
         {
           "name": "bind",
@@ -6931,7 +7135,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/backbone.py",
-          "line": 58
+          "line": 60
         },
         {
           "name": "apply",
@@ -6953,7 +7157,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/backbone.py",
-          "line": 143
+          "line": 152
         }
       ],
       "extra_parameters": []
@@ -6967,7 +7171,7 @@
       "description": "Draw a distance line between two atom or residue selections.",
       "notes": "Single-atom selections use that atom. A single-residue selection uses its Cα when available; larger selections use a centroid. In 3D mode, atoms can hide the line. Labels are drawn over the image. Use space=\"world\" for endpoints on separate proteins, and preserve a shared coordinate frame for physical distances.",
       "import_path": "proteinmotion",
-      "signature": "Distance(\n    start,\n    end,\n    *,\n    mode='3d',\n    anchor='ca',\n    space='model',\n    color='#f2ba67',\n    label_color=None,\n    font_size=27,\n    precision=1,\n    unit='Å',\n    prefix='',\n    show_distance=True,\n    style='dashed',\n    line_width=1.7,\n    radius=0.09,\n    dash_count=12,\n    dash_ratio=0.6,\n    follow_opacity=True,\n    opacity=1,\n)",
+      "signature": "Distance(\n    start,\n    end,\n    *,\n    mode='3d',\n    anchor='backbone',\n    space='model',\n    color='#f2ba67',\n    label_color=None,\n    font_size=27,\n    precision=1,\n    unit='Å',\n    prefix='',\n    show_distance=True,\n    style='dashed',\n    line_width=1.7,\n    radius=0.09,\n    dash_count=12,\n    dash_ratio=0.6,\n    follow_opacity=True,\n    opacity=1,\n)",
       "parameters": [
         {
           "name": "start",
@@ -6997,9 +7201,9 @@
           "name": "anchor",
           "type": "",
           "annotation": false,
-          "default": "'ca'",
+          "default": "'backbone'",
           "kind": "keyword only",
-          "description": "\"ca\" uses the Cα of a single residue when available; \"centroid\" averages selected coordinates."
+          "description": "\"backbone\" uses Cα for proteins and C4′/P for nucleotides; \"ca\" uses protein Cα only; \"centroid\" averages selected coordinates."
         },
         {
           "name": "space",
@@ -7124,7 +7328,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/distances.py",
-      "line": 79,
+      "line": 80,
       "bases": [
         "annotations.Annotation"
       ],
@@ -7144,7 +7348,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/distances.py",
-          "line": 144
+          "line": 145
         },
         {
           "name": "glyph_count",
@@ -7157,7 +7361,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/distances.py",
-          "line": 155
+          "line": 156
         },
         {
           "name": "text_progress",
@@ -7170,7 +7374,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/distances.py",
-          "line": 159
+          "line": 160
         },
         {
           "name": "layout",
@@ -7208,7 +7412,7 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/distances.py",
-          "line": 209
+          "line": 210
         },
         {
           "name": "set_opacity",
@@ -7352,7 +7556,7 @@
           "annotation": false,
           "default": "None",
           "kind": "keyword only",
-          "description": "Donor Region or atom indices; None uses standard amino-acid templates."
+          "description": "Donor Region or atom indices; None uses standard amino-acid and canonical nucleotide base templates."
         },
         {
           "name": "acceptors",
@@ -7360,7 +7564,7 @@
           "annotation": false,
           "default": "None",
           "kind": "keyword only",
-          "description": "Acceptor Region or atom indices; None uses standard amino-acid templates."
+          "description": "Acceptor Region or atom indices; None uses standard amino-acid and canonical nucleotide base templates."
         },
         {
           "name": "max_distance",
@@ -7397,7 +7601,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/interactions.py",
-      "line": 102,
+      "line": 131,
       "bases": [],
       "attributes": {},
       "guide": "interactions",
@@ -7424,7 +7628,7 @@
           "returns": "3D coordinates in model ångströms.",
           "notes": "",
           "source": "src/proteinmotion/interactions.py",
-          "line": 188
+          "line": 221
         },
         {
           "name": "pairs",
@@ -7541,7 +7745,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/interactions.py",
-      "line": 301,
+      "line": 334,
       "bases": [],
       "attributes": {},
       "guide": "interactions",
@@ -7591,7 +7795,7 @@
           "returns": "Electrostatics",
           "notes": "",
           "source": "src/proteinmotion/interactions.py",
-          "line": 346
+          "line": 379
         },
         {
           "name": "pair_energy",
@@ -7621,7 +7825,7 @@
           "returns": "Energy in kcal/mol.",
           "notes": "",
           "source": "src/proteinmotion/interactions.py",
-          "line": 362
+          "line": 395
         },
         {
           "name": "potential",
@@ -7659,7 +7863,7 @@
           "returns": "Array in kcal/mol per elementary charge.",
           "notes": "Uses Plummer softening and includes all charges, independently of the pair cutoff.",
           "source": "src/proteinmotion/interactions.py",
-          "line": 397
+          "line": 430
         },
         {
           "name": "pairs",
@@ -7901,7 +8105,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/interactions.py",
-      "line": 433,
+      "line": 466,
       "bases": [
         "annotations.Annotation"
       ],
@@ -7921,7 +8125,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/interactions.py",
-          "line": 517
+          "line": 550
         },
         {
           "name": "text_progress",
@@ -7934,7 +8138,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/interactions.py",
-          "line": 522
+          "line": 555
         },
         {
           "name": "layout",
@@ -7972,7 +8176,7 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/interactions.py",
-          "line": 534
+          "line": 567
         },
         {
           "name": "set_opacity",
@@ -8129,7 +8333,7 @@
       ],
       "returns": "Float array with one charge per protein atom, in elementary charge units.",
       "source": "src/proteinmotion/interactions.py",
-      "line": 269,
+      "line": 302,
       "bases": [],
       "attributes": {},
       "guide": "interactions",
@@ -8316,7 +8520,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/renderer.py",
-      "line": 143,
+      "line": 165,
       "bases": [],
       "attributes": {
         "adapter_info": "GPU adapter and backend information."
@@ -8361,7 +8565,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 519
+          "line": 544
         },
         {
           "name": "enqueue",
@@ -8399,7 +8603,7 @@
           "returns": "Frame array, or None while the readback pipeline fills.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 523
+          "line": 548
         },
         {
           "name": "drain",
@@ -8412,7 +8616,7 @@
           "returns": "Iterator of frame arrays.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 567
+          "line": 592
         },
         {
           "name": "render",
@@ -8450,7 +8654,7 @@
           "returns": "RGBA uint8 array or NV12 array, according to readback_format.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 571
+          "line": 596
         },
         {
           "name": "close",
@@ -8463,7 +8667,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 577
+          "line": 602
         },
         {
           "name": "__enter__",
@@ -8476,7 +8680,7 @@
           "returns": "The renderer.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 604
+          "line": 629
         },
         {
           "name": "__exit__",
@@ -8497,7 +8701,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 607
+          "line": 632
         }
       ],
       "extra_parameters": []
@@ -8838,7 +9042,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 173,
+      "line": 179,
       "bases": [
         "animation.Animation"
       ],
@@ -8858,7 +9062,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 200
+          "line": 206
         },
         {
           "name": "apply",
@@ -8880,7 +9084,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 208
+          "line": 214
         },
         {
           "name": "targets",
@@ -9145,7 +9349,7 @@
           "kind": "class method",
           "owner": "properties.ResidueValues",
           "inherited": false,
-          "signature": "ResidueValues.b_factors(protein, *, atoms='CA', name='B factor', unit='Å²')",
+          "signature": "ResidueValues.b_factors(protein, *, atoms='backbone', name='B factor', unit='Å²')",
           "parameters": [
             {
               "name": "protein",
@@ -9159,9 +9363,9 @@
               "name": "atoms",
               "type": "",
               "annotation": false,
-              "default": "'CA'",
+              "default": "'backbone'",
               "kind": "keyword only",
-              "description": "Atom name such as CA, or None for the mean of the residue’s selected atoms."
+              "description": "backbone selects Cα for proteins or C4′/P for nucleotides. Also accepts an atom name, or None for the per-residue mean."
             },
             {
               "name": "name",
@@ -9191,7 +9395,7 @@
           "kind": "class method",
           "owner": "properties.ResidueValues",
           "inherited": false,
-          "signature": "ResidueValues.rmsf(\n    protein,\n    trajectory=None,\n    *,\n    align=True,\n    alignment=None,\n    atoms='CA',\n    stride=1,\n)",
+          "signature": "ResidueValues.rmsf(\n    protein,\n    trajectory=None,\n    *,\n    align=True,\n    alignment=None,\n    atoms='backbone',\n    stride=1,\n)",
           "parameters": [
             {
               "name": "protein",
@@ -9223,15 +9427,15 @@
               "annotation": false,
               "default": "None",
               "kind": "keyword only",
-              "description": "Region used to fit frames to the first sampled frame; defaults to all Cα atoms."
+              "description": "Region used to fit frames to the first sampled frame; defaults to backbone anchors (Cα for proteins, C4′/P for nucleotides)."
             },
             {
               "name": "atoms",
               "type": "",
               "annotation": false,
-              "default": "'CA'",
+              "default": "'backbone'",
               "kind": "keyword only",
-              "description": "Atom name, or None to average atomic mean-square fluctuations within each residue."
+              "description": "backbone selects Cα/C4′/P; an atom name selects that atom; None averages atomic mean-square fluctuations per residue."
             },
             {
               "name": "stride",
@@ -9244,9 +9448,9 @@
           ],
           "description": "Calculate per-residue RMSF in ångströms by streaming trajectory frames.",
           "returns": "",
-          "notes": "Default alignment uses Cα atoms. For MD, unwrap periodic coordinates first. NMR RMSF describes variation across deposited models.",
+          "notes": "Default alignment uses Cα/C4′/P anchors. Unwrap periodic MD coordinates before analysis. NMR RMSF describes variation across deposited models.",
           "source": "src/proteinmotion/properties.py",
-          "line": 104
+          "line": 114
         }
       ],
       "extra_parameters": []
@@ -9321,7 +9525,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/properties.py",
-      "line": 183,
+      "line": 198,
       "bases": [],
       "attributes": {},
       "guide": "numerical-properties",
@@ -9339,7 +9543,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/properties.py",
-          "line": 196
+          "line": 211
         },
         {
           "name": "apply",
@@ -9361,7 +9565,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/properties.py",
-          "line": 200
+          "line": 215
         },
         {
           "name": "targets",
@@ -10018,7 +10222,7 @@
           "annotation": false,
           "default": "None",
           "kind": "keyword only",
-          "description": "Optional Region limiting which Cα residues appear."
+          "description": "Optional Region limiting which polymer residues appear."
         },
         {
           "name": "selection",
@@ -10122,7 +10326,7 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 384
+          "line": 386
         },
         {
           "name": "snapshot",
@@ -10273,10 +10477,10 @@
       "module": "plots",
       "kind": "class",
       "href": "/reference/plots/ContactMap/",
-      "description": "A live binary Cα contact map with linked residue markers.",
-      "notes": "Rows follow topology order and labels use PDB author numbers. Work scales quadratically; the default limit is 512 Cα residues.",
+      "description": "A live binary backbone contact map with linked residue markers.",
+      "notes": "Rows follow topology order and labels use PDB author numbers. Work scales quadratically; the default limit is 512 polymer residues.",
       "import_path": "proteinmotion",
-      "signature": "ContactMap(\n    protein,\n    *,\n    region=None,\n    selection=None,\n    cutoff=8.0,\n    min_separation=3,\n    position=(0.69, 0.12),\n    size=(0.27, 0.4),\n    title='Cα contacts',\n    max_residues=512,\n    contact_color='#65c8bd',\n    highlight_color='#f5d477',\n)",
+      "signature": "ContactMap(\n    protein,\n    *,\n    region=None,\n    selection=None,\n    cutoff=8.0,\n    min_separation=3,\n    position=(0.69, 0.12),\n    size=(0.27, 0.4),\n    title='Backbone contacts',\n    max_residues=512,\n    contact_color='#65c8bd',\n    highlight_color='#f5d477',\n)",
       "parameters": [
         {
           "name": "protein",
@@ -10308,7 +10512,7 @@
           "annotation": false,
           "default": "8.0",
           "kind": "keyword only",
-          "description": "Maximum Cα separation in ångströms for a contact."
+          "description": "Maximum backbone-anchor distance in ångströms. Uses Cα for proteins and C4′/P for nucleotides."
         },
         {
           "name": "min_separation",
@@ -10338,7 +10542,7 @@
           "name": "title",
           "type": "",
           "annotation": false,
-          "default": "'Cα contacts'",
+          "default": "'Backbone contacts'",
           "kind": "keyword only",
           "description": "Text displayed above the plot or color bar."
         },
@@ -10348,7 +10552,7 @@
           "annotation": false,
           "default": "512",
           "kind": "keyword only",
-          "description": "Maximum Cα residues in a quadratic contact-map calculation; select a region for larger proteins."
+          "description": "Maximum polymer residues in a quadratic contact-map calculation; select a region for larger structures."
         },
         {
           "name": "contact_color",
@@ -10369,7 +10573,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/plots.py",
-      "line": 438,
+      "line": 442,
       "bases": [],
       "attributes": {},
       "guide": "synchronized-plots",
@@ -10387,7 +10591,7 @@
           "returns": "4 × 4 array.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 477
+          "line": 483
         },
         {
           "name": "layout",
@@ -10425,7 +10629,7 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 488
+          "line": 494
         },
         {
           "name": "snapshot",
@@ -11445,43 +11649,958 @@
         }
       ],
       "extra_parameters": []
+    },
+    {
+      "id": "protein.NucleicAcid",
+      "name": "NucleicAcid",
+      "module": "protein",
+      "kind": "class",
+      "href": "/reference/protein/NucleicAcid/",
+      "description": "A DNA/RNA structure with base colors, nucleotide cartoons, surfaces and the Protein animation API.",
+      "notes": "Loads PDB/mmCIF or trajectories. The backbone uses C4′ with P as a fallback. Modified residues retain their deposited names and use parent-base annotations when available. Protein also draws nucleic-acid chains in mixed complexes.",
+      "import_path": "proteinmotion",
+      "signature": "NucleicAcid(topology, xyz, *, trajectory=None)",
+      "parameters": [
+        {
+          "name": "topology",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Atom identities, residues, bonds, and chains in a Topology object."
+        },
+        {
+          "name": "xyz",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Finite coordinates with shape (atoms, 3), in ångströms."
+        },
+        {
+          "name": "trajectory",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Trajectory with the same atom identities and order; None uses the protein’s trajectory."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/protein.py",
+      "line": 325,
+      "bases": [
+        "protein.Protein"
+      ],
+      "attributes": {},
+      "guide": "dna-rna",
+      "example": "dna-styles",
+      "alias": null,
+      "members": [
+        {
+          "name": "cartoon",
+          "kind": "method",
+          "owner": "protein.NucleicAcid",
+          "inherited": false,
+          "signature": "NucleicAcid.cartoon(*, color='base', **kwargs)",
+          "parameters": [
+            {
+              "name": "color",
+              "type": "",
+              "annotation": false,
+              "default": "'base'",
+              "kind": "keyword only",
+              "description": "Base palette: base, chain, rainbow, secondary, or a fixed color."
+            },
+            {
+              "name": "kwargs",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "Additional keyword options described below or in the linked constructor."
+            }
+          ],
+          "description": "Show a C4′ backbone tube with slabs, rings, sticks or ladder rods. Pass the geometry options documented on Protein.cartoon().",
+          "returns": "The protein.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 338
+        },
+        {
+          "name": "surface",
+          "kind": "method",
+          "owner": "protein.NucleicAcid",
+          "inherited": false,
+          "signature": "NucleicAcid.surface(*, color='base', **kwargs)",
+          "parameters": [
+            {
+              "name": "color",
+              "type": "",
+              "annotation": false,
+              "default": "'base'",
+              "kind": "keyword only",
+              "description": "Base palette: base, chain, rainbow, secondary, element, or a fixed color."
+            },
+            {
+              "name": "kwargs",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "Additional keyword options described below or in the linked constructor."
+            }
+          ],
+          "description": "Show a molecular surface using base colors by default. Pass surface options documented on Protein.surface().",
+          "returns": "The protein.",
+          "notes": "Additional option: max_voxels=8000000 limits the grid size. Configure surface settings before the first play() call. The ses surface is a voxel approximation.",
+          "source": "src/proteinmotion/protein.py",
+          "line": 341
+        },
+        {
+          "name": "select",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.select(*, chain=None, residues=None, atoms=None)",
+          "parameters": [
+            {
+              "name": "chain",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author chain ID or a collection of IDs; None selects all chains."
+            },
+            {
+              "name": "residues",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author residue number, inclusive (first, last) tuple, or list of individual numbers."
+            },
+            {
+              "name": "atoms",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Atom name or list of names, such as \"CA\"; None selects all atom names."
+            }
+          ],
+          "description": "Select atoms by author chain, residue number, and atom name.",
+          "returns": "Region",
+          "notes": "A residue tuple is an inclusive range. A list selects individual numbers. Empty selections raise ValueError.",
+          "source": "src/proteinmotion/protein.py",
+          "line": 52
+        },
+        {
+          "name": "label_residues",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.label_residues(*, chain=None, residues=None, **kwargs)",
+          "parameters": [
+            {
+              "name": "chain",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author chain ID or a collection of IDs; None selects all chains."
+            },
+            {
+              "name": "residues",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author residue number, inclusive (first, last) tuple, or list of individual numbers."
+            },
+            {
+              "name": "kwargs",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "Additional keyword options described below or in the linked constructor."
+            }
+          ],
+          "description": "Create labels for the selected residues. Extra options go to ResidueLabels.",
+          "returns": "ResidueLabels",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 58
+        },
+        {
+          "name": "hydrogen_bonds",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.hydrogen_bonds(**kwargs)",
+          "parameters": [
+            {
+              "name": "kwargs",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "Additional keyword options described below or in the linked constructor."
+            }
+          ],
+          "description": "Create a hydrogen-bond analysis. Options go to HydrogenBonds.",
+          "returns": "HydrogenBonds",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 64
+        },
+        {
+          "name": "electrostatics",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.electrostatics(charges='formal', **kwargs)",
+          "parameters": [
+            {
+              "name": "charges",
+              "type": "",
+              "annotation": false,
+              "default": "'formal'",
+              "kind": "positional or keyword",
+              "description": "\"formal\" side-chain templates or one charge per atom, in elementary charge units."
+            },
+            {
+              "name": "kwargs",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "Additional keyword options described below or in the linked constructor."
+            }
+          ],
+          "description": "Create a screened Coulomb analysis. Options go to Electrostatics.",
+          "returns": "Electrostatics",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 69
+        },
+        {
+          "name": "from_file",
+          "kind": "class method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.from_file(path, **kwargs)",
+          "parameters": [
+            {
+              "name": "path",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Input or output file path, as specified by the operation."
+            },
+            {
+              "name": "kwargs",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "Additional keyword options described below or in the linked constructor."
+            }
+          ],
+          "description": "Load PDB or mmCIF coordinates and retain all models with matching atom identities.",
+          "returns": "Protein",
+          "notes": "Keyword options: chains=None, include_water=False, include_hydrogens=False. Other hetero atoms are retained.",
+          "source": "src/proteinmotion/protein.py",
+          "line": 75
+        },
+        {
+          "name": "from_trajectory",
+          "kind": "class method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.from_trajectory(trajectory)",
+          "parameters": [
+            {
+              "name": "trajectory",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Trajectory with the same atom identities and order; None uses the protein’s trajectory."
+            }
+          ],
+          "description": "Create a protein from the trajectory’s topology and first frame.",
+          "returns": "Protein",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 80
+        },
+        {
+          "name": "positions",
+          "kind": "property",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.positions",
+          "parameters": [],
+          "description": "Current atom coordinates in the protein’s local coordinate frame.",
+          "returns": "Array with shape (selected atoms, 3), in ångströms.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 86
+        },
+        {
+          "name": "atom_progress",
+          "kind": "property",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.atom_progress",
+          "parameters": [],
+          "description": "Current interpolation fraction for each atom.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 91
+        },
+        {
+          "name": "atom_opacities",
+          "kind": "property",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.atom_opacities",
+          "parameters": [],
+          "description": "Current per-atom opacity, including global opacity and residue fades.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 100
+        },
+        {
+          "name": "set_positions",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.set_positions(xyz)",
+          "parameters": [
+            {
+              "name": "xyz",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Finite coordinates with shape (atoms, 3), in ångströms."
+            }
+          ],
+          "description": "Replace coordinates while preserving atom identities and topology.",
+          "returns": "The protein.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 113
+        },
+        {
+          "name": "copy",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.copy()",
+          "parameters": [],
+          "description": "Copy the protein’s current state for independent animation; topology and trajectory are shared.",
+          "returns": "Protein",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 118
+        },
+        {
+          "name": "center",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.center()",
+          "parameters": [],
+          "description": "Move the molecular centroid to the world origin.",
+          "returns": "The protein.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 123
+        },
+        {
+          "name": "shift",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.shift(vector)",
+          "parameters": [
+            {
+              "name": "vector",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Finite 3D translation vector in ångströms."
+            }
+          ],
+          "description": "Translate the object by an offset.",
+          "returns": "The object or animation builder.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 127
+        },
+        {
+          "name": "rotate",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.rotate(angle, axis=(0, 1, 0))",
+          "parameters": [
+            {
+              "name": "angle",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Rotation angle in radians."
+            },
+            {
+              "name": "axis",
+              "type": "",
+              "annotation": false,
+              "default": "(0, 1, 0)",
+              "kind": "positional or keyword",
+              "description": "Nonzero 3D rotation axis; it is normalized internally."
+            }
+          ],
+          "description": "Rotate around the molecular centroid.",
+          "returns": "The protein or animation builder.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 134
+        },
+        {
+          "name": "scale",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.scale(factor)",
+          "parameters": [
+            {
+              "name": "factor",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Positive scale or zoom factor."
+            }
+          ],
+          "description": "Scale around the molecular centroid.",
+          "returns": "The protein or animation builder.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 142
+        },
+        {
+          "name": "set_opacity",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.set_opacity(opacity)",
+          "parameters": [
+            {
+              "name": "opacity",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Opacity in [0, 1], from transparent to opaque."
+            }
+          ],
+          "description": "Set or animate opacity in [0, 1].",
+          "returns": "The object or animation builder.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 150
+        },
+        {
+          "name": "set_color",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.set_color(color)",
+          "parameters": [
+            {
+              "name": "color",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Hex color or RGB values. For tint setters, None restores the representation’s base palette."
+            }
+          ],
+          "description": "Apply a tint across all representations. None restores the base palette.",
+          "returns": "The object or a Colorize animation.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 156
+        },
+        {
+          "name": "color_by",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.color_by(values, *, scale=None, thickness=None)",
+          "parameters": [
+            {
+              "name": "values",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Numerical input values; see the shape and missing-value rules for this object."
+            },
+            {
+              "name": "scale",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "ColorScale shared by the structure, plots, and legend. None derives limits from finite values."
+            },
+            {
+              "name": "thickness",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Optional (minimum, maximum) positive cartoon cross-section scale factors. Missing values use 1."
+            }
+          ],
+          "description": "Apply residue property colors and optional cartoon thickness before adding the protein to a scene.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 161
+        },
+        {
+          "name": "color_residues",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.color_residues(color, *, chain=None, residues=None)",
+          "parameters": [
+            {
+              "name": "color",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Hex color or RGB values. For tint setters, None restores the representation’s base palette."
+            },
+            {
+              "name": "chain",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author chain ID or a collection of IDs; None selects all chains."
+            },
+            {
+              "name": "residues",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author residue number, inclusive (first, last) tuple, or list of individual numbers."
+            }
+          ],
+          "description": "Apply a tint to the selected residues in every representation.",
+          "returns": "The protein.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 167
+        },
+        {
+          "name": "set_residue_opacity",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.set_residue_opacity(opacity, *, chain=None, residues=None)",
+          "parameters": [
+            {
+              "name": "opacity",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Opacity in [0, 1], from transparent to opaque."
+            },
+            {
+              "name": "chain",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author chain ID or a collection of IDs; None selects all chains."
+            },
+            {
+              "name": "residues",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author residue number, inclusive (first, last) tuple, or list of individual numbers."
+            }
+          ],
+          "description": "Set opacity on the selected residues.",
+          "returns": "The protein.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 171
+        },
+        {
+          "name": "ribbon",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.ribbon(*, color='rainbow', width=1.05, bases='none')",
+          "parameters": [
+            {
+              "name": "color",
+              "type": "",
+              "annotation": false,
+              "default": "'rainbow'",
+              "kind": "keyword only",
+              "description": "Palette: secondary, base, rainbow, chain, or a fixed color. Surfaces also accept element."
+            },
+            {
+              "name": "width",
+              "type": "",
+              "annotation": false,
+              "default": "1.05",
+              "kind": "keyword only",
+              "description": "Ribbon width in ångströms."
+            },
+            {
+              "name": "bases",
+              "type": "",
+              "annotation": false,
+              "default": "'none'",
+              "kind": "keyword only",
+              "description": "Nucleotide base style: slabs, rings, sticks, ladder, or none. None in Representation preserves the current style."
+            }
+          ],
+          "description": "Show a continuous backbone ribbon.",
+          "returns": "The protein.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 209
+        },
+        {
+          "name": "set_bases",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.set_bases(\n    style,\n    *,\n    backbone_radius=None,\n    base_thickness=None,\n    base_radius=None,\n)",
+          "parameters": [
+            {
+              "name": "style",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "slabs, rings, sticks, ladder, or none."
+            },
+            {
+              "name": "backbone_radius",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Positive nucleotide cartoon tube radius in ångströms."
+            },
+            {
+              "name": "base_thickness",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Positive slab/ring thickness in ångströms."
+            },
+            {
+              "name": "base_radius",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Positive base-stick and connector radius in ångströms."
+            }
+          ],
+          "description": "Set nucleotide base shapes and optional dimensions before a scene begins. Use BaseStyle for an animated change.",
+          "returns": "The molecule.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 218
+        },
+        {
+          "name": "ball_and_stick",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.ball_and_stick(*, atom_scale=0.3, bond_radius=0.14, color='element')",
+          "parameters": [
+            {
+              "name": "atom_scale",
+              "type": "",
+              "annotation": false,
+              "default": "0.3",
+              "kind": "keyword only",
+              "description": "Multiplier applied to element van der Waals radii for ball-and-stick atoms."
+            },
+            {
+              "name": "bond_radius",
+              "type": "",
+              "annotation": false,
+              "default": "0.14",
+              "kind": "keyword only",
+              "description": "Covalent bond cylinder radius in ångströms."
+            },
+            {
+              "name": "color",
+              "type": "",
+              "annotation": false,
+              "default": "'element'",
+              "kind": "keyword only",
+              "description": "Palette: element, base, chain, rainbow, secondary, or a fixed color."
+            }
+          ],
+          "description": "Show atom spheres and covalent bond cylinders, with element colors by default.",
+          "returns": "The protein.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 235
+        },
+        {
+          "name": "with_secondary_structure",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.with_secondary_structure(assignments)",
+          "parameters": [
+            {
+              "name": "assignments",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "One \"H\", \"E\", or \"C\" code per topology residue for helix, sheet, or coil."
+            }
+          ],
+          "description": "Assign helix, sheet, and coil labels before adding the protein to a scene.",
+          "returns": "The protein.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 244
+        },
+        {
+          "name": "animate",
+          "kind": "property",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.animate",
+          "parameters": [],
+          "description": "Create a builder for protein transforms, opacity, and color animation.",
+          "returns": "Animate",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 253
+        },
+        {
+          "name": "model_matrix",
+          "kind": "property",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.model_matrix",
+          "parameters": [],
+          "description": "Current 4 × 4 transform from local to world coordinates.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 259
+        },
+        {
+          "name": "snapshot",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.snapshot()",
+          "parameters": [],
+          "description": "Capture the current state for deterministic timeline evaluation.",
+          "returns": "State dictionary.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 265
+        },
+        {
+          "name": "restore",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.restore(s)",
+          "parameters": [
+            {
+              "name": "s",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "State returned by snapshot()."
+            }
+          ],
+          "description": "Restore a state produced by snapshot().",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 298
+        }
+      ],
+      "extra_parameters": []
+    },
+    {
+      "id": "nucleic.BaseStyle",
+      "name": "BaseStyle",
+      "module": "nucleic",
+      "kind": "class",
+      "href": "/reference/nucleic/BaseStyle/",
+      "description": "Crossfade nucleotide bases between slabs, rings, sticks, ladder, or none.",
+      "notes": "Use inside scene.play(..., run_time=seconds). Coloring, residue opacity and backbone geometry use independent tracks.",
+      "import_path": "proteinmotion",
+      "signature": "BaseStyle(molecule, style, **kwargs)",
+      "parameters": [
+        {
+          "name": "molecule",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Protein or NucleicAcid scene object."
+        },
+        {
+          "name": "style",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Target nucleotide base style."
+        },
+        {
+          "name": "kwargs",
+          "type": "",
+          "default": null,
+          "kind": "variadic keyword",
+          "description": "Additional keyword options described below or in the linked constructor."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/nucleic.py",
+      "line": 22,
+      "bases": [
+        "animation.Animation"
+      ],
+      "attributes": {},
+      "guide": "dna-rna",
+      "example": "dna-styles",
+      "alias": null,
+      "members": [
+        {
+          "name": "bind",
+          "kind": "method",
+          "owner": "nucleic.BaseStyle",
+          "inherited": false,
+          "signature": "BaseStyle.bind()",
+          "parameters": [],
+          "description": "Capture starting values when the scene schedules the animation.",
+          "returns": "None",
+          "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
+          "source": "src/proteinmotion/nucleic.py",
+          "line": 35
+        },
+        {
+          "name": "apply",
+          "kind": "method",
+          "owner": "nucleic.BaseStyle",
+          "inherited": false,
+          "signature": "BaseStyle.apply(alpha)",
+          "parameters": [
+            {
+              "name": "alpha",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Eased animation progress in [0, 1]."
+            }
+          ],
+          "description": "Evaluate the animation at eased progress alpha. Called by the timeline.",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/nucleic.py",
+          "line": 39
+        },
+        {
+          "name": "targets",
+          "kind": "property",
+          "owner": "animation.Animation",
+          "inherited": true,
+          "signature": "BaseStyle.targets",
+          "parameters": [],
+          "description": "Objects whose state this animation changes.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 24
+        }
+      ],
+      "extra_parameters": [
+        {
+          "name": "rate_func",
+          "type": "",
+          "annotation": false,
+          "default": "smooth",
+          "kind": "keyword only",
+          "description": "Callable that maps progress in [0, 1] to a finite value in [0, 1]."
+        }
+      ]
     }
   ],
   "dependencies": {
-    "docs/reference/catalog.json": "5dad00653f62493e150cab65740aeef458db272414f6ced4d518ea755c2cfeac",
+    "docs/reference/catalog.json": "c28d90996906e0f7928187326226733755b114e7776e92d7ab3792b24c20bebc",
     "scripts/build_reference.py": "ae856e77fd527326575f8e45523fa04ca32f72f72b857ff999317e1fdf0ec3a2",
-    "src/proteinmotion/__init__.py": "8f6185b69531258b93eba18ed7abf86d1c5e548a56f0467e824f60c93a383bee",
+    "src/proteinmotion/__init__.py": "3066ea9b89435fa3db62ebd4aad2caae35186ee67c32d925c4c9c52eb79a1098",
     "src/proteinmotion/__main__.py": "3129adff95e0f38b87ab34cddfc27082c7892bcaec267ff5d40f160fdf55b44a",
     "src/proteinmotion/_blender_worker.py": "3010c14ed7ddb07d86b8d6163b32591eefb4d9dc3eeba526bde223f6e303ef1e",
-    "src/proteinmotion/_eevee_geometry.py": "02229f6c98719633d91f337971c4bc0eba40e194d580cac15e9f71b96ce9cf01",
-    "src/proteinmotion/animation.py": "d5e3d81bb29783e903fb1ac89d65cc574e0818d1787a6bdcc963e2ef8e145fda",
-    "src/proteinmotion/annotations.py": "b0e92626f03228dca889aa0998f9199d4aa55140c2278632ec68061591a5d562",
+    "src/proteinmotion/_eevee_geometry.py": "503ebb308cba42141022a50bf59bfed2facec6a82d36e97c0492310a8d388869",
+    "src/proteinmotion/animation.py": "cf89ecfe7a008c04e27cefb20eb572f70502d94728e3c6f1759e4553a5da6c0d",
+    "src/proteinmotion/annotations.py": "d3cf73a04dddbd885bb71e549c4833aa4a076ac329eccbceb0d8025bd9a24870",
     "src/proteinmotion/authoring.py": "da24509aaef749da2b2dbaf88557a697ec16c13b6e1f3f261e9702adefcb619f",
-    "src/proteinmotion/backbone.py": "d1cbdd5ef3d7aae07d37fd8e5dffcca8c36d7911380b6db674f4f24f605b36d9",
+    "src/proteinmotion/backbone.py": "b9136cc97b24148ec7cd1f36a6839bd54a013fefe6a53df6b3c423e9373ed8b8",
     "src/proteinmotion/camera.py": "a95ecbca7c056199192fec11273a7273302dd1531016ad9bffe74322d713f210",
     "src/proteinmotion/cli.py": "da4e8468ed4c0fc592ca2581efc0813f762d04a09f75e01b4b96d53b231691c7",
     "src/proteinmotion/density.py": "c062508e5511848bbc0657da0c04483c79c2dc9070297645db4459d236feab8a",
-    "src/proteinmotion/distances.py": "6cbff134bbdf5325b249b84d5417e3f549ea39ce711c7097ccd290a0df0cafd3",
+    "src/proteinmotion/distances.py": "906f8c6f568b91f4b5fd28ebbd6e04cbce554f7f09209e76bfb2fa9dd3a43ea3",
     "src/proteinmotion/eevee.py": "19272f5a9cbf8ac2d484adad2765b460338e1cc0fad376c83273ec6e6cd37a71",
-    "src/proteinmotion/geometry.py": "bf7e727fc64fdfa649be19d290dadb1e92eeafcb611b41bacb95942ffae7cdbe",
-    "src/proteinmotion/interactions.py": "892b6d9ad012c2809ae0fa4d810a3485fea2f092b1469a47635682cdc41cefe4",
-    "src/proteinmotion/matching.py": "3e846573127daa51306a158fecbee149918b31e3aff0e89e72913b5cfbe278bc",
+    "src/proteinmotion/geometry.py": "1f2f018c5b359147289f604db7aaa25e42724ab6943f00c7048ffbc9a5e73ae1",
+    "src/proteinmotion/interactions.py": "92d23e15f6b14853fa985ba2121c8a7ec60c2f915d03fec33d98af2c7344d32c",
+    "src/proteinmotion/matching.py": "07362dbf610bae60e3b21506e83cffabe1a518b998f930d1c53bde5cb7d8b4fd",
     "src/proteinmotion/math3d.py": "b5fa8b9f6ecbc6108851aa43a600d2bc36c910e2a3f4d9bca765f3a20c8739d4",
     "src/proteinmotion/mesh.py": "e79e92819f0ac0d26e1613ec0ae536bf6f8a12f1664cfe7e248ed77e58f124ec",
+    "src/proteinmotion/nucleic.py": "3c5d3e64326a1d852ca4e48b50a25a022caa69e3350ef6765b95d611b15946dd",
     "src/proteinmotion/overlay.py": "60939b7cf950bd6d8650ead5efb3e6090b0722925cb188ebbec857d062af1737",
-    "src/proteinmotion/plots.py": "7d76ef084420851bb27940420541274d5f07a38c6f2a63d0b0cc7b68ac657e59",
+    "src/proteinmotion/plots.py": "a532dc7538b635d59206f57523025c9acb948f8b98f063bf4c36ef188e3e711b",
     "src/proteinmotion/preview.py": "644278261689781cca99840268cc9b7e8f5844bd17150c520615d2b0692dde3f",
-    "src/proteinmotion/properties.py": "e8a8b5f2ad6def682e4a4e1bb68837a1e245b2f17926283b5a7deb814adab0e9",
-    "src/proteinmotion/protein.py": "5258ec8f8f3f1b6ecf18f8f0bf9f9b317314971d6926148ae67fd6ef9997db8b",
+    "src/proteinmotion/properties.py": "cf3a677b43d76ba5d8bf97f3eb1b071462e58170d6642c5554fa49acf2bb7bf2",
+    "src/proteinmotion/protein.py": "317939c58cf1893d6e90c4214b08b94b3fd9ed7a0e7a97afc41ddc0e1b91d657",
     "src/proteinmotion/rates.py": "f367d8cd0550b494af67a66b90c17dea4b1239efaa9c9f4bd89316defc2a45ce",
-    "src/proteinmotion/regions.py": "01b332bfc68dcadade663b0e82d905214204e06700bd9a9af3c7d2a9dbda3c9b",
-    "src/proteinmotion/renderer.py": "e68d4a2ad72bc71c6a83c10739fcd3adb1478f54cca4f7086526ec2d260909a8",
+    "src/proteinmotion/regions.py": "fbab4528164ae509f4e30ac921218bb865f367288e37c3ad5b3b2add1fc05a35",
+    "src/proteinmotion/renderer.py": "e58db49e4a69d8bfde18854c41f1baa1cdc54a36a9ba5e2a4bd4aa3a17d17a2d",
     "src/proteinmotion/scene.py": "81811114aa223b436554a0be8114a725c79aa035f076f62cf9c1cadc8d8d6d8d",
-    "src/proteinmotion/structure.py": "e926bba31d04daf97c8526f259c1ae40cfdba486bc2d9c98c975164932a325cb",
+    "src/proteinmotion/structure.py": "15d0dd45fc5170df51635e2cd8e7de60d381323989d4e3b1c476ccd85b2a22fe",
     "src/proteinmotion/styling.py": "ed2fabc9af4f77d0917f44e3918a2893dd3aa342a30cf5e0da76603424700f21",
     "src/proteinmotion/surface.py": "59d248d116c05d10cdb59650cf4780ef5690bb7596045f2e4f6338d87136ea25",
     "src/proteinmotion/text_geometry.py": "13e937524def811f9001cfe7aead3cc583b93f2c69a7d6983457910c5fe1a767",
-    "src/proteinmotion/trajectory.py": "9aa5a9085fbc0e08e464b9c51d65f557aec80c20112dbf38b0a386fdfebbb0f1",
+    "src/proteinmotion/trajectory.py": "76fc3f315759fba7518a2243ea02e764933e58283d9205de65a6358c8101e28e",
     "src/proteinmotion/video.py": "14d3fa9b3b6f0117ffda4c1a4f1ee742f5151b83ceca6d21556d4ddc7776c899"
   }
 }

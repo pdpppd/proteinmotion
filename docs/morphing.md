@@ -17,13 +17,23 @@ self.play(Morph(p, rest, align=False), run_time=2)
 self.wait(0.5)
 ```
 
-`Morph` matches atoms by `(chain, residue number, insertion code, residue name, atom name)`. Input atom order can differ. By default, it aligns matched Cα atoms with a Kabsch rigid fit. It uses all atoms if Cα atoms are insufficient.
+`Morph` matches atoms by `(chain, residue number, insertion code, residue name, atom name)`. Input atom order can differ. By default, it aligns Cα atoms for proteins and C1′ atoms for DNA/RNA with a Kabsch rigid fit. A nucleotide fit requires at least three anchors; use `align=False` when those coordinates are unavailable. Protein-only inputs retain the all-atom fallback when fewer than three Cα atoms exist.
 
 Use `atom_map` to map every source atom to a unique target index. A raw coordinate array must follow source atom order. `Morph` keeps the source topology fixed and interpolates coordinates for visualization.
 
-## Different proteins: contact-guided backbone morphing
+## DNA and RNA morphs
 
-`BackboneMorph` handles proteins with different sequences, residue counts, and atom sets. It matches Cα atoms using their structural contacts, moves the selected residues, and fades the unmatched residues.
+Use the same `match_backbones` and `BackboneMorph` calls with `NucleicAcid` objects. C1′ positions define the contact maps, rigid alignment, and delayed motion. Every atom in a matched nucleotide moves with its C1′; the sugar, phosphate, and base retain each endpoint’s internal geometry as their representations crossfade. Cartoon traces continue to use C4′.
+
+Select one strand per endpoint with `source_chain` and `target_chain`, or load it with `chains="A"`. Delays follow deposited residue order, usually 5′ to 3′. Residues missing C1′ are excluded from automatic matching and join the unmatched fades. An explicit mapping that includes such a residue raises an error. Legacy `C1*` atom names are accepted.
+
+The match report records `source_anchor_atom`, `target_anchor_atom`, `source_anchor_count`, `target_anchor_count`, and `aligned_anchor_rmsd_angstrom`. Protein reports also keep the older Cα field names. Saved matches record the anchor choice and validate it when used.
+
+See the [DNA morph script and rendered result](https://pdpppd.github.io/proteinmotion/docs/dna-rna/#dna-morph) for an example using two deposited structures.
+
+## Contact-guided backbone morphing
+
+`BackboneMorph` handles proteins or nucleic acids with different sequences, residue counts, and atom sets. It uses Cα for proteins and C1′ for DNA/RNA to compare contact maps, align the structures, and move matched residues. Unmatched residues fade. Each endpoint must select the same polymer type.
 
 ```python
 from proteinmotion import BackboneMorph, Protein, Rotate, match_backbones
@@ -66,7 +76,8 @@ For selected correspondence `(iₖ, jₖ)`, the soft contact map is
 The objective is lexicographic: **maximize the number of matched residues** subject
 to `abs(Csource(iₖ,iₗ) - Ctarget(jₖ,jₗ)) <= max_contact_error` for every selected
 pair, then **minimize the sum of squared contact errors** among equal-sized sets.
-Both source and destination indices increase strictly N-to-C, giving an injective,
+Both source and destination indices increase strictly in deposited chain order:
+N to C for proteins, normally 5′ to 3′ for nucleic acids. This gives an injective,
 order-preserving correspondence. All off-diagonal contacts, including sequence
 neighbors, participate. Error is dimensionless; RMSD is separately reported in Å.
 
@@ -80,17 +91,17 @@ The calmodulin → troponin C example matches **114 of 144 source Cα residues**
 
 Thirty source residues fade out and 48 target residues fade in. With a 25 ms delay, the last matched residue starts 2.825 s after the first. Each residue moves for 3.175 s during the 6 s morph.
 
-For `K` matched pairs, each move lasts `run_time - (K-1)*residue_delay` seconds. This value must be positive. Each matched source and target Cα follows the same path. Their representations crossfade along that path.
+For `K` matched pairs, each move lasts `run_time - (K-1)*residue_delay` seconds. This value must be positive. Each matched source and target anchor follows the same path. Their representations crossfade along that path.
 
 The GPU stores endpoint coordinates and residue timing. Playback updates animation parameters and supports backward seeking.
 
-`BackboneMorph` supports **cartoon, ribbon, and ball-and-stick**, with one selected chain per endpoint. The shorter chain can contain at most 800 Cα residues. For multi-chain inputs, set `source_chain` and `target_chain`; remaining residues join the unmatched fades. Correspondences must preserve residue order.
+`BackboneMorph` supports **cartoon, nucleotide base styles, ribbon, ball-and-stick, and surfaces**, with one selected chain per endpoint. The shorter chain can contain at most 800 residues with the required anchor atom. For multi-chain inputs, set `source_chain` and `target_chain`; remaining residues join the unmatched fades. Correspondences must preserve residue order.
 
 The morph controls both proteins’ transforms, coordinates, and opacity. Use camera motion for rotation during the morph. With `align=False`, the target finishes at its original world coordinates. With `align=True`, it finishes in the aligned position. Continue the scene by animating the target object; the source is hidden.
 
 The interpolated path can contain stretched bonds and atomic clashes. It describes a visual transition rather than a calculated molecular pathway.
 
-For ball-and-stick, call `.ball_and_stick()` on both proteins before the morph. Each matched residue moves with its Cα and keeps its internal geometry. Source atoms fade out as target atoms fade in. The correspondence is between residues; different side-chain atoms have no individual mapping.
+For ball-and-stick, call `.ball_and_stick()` on both proteins before the morph. Each matched residue moves with its Cα or C1′ and keeps its internal geometry. Source atoms fade out as target atoms fade in. The correspondence is between residues; different side-chain atoms have no individual mapping.
 
 Bonds use the lower opacity of their endpoints. Inter-residue bonds can stretch during the transition. The `BallAndStickDemo` and `BackboneDemo` examples use the same residue mapping, camera, and timing.
 

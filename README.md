@@ -1,6 +1,6 @@
 # ProteinMotion
 
-ProteinMotion is a Python package for protein animation. Load a structure or trajectory, choose a molecular representation, add animations and labels, and export a video. The scene API follows Manim's `add`, `play`, and `wait` syntax.
+ProteinMotion is a Python package for animating proteins, DNA, and RNA. Load a structure or trajectory, choose a molecular representation, add animations and labels, and export a video. The scene API follows Manim's `add`, `play`, and `wait` syntax.
 
 [![Checks](https://github.com/pdpppd/proteinmotion/actions/workflows/checks.yml/badge.svg)](https://github.com/pdpppd/proteinmotion/actions/workflows/checks.yml)
 [![Documentation](https://github.com/pdpppd/proteinmotion/actions/workflows/pages.yml/badge.svg)](https://pdpppd.github.io/proteinmotion/)
@@ -19,17 +19,19 @@ The [calmodulin and troponin C demo](https://pdpppd.github.io/proteinmotion/docs
 
 Use Python 3.11 or later and a GPU. On Macs with Apple silicon, use an arm64 Python installation. ProteinMotion uses Metal for rendering and VideoToolbox for video encoding on macOS.
 
-Install v0.9.1 from GitHub Releases:
+Install v0.10.0 from GitHub Releases:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install \
-  https://github.com/pdpppd/proteinmotion/releases/download/v0.9.1/proteinmotion-0.9.1-py3-none-any.whl
+  https://github.com/pdpppd/proteinmotion/releases/download/v0.10.0/proteinmotion-0.10.0-py3-none-any.whl
 proteinmotion doctor
 ```
 
 The package includes fonts, shaders, a sample structure, and a starter script. PyAV provides the FFmpeg libraries used for video export. See the [installation guide](https://pdpppd.github.io/proteinmotion/docs/getting-started/) for optional preview and MD trajectory readers.
+
+DNA/RNA support is included in v0.10.0. The [DNA/RNA guide](https://pdpppd.github.io/proteinmotion/docs/dna-rna/) includes runnable examples and rendered output.
 
 ## Render a video
 
@@ -84,17 +86,18 @@ The selected atoms define the focus point and follow the protein during motion. 
 ## Features
 
 - **Representations:** cartoon, ribbon, ball-and-stick, and molecular surfaces.
+- **DNA and RNA:** nucleotide backbones with base slabs, filled rings, sticks, or ladder rods. Colors, opacity, labels, surfaces, trajectories, and EEVEE focus work with nucleotide selections.
 - **Animation:** rotation, translation, camera movement, deformation, and transitions between representations.
 - **Residue styling:** color and opacity changes, applied together or delayed by residue.
 - **Numerical properties:** B factors, aligned RMSF, and imported residue values mapped to color and cartoon thickness.
 - **Plots:** distance traces, live contact maps, sequence strips, and color legends synchronized with the movie.
 - **Density:** MRC/CCP4 maps, animated contours, and moving slices, with map coordinates preserved.
-- **Labels:** text writing and erasing, amino acid names, and callout lines that connect labels to selected regions.
+- **Labels:** text writing and erasing, amino acid and nucleotide names, and callout lines that connect labels to selected regions.
 - **Rendering:** native GPU rendering or Blender EEVEE with depth of field.
 - **Region tools:** camera focus and 3D sphere, box, or atom highlights.
 - **Measurements:** distance labels, hydrogen-bond detection, and screened Coulomb estimates with imported charges.
 - **States and trajectories:** multi-model PDB/mmCIF, NumPy arrays, and MDAnalysis readers for XTC, DCD, TRR, and other formats.
-- **Protein morphs:** contact-map matching, delayed backbone motion from N to C, and fades for unmatched residues.
+- **Structure morphs:** contact-map matching using protein Cα or DNA/RNA C1′ atoms, delayed motion along each chain, and fades for unmatched residues.
 
 The [guides](https://pdpppd.github.io/proteinmotion/docs/scenes/) explain the options and provide code examples. ProteinMotion runs as a standalone renderer. Its exported videos can be used in Manim or a video editor.
 
@@ -108,7 +111,7 @@ Copy the skill to your agent's skills directory:
 proteinmotion install-skill --path /path/to/skills/proteinmotion-movies
 ```
 
-You can also [download the skill ZIP](https://github.com/pdpppd/proteinmotion/releases/download/v0.9.1/proteinmotion-movies-v0.9.1.zip) and extract it there. For agents that read instructions directly, point them to `SKILL.md` and keep the references and assets beside it.
+You can also [download the skill ZIP](https://github.com/pdpppd/proteinmotion/releases/download/v0.10.0/proteinmotion-movies-v0.10.0.zip) and extract it there. For agents that read instructions directly, point them to `SKILL.md` and keep the references and assets beside it.
 
 Example request:
 
@@ -122,6 +125,9 @@ These scripts and their input structures are in the repository:
 
 | Example | Source |
 |---|---|
+| DNA morphs with C1′ matching and delayed nucleotide motion | [dna_morph.py](examples/dna_morph.py) |
+| DNA base styles, strand transparency, and surfaces | [dna_styles.py](examples/dna_styles.py) |
+| tRNA regions, modified bases, and B-factor surfaces | [rna_styles.py](examples/rna_styles.py) |
 | B factors, residue colors, and cartoon thickness | [numerical_properties.py](examples/numerical_properties.py) |
 | NMR playback with distance, contact, and sequence plots | [synchronized_plots.py](examples/synchronized_plots.py) |
 | Electron-density contours and slices | [density_maps.py](examples/density_maps.py) |

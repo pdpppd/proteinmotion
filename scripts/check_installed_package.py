@@ -31,6 +31,7 @@ def main():
     for relative in [
         "_blender_worker.py",
         "_eevee_geometry.py",
+        "nucleic.py",
         "shaders/molecule.wgsl",
         "shaders/text.wgsl",
         "shaders/panel.wgsl",
@@ -44,6 +45,7 @@ def main():
         "_skill/agents/openai.yaml",
         "_skill/references/animation.md",
         "_skill/references/data-visualization.md",
+        "_skill/references/nucleic-acids.md",
         "_skill/references/annotations-and-interactions.md",
         "_skill/assets/film.py",
         "_skill/assets/1ubq.cif",

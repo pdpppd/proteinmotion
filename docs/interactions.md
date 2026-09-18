@@ -27,7 +27,7 @@ for mode in ("3d", "2d"):
     self.play(FadeOut(ruler), FadeOut(title), run_time=0.5)
 ```
 
-A whole single-residue selection uses its Cα by default, if one exists. A one-atom selection always uses that atom. `anchor="centroid"` uses the mean of the selected coordinates; selections spanning multiple residues also use their centroid. Set `unit="nm"` to convert the displayed distance from ångströms to nanometers, or `unit=""` for no suffix. The `.distance` property remains in ångströms for model space.
+A whole single-residue selection uses its backbone anchor by default: Cα for proteins, C4′ for nucleotides, or P when C4′ is absent. A one-atom selection always uses that atom. `anchor="centroid"` uses the mean of the selected coordinates; selections spanning multiple residues also use their centroid. `anchor="ca"` retains the protein-only Cα behavior. Set `unit="nm"` to convert the displayed distance from ångströms to nanometers, or `unit=""` for no suffix. The `.distance` property remains in ångströms for model space.
 
 | Option | Default | Meaning |
 |---|---|---|
@@ -96,7 +96,9 @@ An inferred backbone H is placed 1.01 Å from N along the outward bisector of th
 
 Inference is limited to backbone amide hydrogens. Supply prepared coordinates for protonation-dependent analyses and side-chain hydrogens.
 
-The default donor and acceptor templates cover common standard amino-acid groups. For histidine tautomers, unusual protonation, ligands, water, or nonstandard residues, supply explicit hydrogens and suitable `donors=` and `acceptors=` selections. These can be `Region` objects or integer atom-index arrays. A missing contact can reflect missing atoms or a geometry cutoff.
+The default donor and acceptor templates cover common standard amino-acid groups and canonical A, C, G, T, U, and I base sites. Nucleotide bases require explicit hydrogen coordinates; load with `include_hydrogens=True` and choose `hydrogens="explicit"`. For histidine tautomers, unusual protonation, ligands, water, or modified residues, supply explicit hydrogens and suitable `donors=` and `acceptors=` selections. These can be `Region` objects or integer atom-index arrays. A missing contact can reflect missing atoms or a geometry cutoff.
+
+For DNA/RNA electrostatics, supply imported atomic charges. The built-in formal-charge template covers protein side chains.
 
 ## Screened Coulomb electrostatics
 

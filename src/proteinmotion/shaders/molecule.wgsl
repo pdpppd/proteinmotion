@@ -225,6 +225,32 @@ fn inside_bond_atom(in:Bond) -> bool {
     return transparent(shade(in.p,in.normal,in.color).rgb,alpha,in.p);
 }
 
+// Nucleotide planes and rods read the same interpolated atoms and appearance tracks.
+// Shape buffers stay resident through rotation, deformation, and trajectory playback.
+@vertex fn base_vertex(@location(0) local:vec3f, @location(1) normal:vec3f,
+                       @location(2) base:vec3f, @location(3) owner:u32,
+                       @location(4) frame:vec3u, @location(5) mode:u32) -> Surface {
+    let origin=position(frame.x);
+    var x=safe_normal(position(frame.y)-origin);
+    var z=safe_normal(cross(x,position(frame.z)-origin));
+    var y=cross(z,x);
+    if mode>0u {
+        let axis=x;
+        var basis=vec3f(0,1,0);
+        if abs(axis.y)>0.9 { basis=vec3f(1,0,0); }
+        x=safe_normal(cross(axis,basis));
+        y=cross(axis,x);
+        z=position(frame.y)-origin;
+    }
+    var out:Surface;
+    out.p=world(origin+x*local.x+y*local.y+z*local.z);
+    out.clip=camera.vp*vec4f(out.p,1.0);
+    out.normal=world_normal(x*normal.x+y*normal.y+safe_normal(z)*normal.z);
+    out.color=tint(owner,base);
+    out.opacity=atom_opacity(owner);
+    return out;
+}
+
 struct Sphere {
     @builtin(position) clip:vec4<f32>,
     @location(0) plane:vec3<f32>,

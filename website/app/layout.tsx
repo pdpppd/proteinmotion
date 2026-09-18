@@ -12,15 +12,15 @@ import { asset, repo, site } from "@/lib/config";
 export const metadata: Metadata = {
   metadataBase: new URL(site + "/"),
   title: {
-    default: "ProteinMotion — Protein animation in Python",
+    default: "ProteinMotion — Molecular animation in Python",
     template: "%s · ProteinMotion",
   },
   description:
-    "Create protein animations in Python. Render cartoons, ball-and-stick models, surfaces, labels, morphs, NMR ensembles, and MD trajectories.",
+    "Animate proteins, DNA, and RNA in Python. Render cartoons, nucleotide bases, atoms, surfaces, labels, NMR ensembles, and MD trajectories.",
   icons: { icon: asset("icon.svg") },
   openGraph: {
     title: "ProteinMotion",
-    description: "Protein animation in Python.",
+    description: "Protein, DNA, and RNA animation in Python.",
     type: "website",
     images: [
       {

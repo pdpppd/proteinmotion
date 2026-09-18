@@ -12,12 +12,13 @@ from .structure import Atom, Residue, Topology
 def endpoint(region, anchor):
     if not isinstance(region, Region):
         raise TypeError("Distance endpoints must be Regions selected from proteins")
-    if anchor not in ("ca", "centroid"):
-        raise ValueError("anchor must be ca or centroid")
-    if anchor == "ca" and len(region.atom_indices) > 1 and len(region.residue_indices) == 1:
-        ca = region.protein.topology.residues[region.residue_indices[0]].ca
-        if ca >= 0:
-            return Region(region.protein, [ca])
+    if anchor not in ("backbone", "ca", "centroid"):
+        raise ValueError("anchor must be backbone, ca, or centroid")
+    if anchor != "centroid" and len(region.atom_indices) > 1 and len(region.residue_indices) == 1:
+        residue = region.protein.topology.residues[region.residue_indices[0]]
+        index = residue.trace_atom if anchor == "backbone" else residue.ca
+        if index >= 0:
+            return Region(region.protein, [index])
     return region
 
 
@@ -85,7 +86,7 @@ class Distance(Annotation):
         end,
         *,
         mode="3d",
-        anchor="ca",
+        anchor="backbone",
         space="model",
         color="#f2ba67",
         label_color=None,

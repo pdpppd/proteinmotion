@@ -70,7 +70,7 @@ A pull request should explain the behavior change and relevant checks. Record th
 
 ## Package and skill releases
 
-The AI agent skill source is `skills/proteinmotion-movies`. Its six resource files are mapped into the wheel by `pyproject.toml`; keep that mapping in sync when adding a skill resource. Run the skill-creator validator when changing its instructions. The starter scene is shared by the skill and `proteinmotion init`, so maintain it once.
+The AI agent skill source is `skills/proteinmotion-movies`. Its resource files are mapped into the wheel by `pyproject.toml`; keep that mapping in sync when adding a skill resource. Run the skill-creator validator when changing its instructions. The starter scene is shared by the skill and `proteinmotion init`, so maintain it once.
 
 Build with `python -m build` (the wheel is built from the sdist). Install that wheel into a fresh environment, change out of the checkout, and run `python -I /path/to/repo/scripts/check_installed_package.py --render` on a native GPU. CI runs the same installed-resource check without rendering. Distribute the wheel, source archive, skill ZIP and checksums as versioned GitHub Release assets. Publish versioned release assets after the release checks pass.
 

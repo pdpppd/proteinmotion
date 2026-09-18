@@ -68,3 +68,7 @@ proteinmotion render examples/nmr_regions.py NMRAtoms -o nmr-116-states-atoms.mp
 `RegionTour` highlights residues 23–34 with a gold sphere and box, then residues 71–76 with cyan atom highlights and a box. It switches to ball-and-stick for the tail. The other two scenes play all 116 models in cartoon and ball-and-stick.
 
 NMR models describe structural variation. Their deposited order is not a time sequence. The animation interpolates between them over a duration chosen for viewing. See the [ensemble report](nmr-ensemble-report.json) for source and alignment details.
+
+## DNA and RNA trajectories
+
+The MDAnalysis reader selects `protein or nucleic` by default. Pass `selection="nucleic"` to keep nucleic acids alone. `NucleicAcid.from_trajectory(trajectory)` uses the base palette. Base slabs and rings follow their ring atoms through each state; sticks follow individual bond endpoints. [DNA/RNA guide](dna-rna.md).

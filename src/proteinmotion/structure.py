@@ -34,6 +34,32 @@ class Residue:
     ca: int
     oxygen: int
     secondary: str = "C"
+    kind: str = "protein"
+    backbone: int = -1
+    guide: int = -1
+    base: str = ""
+
+    @property
+    def is_nucleic(self):
+        return self.kind in ("dna", "rna", "nucleic")
+
+    @property
+    def trace_atom(self):
+        """Cα for amino acids; C4′ (or P in coarse models) for nucleotides."""
+        return self.backbone if self.is_nucleic else self.ca
+
+    @property
+    def guide_atom(self):
+        return self.guide if self.is_nucleic else self.oxygen
+
+    @property
+    def morph_atom(self):
+        """C1′ for nucleotides, Cα for amino acids; -1 when that atom is missing."""
+        return self.guide if self.is_nucleic else self.ca
+
+    @property
+    def morph_atom_name(self):
+        return "C1'" if self.is_nucleic else "CA"
 
 
 @dataclass
@@ -74,10 +100,56 @@ def infer_bonds(atoms, xyz):
     return pairs[mask].astype(np.uint32)
 
 
-def make_chains(residues, xyz):
+def residue_record(chain, resid, icode, name, names, atoms, secondary="C", parent=None):
+    """Shared structure/MD classification; keep Cα distinct from nucleotide anchors."""
+    names = {n.replace("*", "'"): i for n, i in names.items()}
+    info = gemmi.find_tabulated_residue(parent or name)
+    nucleic = info.is_nucleic_acid() or ("C1'" in names and "C4'" in names)
+    ca = names.get("CA", -1)
+    if ca >= 0 and atoms[ca].element != "C":
+        ca = -1
+    if nucleic:
+        kind = (
+            "dna"
+            if info.kind == gemmi.ResidueKind.DNA
+            else "rna"
+            if info.kind == gemmi.ResidueKind.RNA
+            else "nucleic"
+        )
+        base = info.one_letter_code.strip().upper()
+        return Residue(
+            chain,
+            resid,
+            icode,
+            name,
+            -1,
+            -1,
+            "C",
+            kind,
+            names.get("C4'", names.get("P", -1)),
+            names.get("C1'", -1),
+            base if base in ("A", "C", "G", "T", "U", "I") else "N",
+        )
+    return Residue(
+        chain,
+        resid,
+        icode,
+        name,
+        ca,
+        names.get("O", -1),
+        secondary,
+        "protein" if info.is_amino_acid() or ca >= 0 else "other",
+    )
+
+
+def make_chains(residues, xyz, atoms=()):
     runs, run = [], []
+    links = {}
+    for i, atom in enumerate(atoms):
+        if atom.name.replace("*", "'") in ("P", "O3'"):
+            links[atom.residue_index, atom.name.replace("*", "'")] = i
     for i, r in enumerate(residues):
-        if r.ca < 0:
+        if r.trace_atom < 0:
             if len(run) > 1:
                 runs.append(np.array(run, np.uint32))
             run = []
@@ -85,7 +157,19 @@ def make_chains(residues, xyz):
         if run:
             prev = residues[run[-1]]
             # Do not draw ribbons across missing residues or chain discontinuities.
-            if r.chain != prev.chain or np.linalg.norm(xyz[r.ca] - xyz[prev.ca]) > 4.8:
+            broken = (
+                r.chain != prev.chain
+                or r.is_nucleic != prev.is_nucleic
+                or np.linalg.norm(xyz[r.trace_atom] - xyz[prev.trace_atom]) > (9.0 if r.is_nucleic else 4.8)
+            )
+            if r.is_nucleic and prev.is_nucleic:
+                a, b = links.get((run[-1], "O3'")), links.get((i, "P"))
+                # A deposited phosphodiester link takes precedence over numbering gaps.
+                if a is not None and b is not None:
+                    broken |= np.linalg.norm(xyz[a] - xyz[b]) > 2.4
+                else:
+                    broken |= r.resid - prev.resid not in (0, 1)
+            if broken:
                 if len(run) > 1:
                     runs.append(np.array(run, np.uint32))
                 run = []
@@ -103,6 +187,10 @@ def load_structure(path, *, chains=None, include_water=False, include_hydrogens=
     if not len(st):
         raise ValueError("Structure contains no models")
     allowed = None if chains is None else ({chains} if isinstance(chains, str) else set(chains))
+    parents = {
+        (m.chain_name, m.res_id.seqid.num, m.res_id.seqid.icode.strip()): m.parent_comp_id
+        for m in st.mod_residues
+    }
     ranges = []
     for h in st.helices:
         ranges.append((h.start, h.end, "H"))
@@ -154,19 +242,16 @@ def load_structure(path, *, chains=None, include_water=False, include_hydrogens=
                         )
                     )
                     xyz.append([a.pos.x, a.pos.y, a.pos.z])
-                # Calcium ions named CA are not alpha carbons.
-                ca = names.get("CA", -1)
-                if ca >= 0 and atoms[ca].element != "C":
-                    ca = -1
                 residues.append(
-                    Residue(
+                    residue_record(
                         chain.name,
                         res.seqid.num,
                         res.seqid.icode.strip(),
                         res.name,
-                        ca,
-                        names.get("O", -1),
+                        names,
+                        atoms,
                         secondary(chain.name, res),
+                        parents.get((chain.name, res.seqid.num, res.seqid.icode.strip())),
                     )
                 )
         return tuple(atoms), tuple(residues), coordinates(xyz)
@@ -182,11 +267,11 @@ def load_structure(path, *, chains=None, include_water=False, include_hydrogens=
         if len(lookup) != len(aa) or set(lookup) != set(keys):
             raise ValueError("All models must contain exactly the same selected atom identities")
         frames.append(coordinates(xx[[lookup[k] for k in keys]]))
-    if not ranges:
+    if not ranges and any(r.ca >= 0 for r in residues):
         warnings.warn(
             "No helix/sheet annotations found; cartoon uses coils. Supply secondary structure "
             "with with_secondary_structure() or a file containing assignments.",
             stacklevel=2,
         )
-    topo = Topology(atoms, residues, infer_bonds(atoms, first), make_chains(residues, first))
+    topo = Topology(atoms, residues, infer_bonds(atoms, first), make_chains(residues, first, atoms))
     return topo, frames

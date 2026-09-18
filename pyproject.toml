@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "proteinmotion"
-version = "0.9.1"
-description = "Programmatic protein animation with a Manim-inspired API and native GPU or Blender EEVEE rendering"
+version = "0.10.0"
+description = "Animate proteins, DNA, and RNA with a Manim-inspired Python API and native GPU or Blender EEVEE rendering"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -44,6 +44,7 @@ packages = ["src/proteinmotion"]
 "skills/proteinmotion-movies/SKILL.md" = "proteinmotion/_skill/SKILL.md"
 "skills/proteinmotion-movies/agents/openai.yaml" = "proteinmotion/_skill/agents/openai.yaml"
 "skills/proteinmotion-movies/references/data-visualization.md" = "proteinmotion/_skill/references/data-visualization.md"
+"skills/proteinmotion-movies/references/nucleic-acids.md" = "proteinmotion/_skill/references/nucleic-acids.md"
 "skills/proteinmotion-movies/references/animation.md" = "proteinmotion/_skill/references/animation.md"
 "skills/proteinmotion-movies/references/annotations-and-interactions.md" = "proteinmotion/_skill/references/annotations-and-interactions.md"
 "skills/proteinmotion-movies/assets/film.py" = "proteinmotion/_skill/assets/film.py"

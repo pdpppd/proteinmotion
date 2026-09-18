@@ -42,6 +42,12 @@ class Protein:
         self._cartoon_scale.flags.writeable = False
         self._surface_options = None
         self.surface_opacity = 0.0
+        self.base_style = np.array([1.0, 0.0, 0.0, 0.0])  # slabs, rings, sticks, ladder
+        self.backbone_radius = 0.38
+        self.base_thickness = 0.36
+        self.base_radius = 0.16
+        # Stable reference geometry for base planes, independent of seeking order.
+        self._base_reference = xyz
 
     def select(self, *, chain=None, residues=None, atoms=None):
         """Select PDB-numbered residues/atom names; the returned Region follows this protein."""
@@ -50,7 +56,7 @@ class Protein:
         return Region.select(self, chain=chain, residues=residues, atoms=atoms)
 
     def label_residues(self, *, chain=None, residues=None, **kwargs):
-        """Create amino-acid labels attached to the selected residues' Cα atoms."""
+        """Label selected amino acids or nucleotides at their backbone anchors."""
         from .annotations import ResidueLabels
 
         return ResidueLabels(self.select(chain=chain, residues=residues), **kwargs)
@@ -110,7 +116,7 @@ class Protein:
         return self
 
     def copy(self):
-        p = Protein(self.topology, self.positions, trajectory=self.trajectory)
+        p = type(self)(self.topology, self.positions, trajectory=self.trajectory)
         p.restore(self.snapshot())
         return p
 
@@ -184,26 +190,55 @@ class Protein:
         self.color_scheme = color
         return self
 
-    def cartoon(self, *, color="secondary"):
+    def cartoon(
+        self, *, color="secondary", bases="slabs", backbone_radius=0.38, base_thickness=0.36, base_radius=0.16
+    ):
+        """Protein cartoons and nucleotide backbone tubes with selectable base shapes.
+
+        ``bases`` is slabs, rings, sticks, ladder, or none. Dimensions are in Å.
+        Nucleotide slabs/rings follow the deposited base plane; ladder rods are schematic.
+        """
+        self.set_bases(
+            bases, backbone_radius=backbone_radius, base_thickness=base_thickness, base_radius=base_radius
+        )
         self.representation = np.array([1.0, 0.0, 0.0])
         self.surface_opacity = 0.0
         self.color_scheme = color
         return self
 
-    def ribbon(self, *, color="rainbow", width=1.05):
+    def ribbon(self, *, color="rainbow", width=1.05, bases="none"):
         if width <= 0:
             raise ValueError("Ribbon width must be positive")
         self.representation = np.array([0.0, 1.0, 0.0])
         self.surface_opacity = 0.0
         self.color_scheme, self.ribbon_width = color, float(width)
+        self.set_bases(bases)
         return self
 
-    def ball_and_stick(self, *, atom_scale=0.30, bond_radius=0.14):
+    def set_bases(self, style, *, backbone_radius=None, base_thickness=None, base_radius=None):
+        """Set nucleotide base geometry. Use BaseStyle in a scene to animate this change."""
+        from .nucleic import base_weights
+
+        weights = base_weights(style)
+        dimensions = dict(
+            backbone_radius=backbone_radius, base_thickness=base_thickness, base_radius=base_radius
+        )
+        for name, value in dimensions.items():
+            if value is not None and (not np.isfinite(value) or value <= 0):
+                raise ValueError(f"{name} must be finite and positive")
+        self.base_style = weights
+        for name, value in dimensions.items():
+            if value is not None:
+                setattr(self, name, float(value))
+        return self
+
+    def ball_and_stick(self, *, atom_scale=0.30, bond_radius=0.14, color="element"):
         if atom_scale <= 0 or bond_radius <= 0:
             raise ValueError("Atom and bond radii must be positive")
         self.representation = np.array([0.0, 0.0, 1.0])
         self.surface_opacity = 0.0
         self.atom_scale, self.bond_radius = float(atom_scale), float(bond_radius)
+        self.color_scheme = color
         return self
 
     def with_secondary_structure(self, assignments):
@@ -253,6 +288,11 @@ class Protein:
             opacity_mix=self._opacity_mix,
             surface_options=self._surface_options,
             surface_opacity=self.surface_opacity,
+            base_style=self.base_style.copy(),
+            backbone_radius=self.backbone_radius,
+            base_thickness=self.base_thickness,
+            base_radius=self.base_radius,
+            base_reference=self._base_reference,
         )
 
     def restore(self, s):
@@ -265,7 +305,38 @@ class Protein:
         self._appearance = s["appearance"]
         self._color_mix, self._opacity_mix = s["color_mix"], s["opacity_mix"]
         self._surface_options, self.surface_opacity = s["surface_options"], s["surface_opacity"]
-        for k in ("position", "orientation", "representation"):
+        self._base_reference = s["base_reference"]
+        for k in ("position", "orientation", "representation", "base_style"):
             setattr(self, k, s[k].copy())
-        for k in ("size", "opacity", "color_scheme", "atom_scale", "bond_radius", "ribbon_width"):
+        for k in (
+            "size",
+            "opacity",
+            "color_scheme",
+            "atom_scale",
+            "bond_radius",
+            "ribbon_width",
+            "backbone_radius",
+            "base_thickness",
+            "base_radius",
+        ):
             setattr(self, k, s[k])
+
+
+class NucleicAcid(Protein):
+    """DNA/RNA scene object with the same selections, surfaces and animations as Protein.
+
+    Loads PDB/mmCIF coordinates and uses base colors by default. Protein can also load
+    mixed protein–nucleic-acid complexes and draws both polymer types together.
+    """
+
+    def __init__(self, topology, xyz, *, trajectory=None):
+        if not any(r.is_nucleic for r in topology.residues):
+            raise ValueError("NucleicAcid requires at least one DNA/RNA residue")
+        super().__init__(topology, xyz, trajectory=trajectory)
+        self.color_scheme = "base"
+
+    def cartoon(self, *, color="base", **kwargs):
+        return super().cartoon(color=color, **kwargs)
+
+    def surface(self, *, color="base", **kwargs):
+        return super().surface(color=color, **kwargs)

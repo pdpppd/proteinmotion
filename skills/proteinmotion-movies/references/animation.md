@@ -65,7 +65,7 @@ self.play(Deform(p, lambda xyz: xyz * [1.12, 1.0, 1.0]), run_time=2)
 self.play(Morph(p, rest, align=False), run_time=2)
 ```
 
-`Morph(p, other_protein)` requires matching atom identities, or an explicit map covering every source atom. Raw coordinate arrays must follow source atom order. These operations retain topology; use `BackboneMorph` for different proteins.
+`Morph(p, other_protein)` requires matching atom identities, or an explicit map covering every source atom. Raw coordinate arrays must follow source atom order. These operations retain topology; use `BackboneMorph` for different protein or nucleic-acid topologies. DNA/RNA alignment uses C1′ anchors.
 
 ## Different-protein contact matching
 
@@ -85,6 +85,6 @@ self.play(Rotate(target, 0.5), run_time=2)
 
 Match preparation can be expensive: save and reuse `ContactMatch.load(...)`. Matching maximizes correspondence size subject to a configurable contact-map error limit, then minimizes error among equal-sized sets. A bounded/pruned search does not guarantee a global optimum; report the actual result rather than promising one.
 
-`BackboneMorph` accepts increasing source/target residue indices and translates whole matched residues with their Cαs. Unmatched residues fade. Atoms in different side chains are crossfaded, not individually mapped. The morph owns both proteins' geometry, transforms, controls and opacity: use camera motion concurrently, not an independent `Rotate` on an endpoint. For K matches, duration must exceed `(K-1)*residue_delay`; the remainder is each residue's motion time. Per-residue easing is controlled with `motion_easing="smooth"`.
+`BackboneMorph` accepts increasing source/target residue indices and translates whole matched residues with Cα for proteins or C1′ for DNA/RNA. Nucleotide delays follow deposited 5′-to-3′ order. Unmatched residues fade. Atoms in different side chains are crossfaded, not individually mapped. The morph owns both proteins' geometry, transforms, controls and opacity: use camera motion concurrently, not an independent `Rotate` on an endpoint. For K matches, duration must exceed `(K-1)*residue_delay`; the remainder is each residue's motion time. Per-residue easing is controlled with `motion_easing="smooth"`.
 
 The target is rigidly aligned when `align=True`. Continue using that same destination object after the morph; the source becomes hidden. Do not reload/recenter the destination between scenes in a continuous tour. Bond lengths and physical energetics are not constrained by this visual interpolation.

@@ -97,12 +97,43 @@ ACCEPTORS = {
     "THR": {"OG1"},
     "TYR": {"OH"},
 }
+BASE_DONORS = {"A": {"N6"}, "C": {"N4"}, "G": {"N1", "N2"}, "T": {"N3"}, "U": {"N3"}, "I": {"N1"}}
+BASE_ACCEPTORS = {
+    "A": {"N1", "N3", "N7"},
+    "C": {"N3", "O2"},
+    "G": {"O6", "N3", "N7"},
+    "T": {"O2", "O4"},
+    "U": {"O2", "O4"},
+    "I": {"O6", "N3", "N7"},
+}
+
+
+def _nucleotide_sites(residue, donor=False):
+    # Modified bases can change protonation/donor identity even with the same parent.
+    if not residue.is_nucleic or residue.name not in (
+        "A",
+        "C",
+        "G",
+        "T",
+        "U",
+        "I",
+        "DA",
+        "DC",
+        "DG",
+        "DT",
+        "DU",
+        "DI",
+    ):
+        return set()
+    return (BASE_DONORS if donor else BASE_ACCEPTORS).get(residue.base, set())
 
 
 class HydrogenBonds(_Analysis):
     """D–A distance and D–H–A angle criteria, with explicit or virtual backbone H.
 
-    Defaults cover standard amino acids. Histidine tautomerism and nonstandard
+    Defaults cover standard amino acids and DNA/RNA bases. Nucleotide donors need
+    explicit H; virtual hydrogens are limited to the protein backbone.
+    Histidine tautomerism and nonstandard
     residues require explicit donor/acceptor selections. Missing side-chain H are
     never invented. Load explicit H with Protein.from_file(..., include_hydrogens=True).
     """
@@ -139,12 +170,14 @@ class HydrogenBonds(_Analysis):
             for i, a in enumerate(atoms)
             if (a.name == "N" and a.resname != "PRO" and protein.topology.residues[a.residue_index].ca >= 0)
             or a.name in DONORS.get(a.resname, set())
+            or a.name in _nucleotide_sites(protein.topology.residues[a.residue_index], donor=True)
         ]
         defaults_a = [
             i
             for i, a in enumerate(atoms)
             if (a.name in ("O", "OXT") and protein.topology.residues[a.residue_index].ca >= 0)
             or a.name in ACCEPTORS.get(a.resname, set())
+            or a.name in _nucleotide_sites(protein.topology.residues[a.residue_index])
         ]
         self.donors, self.acceptors = (
             _indices(donors, protein, defaults_d),

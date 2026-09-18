@@ -83,8 +83,14 @@ class Morph(Animation):
             end = target
         self.end = coordinates(end, len(self.start))
         if self.align:
-            ca = [r.ca for r in p.topology.residues if r.ca >= 0]
-            self.end = coordinates(align_coordinates(self.end, self.start, ca if len(ca) >= 3 else None))
+            anchors = [r.morph_atom for r in p.topology.residues if r.morph_atom >= 0]
+            if any(r.is_nucleic for r in p.topology.residues) and len(anchors) < 3:
+                raise ValueError(
+                    "Aligned nucleotide Morph needs at least three C1' anchors; use align=False to interpolate supplied coordinates"
+                )
+            self.end = coordinates(
+                align_coordinates(self.end, self.start, anchors if len(anchors) >= 3 else None)
+            )
 
     def apply(self, alpha):
         self.target._pair(self.start, self.end, alpha)
@@ -243,18 +249,24 @@ class FadeOut(Animation):
 class Representation(Animation):
     channels = frozenset({"representation"})
 
-    def __init__(self, protein, representation, **kwargs):
+    def __init__(self, protein, representation, *, bases=None, **kwargs):
         super().__init__(protein, **kwargs)
         names = {"cartoon": 0, "ribbon": 1, "ball_and_stick": 2, "surface": 3}
         if representation not in names:
             raise ValueError(f"Choose a representation from {list(names)}")
         self.end = np.eye(4)[names[representation]][:3]
         self.surface_end = float(representation == "surface")
+        from .nucleic import base_weights
+
+        self.base_end = None if bases is None else base_weights(bases)
+        if bases is not None:
+            self.channels |= {"base_style"}
 
     def bind(self):
         super().bind()
         self.start = self.target.representation.copy()
         self.surface_start = self.target.surface_opacity
+        self.base_start = self.target.base_style.copy()
         if self.surface_end and self.target._surface_options is None:
             from .surface import surface_options
 
@@ -265,6 +277,8 @@ class Representation(Animation):
     def apply(self, alpha):
         self.target.representation = (1 - alpha) * self.start + alpha * self.end
         self.target.surface_opacity = (1 - alpha) * self.surface_start + alpha * self.surface_end
+        if self.base_end is not None:
+            self.target.base_style = (1 - alpha) * self.base_start + alpha * self.base_end
         if self.surface_end:
             self.target._surface_options = self.surface_options
 

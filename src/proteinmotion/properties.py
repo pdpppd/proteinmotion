@@ -84,16 +84,26 @@ class ResidueValues:
         return cls(protein, output, name=name, unit=unit)
 
     @classmethod
-    def b_factors(cls, protein, *, atoms="CA", name="B factor", unit="Å²"):
-        """Read first-model B factors. Use atoms=None for the mean of each residue's atoms.
+    def b_factors(cls, protein, *, atoms="backbone", name="B factor", unit="Å²"):
+        """Read first-model B factors at Cα/C4′/P anchors, or named atoms.
+
+        Use atoms=None for the mean of each residue's atoms.
 
         Files containing confidence in the B-factor field can use name='pLDDT', unit=''.
         The meaning of this field comes from the source file.
         """
         values = np.full(len(protein.topology.residues), np.nan)
         groups = [[] for _ in values]
-        for atom in protein.topology.atoms:
-            if (atoms is None or atom.name == atoms) and np.isfinite(atom.bfactor):
+        anchors = {r.trace_atom for r in protein.topology.residues}
+        for i, atom in enumerate(protein.topology.atoms):
+            if (
+                atoms is None
+                or (
+                    i in anchors
+                    if atoms == "backbone"
+                    else atom.name.replace("*", "'") == atoms.replace("*", "'")
+                )
+            ) and np.isfinite(atom.bfactor):
                 groups[atom.residue_index].append(atom.bfactor)
         for i, group in enumerate(groups):
             if group:
@@ -101,10 +111,10 @@ class ResidueValues:
         return cls(protein, values, name=name, unit=unit)
 
     @classmethod
-    def rmsf(cls, protein, trajectory=None, *, align=True, alignment=None, atoms="CA", stride=1):
+    def rmsf(cls, protein, trajectory=None, *, align=True, alignment=None, atoms="backbone", stride=1):
         """Root-mean-square fluctuation about the mean position, in Å.
 
-        Align frames to the first sampled frame using Cα atoms or an explicit Region.
+        Align frames to the first sampled frame using Cα/C4′/P anchors or an explicit Region.
         Average atomic mean-square fluctuations within each residue before taking
         the square root. Frames are accumulated one at a time. Unwrap periodic MD
         coordinates before supplying them here.
@@ -118,7 +128,8 @@ class ResidueValues:
             raise ValueError("Trajectory atom identities/order do not match protein")
         if isinstance(stride, bool) or not isinstance(stride, int) or stride < 1:
             raise ValueError("stride must be a positive integer")
-        ids = [r.ca for r in protein.topology.residues if r.ca >= 0]
+        ids = [r.trace_atom for r in protein.topology.residues if r.trace_atom >= 0]
+        anchors = set(ids)
         if alignment is not None:
             alignment._validate()
             if alignment.protein is not protein:
@@ -130,14 +141,18 @@ class ResidueValues:
         for count, frame in enumerate(range(0, len(trajectory), stride), 1):
             xyz = trajectory.frame(frame)
             if align:
-                xyz = align_coordinates(xyz, reference, ids)
+                xyz = align_coordinates(xyz, reference, ids if len(ids) >= 3 else None)
             delta = xyz - mean
             mean += delta / count
             m2 += delta * (xyz - mean)
         msf = m2.sum(1) / count
         groups = [[] for _ in protein.topology.residues]
         for i, atom in enumerate(protein.topology.atoms):
-            if atoms is None or atom.name == atoms:
+            if atoms is None or (
+                i in anchors
+                if atoms == "backbone"
+                else atom.name.replace("*", "'") == atoms.replace("*", "'")
+            ):
                 groups[atom.residue_index].append(msf[i])
         return cls(protein, [np.sqrt(np.mean(g)) if g else np.nan for g in groups], name="RMSF", unit="Å")
 

@@ -18,6 +18,15 @@ ELEMENT_COLORS = {
     "Zn": "#afb7d9",
 }
 SS_COLORS = {"H": "#56d8c0", "E": "#f2ba67", "C": "#91a9ce"}
+BASE_COLORS = {
+    "A": "#72cfb3",
+    "C": "#72a7ed",
+    "G": "#edbf68",
+    "T": "#ed8193",
+    "U": "#b399e7",
+    "I": "#cfaa78",
+    "N": "#91a9b8",
+}
 
 
 def residue_colors(protein):
@@ -25,8 +34,8 @@ def residue_colors(protein):
     chains = list(dict.fromkeys(r.chain for r in topo.residues))
     result = []
     for i, r in enumerate(topo.residues):
-        if scheme == "secondary":
-            c = color(SS_COLORS[r.secondary])
+        if scheme in ("secondary", "base", "element"):
+            c = color(BASE_COLORS.get(r.base, BASE_COLORS["N"]) if r.is_nucleic else SS_COLORS[r.secondary])
         elif scheme == "rainbow":
             c = colorsys.hsv_to_rgb(0.70 * (1 - i / max(1, len(topo.residues) - 1)), 0.58, 0.95)
         elif scheme == "chain":
@@ -44,6 +53,8 @@ def atom_metadata(protein):
     for i, atom in enumerate(protein.topology.atoms):
         data[i, :3] = color(ELEMENT_COLORS.get(atom.element, "#c987cb"))
         data[i, 3] = max(float(gemmi.Element(atom.element).vdw_r), 1.0)
+    if protein.color_scheme != "element":
+        data[:, :3] = residue_colors(protein)[[a.residue_index for a in protein.topology.atoms]]
     return data
 
 
@@ -53,11 +64,13 @@ def segments(protein):
     palette = residue_colors(protein)
     rows = []
     for chain in topo.chains:
-        cas = [topo.residues[i].ca for i in chain]
+        cas = [topo.residues[i].trace_atom for i in chain]
         width, thick = [], []
         for j, ri in enumerate(chain):
             ss = topo.residues[ri].secondary
             w, h = {"H": (1.15, 0.20), "E": (1.18, 0.16), "C": (0.24, 0.24)}[ss]
+            if topo.residues[ri].is_nucleic:
+                w = h = protein.backbone_radius
             if ss == "E" and (j == len(chain) - 1 or topo.residues[chain[j + 1]].secondary != "E"):
                 w = 2.05
             width.append(w * protein._cartoon_scale[ri])
@@ -83,14 +96,14 @@ def state_data(topology, xyz, reference_normals=None):
     data = np.zeros((len(xyz), 8), np.float32)
     data[:, :3] = xyz
     for chain in topology.chains:
-        ca = np.array([topology.residues[i].ca for i in chain])
+        ca = np.array([topology.residues[i].trace_atom for i in chain])
         pts = xyz[ca]
         tangents = normalize(np.gradient(pts, axis=0))
         guides = []
         last = None
         for j, ri in enumerate(chain):
             tangent = tangents[j]
-            oxygen = topology.residues[ri].oxygen
+            oxygen = topology.residues[ri].guide_atom
             guide = xyz[oxygen] - pts[j] if oxygen >= 0 else np.array([0.0, 1.0, 0.0])
             guide -= np.dot(guide, tangent) * tangent
             if np.linalg.norm(guide) < 1e-6:

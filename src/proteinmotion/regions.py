@@ -30,6 +30,8 @@ class Region:
         """Residue numbers are PDB/auth numbers. A two-item tuple is an inclusive range."""
         chains = None if chain is None else {chain} if isinstance(chain, str) else set(chain)
         names = None if atoms is None else {atoms} if isinstance(atoms, str) else set(atoms)
+        if names is not None:
+            names = {n.replace("*", "'") for n in names}
         numbers = None
         if residues is not None:
             if isinstance(residues, (int, np.integer)):
@@ -49,7 +51,7 @@ class Region:
             for i, atom in enumerate(protein.topology.atoms)
             if (chains is None or atom.chain in chains)
             and (numbers is None or atom.resid in numbers)
-            and (names is None or atom.name in names)
+            and (names is None or atom.name.replace("*", "'") in names)
         ]
         if not ids:
             raise ValueError("Selection contains no atoms; check chain, residue numbers and atom names")
@@ -117,7 +119,7 @@ class Region:
         return Callout(self, text, **kwargs)
 
     def label(self, text=None, **kwargs):
-        """Label a single amino acid, using its name and PDB residue number by default."""
+        """Label a single residue, using its name and PDB residue number by default."""
         from .annotations import ResidueLabel
 
         return ResidueLabel(self, text, **kwargs)

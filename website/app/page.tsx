@@ -24,13 +24,13 @@ export default function Home() {
             PYTHON API · METAL · EEVEE
           </div>
           <h1 className="max-w-lg text-[2.7rem] font-medium leading-[1.05] tracking-[-.055em] sm:text-[3.7rem]">
-            Protein animation <br />
+            Molecular animation <br />
             <span className="text-muted">in Python</span>
           </h1>
           <p className="mt-6 max-w-md text-[17px] leading-relaxed text-muted">
-            Load a protein structure or trajectory, add animations and labels,
-            and export a video. Render cartoons, ball-and-stick models, ribbons,
-            and molecular surfaces.
+            Animate proteins, DNA, and RNA from a structure or trajectory. Add
+            motion and labels, then export a video. Render cartoons, nucleotide
+            bases, ball-and-stick models, and molecular surfaces.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/docs/getting-started/" className="button-primary">
@@ -101,8 +101,13 @@ export default function Home() {
           <div dangerouslySetInnerHTML={{ __html: codeHTML(snippet) }} />
         </div>
       </section>
-      <section className="grid gap-8 border-t border-line py-10 md:grid-cols-3">
+      <section className="grid gap-8 border-t border-line py-10 md:grid-cols-2 lg:grid-cols-4">
         {[
+          [
+            "DNA and RNA",
+            "Draw bases as slabs, rings, sticks, or ladder rods. Highlight selected nucleotides and show molecular surfaces.",
+            "dna-rna",
+          ],
           [
             "Numerical properties",
             "Color residues by B factors, RMSF, or custom values. Use cartoon thickness and a color scale to show the range.",
@@ -170,8 +175,8 @@ export default function Home() {
             Example structures and scripts
           </h2>
           <p className="mt-2 text-sm text-muted">
-            Ubiquitin, calmodulin, troponin C, and GroEL/GroES examples are
-            included.
+            Protein, DNA double-helix, and transfer RNA examples include their
+            input structures and full scripts.
           </p>
         </div>
         <Link href="/gallery/" className="button-secondary bg-white">

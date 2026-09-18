@@ -2,7 +2,7 @@
 
 [Browse the reference manual](https://pdpppd.github.io/proteinmotion/reference/) for individual class and function pages, parameters, methods, and rendered examples.
 
-This quick reference covers the public Python API in version 0.9.1. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which are in their own modules.
+This quick reference covers the public Python API in version 0.10.0. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which are in their own modules.
 
 ## ProteinScene
 
@@ -51,6 +51,12 @@ Protein.from_trajectory(trajectory)
 | `animate` | Build fluent transform or opacity animations |
 
 Coordinates/radii are ångströms; angles are radians. Cartoon/ribbon color accepts `secondary`, `rainbow`, `chain`, or `#RRGGBB`. Ball-and-stick uses element colors as its base palette. Residue overrides apply to every representation.
+
+## NucleicAcid and BaseStyle
+
+`NucleicAcid.from_file(path).cartoon(bases="slabs", color="base")` loads DNA or RNA. Use `Protein.from_file()` for mixed protein–nucleic acid complexes. Both classes support nucleotide backbones, surfaces, residue styling, labels, and trajectories.
+
+`cartoon(bases=...)` accepts `slabs`, `rings`, `sticks`, `ladder`, or `none`. Set initial dimensions with `set_bases(style, backbone_radius=0.38, base_thickness=0.36, base_radius=0.16)`. Animate the style with `BaseStyle(molecule, "rings")`, or combine it with `Representation(molecule, "cartoon", bases="rings")`. [Guide and rendered examples](dna-rna.md).
 
 ## Region and RegionHighlight
 
@@ -179,7 +185,7 @@ match = ContactMatch.load("correspondence.json")
 print(match.report)
 ```
 
-`ContactMatch.from_pairs(source, target, source_indices, target_indices)` accepts zero-based topology residue indices in increasing order. The search maximizes matched residue count under a contact-error limit, then minimizes error among equal-sized sets. Check the report to see whether the search completed and proved optimality.
+`ContactMatch.from_pairs(source, target, source_indices, target_indices)` accepts zero-based topology residue indices in increasing order. DNA/RNA uses C1′ anchors; proteins use Cα. The search maximizes matched residue count under a contact-error limit, then minimizes error among equal-sized sets. Check the report to see whether the search completed and proved optimality.
 
 ## Command line
 
@@ -208,7 +214,7 @@ Shared render/still/preview options: `--width`, `--height`, `--fps`, `--msaa 1|4
 
 `TimeSeriesPlot(times, values, protein=protein)` follows the current trajectory state. Omit `protein` to follow scene seconds. `TimeSeriesPlot.distance(first, second)` measures centroid distance between two Regions over a trajectory and places the marker at the current measurement.
 
-`ContactMap(protein, selection=region)` displays live Cα contacts. `SequenceTrack(protein, selection=region)` displays the current residue colors. Both use viewport position and size. [Guide and rendered output](synchronized-plots.md).
+`ContactMap(protein, selection=region)` displays live backbone contacts (Cα for proteins, C4′ or P for nucleotides). `SequenceTrack(protein, selection=region)` displays the current residue colors. Both use viewport position and size. [Guide and rendered output](synchronized-plots.md).
 
 ## Density maps
 

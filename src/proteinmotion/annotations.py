@@ -299,12 +299,16 @@ class Callout(Annotation):
 
 def residue_name(region, format="three_letter", include_chain=True):
     if len(region.residue_indices) != 1:
-        raise ValueError("An automatic amino-acid label needs exactly one residue")
+        raise ValueError("An automatic residue label needs exactly one residue")
     residue = region.protein.topology.residues[region.residue_indices[0]]
     if format == "three_letter":
-        name = residue.name.title()
+        name = residue.name if residue.is_nucleic else residue.name.title()
     elif format == "one_letter":
-        name = gemmi.find_tabulated_residue(residue.name).one_letter_code.upper() or "X"
+        name = (
+            residue.base
+            if residue.is_nucleic
+            else gemmi.find_tabulated_residue(residue.name).one_letter_code.upper() or "X"
+        )
     else:
         raise ValueError("format must be three_letter or one_letter")
     prefix = f"{residue.chain} · " if include_chain else ""
@@ -333,8 +337,8 @@ class ResidueLabel(Callout):
         if len(region.residue_indices) != 1:
             raise ValueError("ResidueLabel needs exactly one residue")
         residue = region.protein.topology.residues[region.residue_indices[0]]
-        if residue.ca >= 0:
-            region = Region(region.protein, [residue.ca])
+        if residue.trace_atom >= 0:
+            region = Region(region.protein, [residue.trace_atom])
         super().__init__(
             region,
             residue_name(region, format, include_chain) if text is None else text,
@@ -351,7 +355,7 @@ class ResidueLabel(Callout):
 
 
 class ResidueLabels(Annotation):
-    """A small set of amino-acid labels with deterministic overlap avoidance."""
+    """A small set of residue labels with deterministic overlap avoidance."""
 
     _screen_fixed = False
 
@@ -362,7 +366,7 @@ class ResidueLabels(Annotation):
         self.labels, self.fixed = [], []
         for index in region.residue_indices:
             residue = region.protein.topology.residues[index]
-            if residue.ca < 0:
+            if residue.trace_atom < 0:
                 continue
             options = dict(kwargs)
             explicit = (offsets or {}).get(
@@ -370,10 +374,10 @@ class ResidueLabels(Annotation):
             )
             if explicit is not None:
                 options["offset"] = explicit
-            self.labels.append(ResidueLabel(Region(region.protein, [residue.ca]), **options))
+            self.labels.append(ResidueLabel(Region(region.protein, [residue.trace_atom]), **options))
             self.fixed.append(explicit is not None)
         if not self.labels:
-            raise ValueError("Selection has no amino-acid Cα atoms to label")
+            raise ValueError("Selection has no amino-acid or nucleotide backbone anchors to label")
         self.labels, self.fixed = tuple(self.labels), tuple(self.fixed)
         self.avoid_overlap = bool(avoid_overlap)
 

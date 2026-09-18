@@ -52,6 +52,8 @@ Bond detection uses covalent radii and a spatial index when the structure loads.
 
 Ribbons split at chain changes, missing Cα atoms, and initial Cα gaps greater than 4.8 Å. Connectivity and secondary-structure assignments stay fixed during playback.
 
+DNA/RNA backbones use C4′ anchors, with P as a fallback, and split at chain changes, missing anchors, and broken phosphodiester links. Base slabs and rings use cached meshes that follow three ring atoms; base sticks follow each bond endpoint. The native shader reads the current interpolated coordinates on the GPU. EEVEE evaluates the same geometry for each frame. See [DNA and RNA](dna-rna.md) for base templates and incomplete structures.
+
 Morphs and state playback interpolate coordinates. They illustrate structural changes. Use simulation trajectories and an appropriate analysis method when interpreting molecular dynamics.
 
 ## Video export
@@ -73,6 +75,8 @@ ProteinMotion exports images and videos as a standalone package. Use the exporte
 The package uses the MIT license. Manim animation timing and bundled Source Sans 3 fonts retain their upstream [licenses and attribution](https://github.com/pdpppd/proteinmotion/blob/main/THIRD_PARTY.md).
 
 The example data include RCSB mmCIF files for [1UBQ](https://www.rcsb.org/structure/1UBQ) (ubiquitin), [1CLL](https://www.rcsb.org/structure/1CLL) and [1CFC](https://www.rcsb.org/structure/1CFC) (calmodulin), [1NCX](https://www.rcsb.org/structure/1NCX) (troponin C), [1AON](https://www.rcsb.org/structure/1AON) (GroEL/GroES), and [2K39](https://www.rcsb.org/structure/2K39) (ubiquitin NMR ensemble).
+
+The DNA and RNA examples use [1BNA](https://www.rcsb.org/structure/1BNA), a B-DNA dodecamer, and [1EHZ](https://www.rcsb.org/structure/1EHZ), yeast phenylalanine tRNA. These examples animate the camera and representation around deposited coordinates.
 
 The original showcase uses a synthetic ubiquitin deformation. The NMR examples interpolate deposited models. The feature demo stores mapped 1CFC NMR coordinates in an XTC file to demonstrate the trajectory reader. The [feature demo guide](showcase.md) records the mapping and animation settings.
 

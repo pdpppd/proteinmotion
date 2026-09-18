@@ -18,6 +18,8 @@ class _MoleculeGPU:
         d = renderer.device
         self.buffers = []
         self.surface = None
+        self.bases = None
+        self.has_nucleic = any(r.is_nucleic for r in protein.topology.residues)
 
         def storage(data):
             data = np.ascontiguousarray(data)
@@ -36,6 +38,7 @@ class _MoleculeGPU:
         self.metadata = storage(atom_metadata(protein))
         self.metadata_key = id(protein._metadata_override)
         self.metadata_reference = protein._metadata_override
+        self.metadata_color = str(protein.color_scheme)
         self.bonds = storage(protein.topology.bonds)
         self.segment_data = segments(protein)
         self.segments = storage(self.segment_data)
@@ -48,9 +51,10 @@ class _MoleculeGPU:
         self.has_style_opacity = bool(np.any(protein._appearance[:, 12:14] != 1))
         self.shape_reference = protein._cartoon_scale
         self.color_key = str(protein.color_scheme)
+        self.backbone_radius = protein.backbone_radius
         self.reference = state_data(self.topology, protein._a)[:, 4:7].copy()
         self.uniforms, self.bindings = [], []
-        for _ in range(3):  # atom/bond, backbone, surface uniforms
+        for _ in range(7 if self.has_nucleic else 3):  # atoms, backbone, surface, four base styles
             uniform = d.create_buffer(size=112, usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST)
             self.buffers.append(uniform)
             self.uniforms.append(uniform)
@@ -80,10 +84,13 @@ class _MoleculeGPU:
         if protein.topology is not self.topology:
             raise ValueError("Topology changed after GPU upload; set secondary structure before rendering")
         wanted = [protein._key_a, protein._key_b]
-        if id(protein._metadata_override) != self.metadata_key:
+        if id(protein._metadata_override) != self.metadata_key or self.metadata_color != str(
+            protein.color_scheme
+        ):
             queue.write_buffer(self.metadata, 0, atom_metadata(protein))
             self.metadata_key = id(protein._metadata_override)
             self.metadata_reference = protein._metadata_override
+            self.metadata_color = str(protein.color_scheme)
         if id(protein._controls) != self.controls_key:
             queue.write_buffer(self.controls, 0, protein._controls)
             self.controls_key = id(protein._controls)
@@ -106,14 +113,20 @@ class _MoleculeGPU:
                 self.keys[slot] = key
                 self.state_references[slot] = coords
             chosen.append(slot)
-        if self.color_key != str(protein.color_scheme) or not np.array_equal(
-            self.shape_reference, protein._cartoon_scale
+        if (
+            self.color_key != str(protein.color_scheme)
+            or self.backbone_radius != protein.backbone_radius
+            or not np.array_equal(self.shape_reference, protein._cartoon_scale)
         ):
             queue.write_buffer(self.segments, 0, segments(protein))
             self.color_key = str(protein.color_scheme)
             self.shape_reference = protein._cartoon_scale
+            self.backbone_radius = protein.backbone_radius
         cartoon, ribbon, ball = protein.representation
-        for i, opacity in enumerate((ball, cartoon + ribbon, protein.surface_opacity)):
+        fractions = [ball, cartoon + ribbon, protein.surface_opacity]
+        if self.has_nucleic:
+            fractions.extend((cartoon + ribbon) * protein.base_style)
+        for i, opacity in enumerate(fractions):
             u = np.zeros(28, np.float32)
             u[:16] = protein.model_matrix.T.ravel()
             u[16:20] = [protein._mix, protein.opacity * opacity, protein.atom_scale, protein.bond_radius]
@@ -131,9 +144,18 @@ class _MoleculeGPU:
 
                 self.surface = SurfaceGPU(self.renderer, protein)
             self.surface.update()
+        if self.has_nucleic and cartoon + ribbon > 0 and np.any(protein.base_style > 0):
+            if self.bases is None:
+                from .nucleic import BaseGPU
+
+                self.bases = BaseGPU(self.renderer, protein)
+            else:
+                self.bases.update(protein)
         return [groups[tuple(chosen)] for groups in self.bindings]
 
     def close(self):
+        if self.bases is not None:
+            self.bases.close()
         if self.surface is not None:
             self.surface.close()
         for b in self.buffers:
@@ -383,6 +405,8 @@ class Renderer:
         ribbon, bond, sphere = pipelines
         render_pass.set_bind_group(0, self.camera_group)
         for protein, gpu, bindings in draws:
+            if sum(protein.representation[:2]) * protein.opacity > 0 and gpu.bases is not None:
+                gpu.bases.draw(render_pass, bindings, protein, pipelines is self.transparency_pipelines)
             if protein.surface_opacity * protein.opacity > 0 and gpu.surface is not None:
                 gpu.surface.draw(render_pass, bindings[2], pipelines is self.transparency_pipelines)
             if sum(protein.representation[:2]) * protein.opacity > 0 and len(gpu.segment_data):
@@ -445,6 +469,7 @@ class Renderer:
                     sum(draw[0].representation[:2]),
                     draw[0].representation[2],
                     draw[0].surface_opacity,
+                    *(sum(draw[0].representation[:2]) * draw[0].base_style if draw[1].has_nucleic else ()),
                 )
             )
         ]

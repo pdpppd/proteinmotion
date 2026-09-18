@@ -6,7 +6,7 @@
       "guide": "scenes"
     },
     "protein": {
-      "title": "Proteins",
+      "title": "Molecular structures",
       "description": "Load structures, choose representations, and change coordinates or appearance.",
       "guide": "scenes"
     },
@@ -27,7 +27,7 @@
     },
     "annotations": {
       "title": "Text and labels",
-      "description": "Write text, label amino acids, and connect labels to regions.",
+      "description": "Write text, label amino acids and nucleotides, and connect labels to regions.",
       "guide": "text"
     },
     "regions": {
@@ -42,7 +42,7 @@
     },
     "matching": {
       "title": "Contact matching",
-      "description": "Match ordered Cα subsets and save residue correspondences.",
+      "description": "Match ordered Cα or C1′ subsets and save residue correspondences.",
       "guide": "morphing"
     },
     "backbone": {
@@ -89,6 +89,11 @@
       "title": "Density maps",
       "description": "Read MRC/CCP4 grids, extract contours, and animate slices.",
       "guide": "density-maps"
+    },
+    "nucleic": {
+      "title": "DNA and RNA bases",
+      "description": "Choose nucleotide base shapes and animate transitions between styles.",
+      "guide": "dna-rna"
     }
   },
   "parameters": {
@@ -196,8 +201,8 @@
     "source_keys": "Source residue identity tuples stored for validation.",
     "target_keys": "Target residue identity tuples stored for validation.",
     "report": "Dictionary with matching statistics, search status, and optimality information.",
-    "source_chain": "Source chain ID; required if several chains contain Cα atoms.",
-    "target_chain": "Target chain ID; required if several chains contain Cα atoms.",
+    "source_chain": "Source chain ID; select one chain with protein Cα or nucleotide C1′ anchors.",
+    "target_chain": "Target chain ID; select one chain with protein Cα or nucleotide C1′ anchors.",
     "cutoff": "Distance cutoff in ångströms.",
     "softness": "Width of the soft contact transition in ångströms.",
     "max_contact_error": "Maximum discrepancy between matched soft contacts, in [0, 1].",
@@ -209,7 +214,7 @@
     "motion_easing": "Per-residue motion: \"smooth\" or \"linear\".",
     "match_options": "Options passed to match_backbones() when match is None.",
     "mode": "\"3d\" draws lines within the model; \"2d\" draws lines over the image.",
-    "anchor": "\"ca\" uses the Cα of a single residue when available; \"centroid\" averages selected coordinates.",
+    "anchor": "\"backbone\" uses Cα for proteins and C4′/P for nucleotides; \"ca\" uses protein Cα only; \"centroid\" averages selected coordinates.",
     "space": "\"model\" uses local coordinates; \"world\" includes display transforms.",
     "label_color": "Distance text color; None inherits the line color.",
     "precision": "Number of decimal places in a distance label, from 0 to 6.",
@@ -219,8 +224,8 @@
     "radius": "3D line cylinder radius in ångströms.",
     "dash_count": "Number of line segments.",
     "dash_ratio": "Filled fraction of each dashed segment.",
-    "donors": "Donor Region or atom indices; None uses standard amino-acid templates.",
-    "acceptors": "Acceptor Region or atom indices; None uses standard amino-acid templates.",
+    "donors": "Donor Region or atom indices; None uses standard amino-acid and canonical nucleotide base templates.",
+    "acceptors": "Acceptor Region or atom indices; None uses standard amino-acid and canonical nucleotide base templates.",
     "max_distance": "Maximum donor–acceptor distance in ångströms.",
     "min_angle": "Minimum donor–hydrogen–acceptor angle in degrees.",
     "hydrogens": "\"explicit\", \"auto\", or \"backbone\"; controls the use of loaded or inferred hydrogens.",
@@ -273,7 +278,7 @@
     "name": "Measurement name for labels and legends.",
     "scale": "ColorScale shared by the structure, plots, and legend. None derives limits from finite values.",
     "thickness": "Optional (minimum, maximum) positive cartoon cross-section scale factors. Missing values use 1.",
-    "alignment": "Region used to fit frames to the first sampled frame; defaults to all Cα atoms.",
+    "alignment": "Region used to fit frames to the first sampled frame; defaults to backbone anchors (Cα for proteins, C4′/P for nucleotides).",
     "times": "Strictly increasing finite x coordinates, one for each value.",
     "title": "Text displayed above the plot or color bar.",
     "xlabel": "Horizontal axis label, including units when appropriate.",
@@ -289,14 +294,19 @@
     "highlight_color": "Color marking the selected residues in the plot.",
     "contact_color": "Color of a contact cell.",
     "min_separation": "Exclude this many neighboring topology residues within a chain, plus the diagonal.",
-    "max_residues": "Maximum Cα residues in a quadratic contact-map calculation; select a region for larger proteins.",
+    "max_residues": "Maximum polymer residues in a quadratic contact-map calculation; select a region for larger structures.",
     "density": "DensityMap supplying scalar values and map coordinates.",
     "spacing": "Positive scalar or (x, y, z) voxel spacing in ångströms for an orthogonal grid.",
     "origin": "Physical (x, y, z) origin of the first voxel, in ångströms.",
     "basis": "Optional 3×3 matrix whose columns are voxel step vectors in ångströms; replaces spacing.",
     "periodic": "Wrap sampling and crops at cell boundaries for a full periodic grid.",
     "level": "Contour value in the units chosen for this surface.",
-    "step_size": "Positive marching-cubes grid stride. Larger values reduce extraction cost and detail."
+    "step_size": "Positive marching-cubes grid stride. Larger values reduce extraction cost and detail.",
+    "molecule": "Protein or NucleicAcid scene object.",
+    "bases": "Nucleotide base style: slabs, rings, sticks, ladder, or none. None in Representation preserves the current style.",
+    "backbone_radius": "Positive nucleotide cartoon tube radius in ångströms.",
+    "base_thickness": "Positive slab/ring thickness in ångströms.",
+    "base_radius": "Positive base-stick and connector radius in ångströms."
   },
   "members": {
     "construct": {
@@ -407,14 +417,14 @@
       "returns": "The protein.",
       "notes": "Additional option: max_voxels=8000000 limits the grid size. Configure surface settings before the first play() call. The ses surface is a voxel approximation.",
       "parameters": {
-        "color": "Base palette: \"secondary\", \"rainbow\", \"chain\", or a fixed color."
+        "color": "Palette: secondary, base, rainbow, chain, or a fixed color. Surfaces also accept element."
       }
     },
     "cartoon": {
-      "description": "Show helices, sheet arrows, and coils as a cartoon.",
+      "description": "Show protein secondary structure and nucleotide backbone tubes with selectable base shapes.",
       "returns": "The protein.",
       "parameters": {
-        "color": "Base palette: \"secondary\", \"rainbow\", \"chain\", or a fixed color."
+        "color": "Palette: secondary, base, rainbow, chain, or a fixed color. Surfaces also accept element."
       }
     },
     "ribbon": {
@@ -422,12 +432,15 @@
       "returns": "The protein.",
       "parameters": {
         "width": "Ribbon width in ångströms.",
-        "color": "Base palette: \"secondary\", \"rainbow\", \"chain\", or a fixed color."
+        "color": "Palette: secondary, base, rainbow, chain, or a fixed color. Surfaces also accept element."
       }
     },
     "ball_and_stick": {
-      "description": "Show element-colored atom spheres and covalent bond cylinders.",
-      "returns": "The protein."
+      "description": "Show atom spheres and covalent bond cylinders, with element colors by default.",
+      "returns": "The protein.",
+      "parameters": {
+        "color": "Palette: element, base, chain, rainbow, secondary, or a fixed color."
+      }
     },
     "with_secondary_structure": {
       "description": "Assign helix, sheet, and coil labels before adding the protein to a scene.",
@@ -597,6 +610,13 @@
     "__exit__": {
       "description": "Close renderer resources on context exit.",
       "returns": "None"
+    },
+    "set_bases": {
+      "description": "Set nucleotide base shapes and optional dimensions before a scene begins. Use BaseStyle for an animated change.",
+      "returns": "The molecule.",
+      "parameters": {
+        "style": "slabs, rings, sticks, ladder, or none."
+      }
     }
   },
   "entries": {
@@ -742,7 +762,7 @@
           "rate_func"
         ]
       ],
-      "notes": "Protein inputs match atoms by chain, residue number, insertion code, residue name, and atom name. atom_map can supply an explicit one-to-one mapping. Raw arrays use their given atom order. Alignment uses matching Cα atoms when at least three exist."
+      "notes": "Inputs match atoms by chain, residue number, insertion code, residue name, and atom name. atom_map can supply an explicit one-to-one mapping. Raw arrays use source atom order. Alignment uses Cα for proteins and C1′ for DNA/RNA. Nucleotide alignment requires at least three anchors; use align=False to preserve supplied coordinates."
     },
     "animation.Deform": {
       "description": "Interpolate coordinates toward the result of a user-supplied function.",
@@ -786,7 +806,7 @@
       "notes": "For atom or residue selections, use SetOpacity."
     },
     "animation.Representation": {
-      "description": "Transition between cartoon, ribbon, ball-and-stick, and surface.",
+      "description": "Transition between cartoon, ribbon, ball-and-stick and surface, with optional nucleotide base styles.",
       "example": "representations",
       "forward_parameters": [
         "animation.Animation",
@@ -988,12 +1008,12 @@
       "parameters": {
         "target": "Destination Protein."
       },
-      "notes": "For equally sized matches, the search minimizes contact-map discrepancy. Check the report for full-space, candidate-restricted, or time-limited optimality. Each input must resolve to one chain with at least three Cα atoms. The shorter chain supports at most 800 Cα residues; full candidate search supports at most 30,000 pairings."
+      "notes": "Uses Cα for proteins and C1′ for DNA/RNA. Each input selects one chain with at least three anchors of the same type. Missing anchors are skipped. For equal-sized matches, the search minimizes contact-map discrepancy. Check the report for full-space, candidate-restricted, or time-limited optimality. The shorter chain supports at most 800 anchored residues; full candidate search supports at most 30,000 pairings. Reports include the anchor atom names, counts, and aligned_anchor_rmsd_angstrom."
     },
     "backbone.BackboneMorph": {
       "description": "Move matched backbone residues in order and fade unmatched residues.",
       "example": "gallery-morph",
-      "notes": "Each matched residue moves for run_time − (matched count − 1) × residue_delay seconds. Unmatched source and destination residues use fade_out and fade_in intervals. Both proteins’ geometry, transforms, and opacity belong to this animation. In ball-and-stick mode, atoms translate with their residue Cα and the atom sets crossfade. Side-chain atoms use their original residue geometry."
+      "notes": "Matched residues move with their Cα (protein) or C1′ (DNA/RNA) in deposited chain order. Each move lasts run_time − (matched count − 1) × residue_delay seconds. Whole residues retain their internal geometry as source and target representations crossfade. Unmatched source and destination residues use fade_out and fade_in intervals. Both objects’ geometry, transforms, and opacity belong to this animation. Each endpoint selects one chain. Explicit pairs require the correct anchor atom."
     },
     "distances.Distance": {
       "description": "Draw a distance line between two atom or residue selections.",
@@ -1178,16 +1198,16 @@
         "b_factors": {
           "description": "Read first-model B factors, or stored confidence values when the source file uses that convention.",
           "parameters": {
-            "atoms": "Atom name such as CA, or None for the mean of the residue’s selected atoms."
+            "atoms": "backbone selects Cα for proteins or C4′/P for nucleotides. Also accepts an atom name, or None for the per-residue mean."
           }
         },
         "rmsf": {
           "description": "Calculate per-residue RMSF in ångströms by streaming trajectory frames.",
           "parameters": {
             "align": "Fit each frame to the first sampled frame before computing fluctuations.",
-            "atoms": "Atom name, or None to average atomic mean-square fluctuations within each residue."
+            "atoms": "backbone selects Cα/C4′/P; an atom name selects that atom; None averages atomic mean-square fluctuations per residue."
           },
-          "notes": "Default alignment uses Cα atoms. For MD, unwrap periodic coordinates first. NMR RMSF describes variation across deposited models."
+          "notes": "Default alignment uses Cα/C4′/P anchors. Unwrap periodic MD coordinates before analysis. NMR RMSF describes variation across deposited models."
         }
       }
     },
@@ -1223,26 +1243,26 @@
       "description": "A sequence with a thin strip of current structure colors or a fixed numerical property.",
       "example": "synchronized-plots",
       "parameters": {
-        "region": "Optional Region limiting which Cα residues appear.",
+        "region": "Optional Region limiting which polymer residues appear.",
         "selection": "Region to mark with the highlight color.",
         "values": "Optional ResidueValues or one value per protein residue."
       },
       "notes": "The same selection can mark residues in a 3D highlight and a contact map. Letters appear above the strip when space allows; selected residues have colored letters and an underline."
     },
     "plots.ContactMap": {
-      "description": "A live binary Cα contact map with linked residue markers.",
+      "description": "A live binary backbone contact map with linked residue markers.",
       "example": "synchronized-plots",
       "parameters": {
         "region": "Optional Region limiting the rows and columns.",
         "selection": "Region to mark on the map edges.",
-        "cutoff": "Maximum Cα separation in ångströms for a contact."
+        "cutoff": "Maximum backbone-anchor distance in ångströms. Uses Cα for proteins and C4′/P for nucleotides."
       },
       "members": {
         "matrix": {
           "description": "Symmetric boolean contact matrix evaluated from the protein’s current coordinates."
         }
       },
-      "notes": "Rows follow topology order and labels use PDB author numbers. Work scales quadratically; the default limit is 512 Cα residues."
+      "notes": "Rows follow topology order and labels use PDB author numbers. Work scales quadratically; the default limit is 512 polymer residues."
     },
     "density.DensityMap": {
       "description": "An immutable scalar grid with physical coordinates and optional periodic boundaries.",
@@ -1346,6 +1366,41 @@
           "description": "Animate opacity and transforms, or use set_level() on a surface and set_slice() on a slice."
         }
       }
+    },
+    "protein.NucleicAcid": {
+      "description": "A DNA/RNA structure with base colors, nucleotide cartoons, surfaces and the Protein animation API.",
+      "guide": "dna-rna",
+      "example": "dna-styles",
+      "notes": "Loads PDB/mmCIF or trajectories. The backbone uses C4′ with P as a fallback. Modified residues retain their deposited names and use parent-base annotations when available. Protein also draws nucleic-acid chains in mixed complexes.",
+      "members": {
+        "cartoon": {
+          "description": "Show a C4′ backbone tube with slabs, rings, sticks or ladder rods. Pass the geometry options documented on Protein.cartoon().",
+          "parameters": {
+            "color": "Base palette: base, chain, rainbow, secondary, or a fixed color."
+          }
+        },
+        "surface": {
+          "description": "Show a molecular surface using base colors by default. Pass surface options documented on Protein.surface().",
+          "parameters": {
+            "color": "Base palette: base, chain, rainbow, secondary, element, or a fixed color."
+          }
+        }
+      }
+    },
+    "nucleic.BaseStyle": {
+      "description": "Crossfade nucleotide bases between slabs, rings, sticks, ladder, or none.",
+      "guide": "dna-rna",
+      "example": "dna-styles",
+      "parameters": {
+        "style": "Target nucleotide base style."
+      },
+      "forward_parameters": [
+        "animation.Animation",
+        [
+          "rate_func"
+        ]
+      ],
+      "notes": "Use inside scene.play(..., run_time=seconds). Coloring, residue opacity and backbone geometry use independent tracks."
     }
   }
 }

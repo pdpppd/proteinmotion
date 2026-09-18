@@ -4,7 +4,7 @@ The ProteinMotion Movies skill provides instructions for creating protein videos
 
 Use the skill with an AI agent that can read local files and run Python commands. Agents with skill support can load it from their skills directory. Other agents can read `SKILL.md` directly.
 
-[Skill source](https://github.com/pdpppd/proteinmotion/tree/main/skills/proteinmotion-movies) · [Download ZIP](https://github.com/pdpppd/proteinmotion/releases/download/v0.9.1/proteinmotion-movies-v0.9.1.zip)
+[Skill source](https://github.com/pdpppd/proteinmotion/tree/main/skills/proteinmotion-movies) · [Download ZIP](https://github.com/pdpppd/proteinmotion/releases/download/v0.10.0/proteinmotion-movies-v0.10.0.zip)
 
 ## Install the skill
 

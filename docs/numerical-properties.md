@@ -93,7 +93,7 @@ core = protein.select(chain="A", residues=(5, 60), atoms="CA")
 rmsf = ResidueValues.rmsf(protein, alignment=core)
 ```
 
-RMSF is the square root of the mean squared displacement from each atom's mean position, in ångströms. Frames are aligned to the first frame using Cα atoms by default. `alignment` chooses another region for the fit; `align=False` uses coordinates as supplied. `atoms=None` averages atomic mean-square fluctuations within each residue before taking the square root. `stride` controls frame sampling. Computation reads one frame at a time.
+RMSF is the square root of the mean squared displacement from each atom's mean position, in ångströms. Frames are aligned to the first frame using backbone anchors by default: Cα for proteins, C4′ for nucleotides, or P when C4′ is absent. `alignment` chooses another region for the fit; `align=False` uses coordinates as supplied. `atoms=None` averages atomic mean-square fluctuations within each residue before taking the square root. `stride` controls frame sampling. Computation reads one frame at a time.
 
 For NMR ensembles, RMSF describes variation across the supplied models. For MD, unwrap periodic coordinates before analysis. Choose an alignment region that fits the question you want to show.
 

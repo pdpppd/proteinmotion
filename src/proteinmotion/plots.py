@@ -369,9 +369,11 @@ class SequenceTrack(_Plot):
         self.protein, self.selection = protein, selection
         _selection(protein, selection)
         ids = _selection(protein, region) if region is not None else range(len(protein.topology.residues))
-        self.ids = np.array([i for i in sorted(ids) if protein.topology.residues[i].ca >= 0], dtype=int)
+        self.ids = np.array(
+            [i for i in sorted(ids) if protein.topology.residues[i].trace_atom >= 0], dtype=int
+        )
         if not len(self.ids):
-            raise ValueError("Sequence track needs Cα residues")
+            raise ValueError("Sequence track needs polymer backbone anchors")
         self.highlight_color = parse_color(highlight_color)
         if values is not None:
             values = values if isinstance(values, ResidueValues) else ResidueValues(protein, values)
@@ -393,7 +395,7 @@ class SequenceTrack(_Plot):
         if self.values is not None:
             colors = self.color_scale.map(self.values.values)[self.ids]
         else:
-            ca = [self.protein.topology.residues[i].ca for i in self.ids]
+            ca = [self.protein.topology.residues[i].trace_atom for i in self.ids]
             tint = current_tints(self.protein)[ca]
             base = (
                 atom_metadata(self.protein)[ca, :3]
@@ -414,7 +416,9 @@ class SequenceTrack(_Plot):
                     [[bx, strip_y + 13 * s], [bx + cell, strip_y + 13 * s]], self.highlight_color, width=2
                 )
             if letters:
-                letter = gemmi.find_tabulated_residue(r.name).one_letter_code or "X"
+                letter = (
+                    r.base if r.is_nucleic else gemmi.find_tabulated_residue(r.name).one_letter_code or "X"
+                )
                 self._text(
                     f"letter{j}",
                     letter.upper(),
@@ -436,7 +440,7 @@ class SequenceTrack(_Plot):
 
 
 class ContactMap(_Plot):
-    """Live binary Cα contact map. Residue rows use topology order and author labels.
+    """Live binary backbone contact map (Cα for proteins, C4′/P for nucleotides). Residue rows use topology order and author labels.
 
     A contact has distance <= cutoff Å. ``min_separation`` excludes that many
     neighboring topology residues within each chain. The diagonal is excluded.
@@ -453,7 +457,7 @@ class ContactMap(_Plot):
         min_separation=3,
         position=(0.69, 0.12),
         size=(0.27, 0.40),
-        title="Cα contacts",
+        title="Backbone contacts",
         max_residues=512,
         contact_color="#65c8bd",
         highlight_color="#f5d477",
@@ -466,10 +470,12 @@ class ContactMap(_Plot):
         self.protein, self.selection = protein, selection
         _selection(protein, selection)
         ids = _selection(protein, region) if region is not None else range(len(protein.topology.residues))
-        self.ids = np.array([i for i in sorted(ids) if protein.topology.residues[i].ca >= 0], dtype=int)
+        self.ids = np.array(
+            [i for i in sorted(ids) if protein.topology.residues[i].trace_atom >= 0], dtype=int
+        )
         if not 1 <= len(self.ids) <= max_residues:
-            raise ValueError("Select between 1 and max_residues Cα residues")
-        self.cas = np.array([protein.topology.residues[i].ca for i in self.ids])
+            raise ValueError("Select between 1 and max_residues polymer residues")
+        self.cas = np.array([protein.topology.residues[i].trace_atom for i in self.ids])
         self.cutoff, self.min_separation = float(cutoff), min_separation
         self.contact_color, self.highlight_color = parse_color(contact_color), parse_color(highlight_color)
 

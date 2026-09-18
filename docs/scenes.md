@@ -35,7 +35,7 @@ for name in ("ribbon", "ball_and_stick", "surface"):
 
 Set topology, colors, radii, and camera framing before the first `play()` or `wait()`. Use animations for later changes. `Representation` changes the cartoon or ribbon shape and crossfades when switching to atoms or a surface.
 
-Fades use weighted blended transparency. Overlapping transparent objects have approximate depth ordering; see [rendering](rendering.md) for details. Ball-and-stick models use element colors. Cartoon and ribbon models accept secondary-structure, chain, rainbow, or fixed colors.
+Fades use weighted blended transparency. Overlapping transparent objects have approximate depth ordering; see [rendering](rendering.md) for details. `ball_and_stick()` defaults to element colors. Cartoon and ribbon models accept secondary-structure, base, chain, rainbow, or fixed colors. `Representation` keeps the current palette and residue overrides during transitions. See [DNA and RNA](dna-rna.md) for nucleotide base styles and surfaces.
 
 Set the camera frame explicitly. For portrait output, include the scene aspect ratio: `self.camera.frame(p, margin=1.25, aspect=self.width/self.height)`. Region tracking can keep a moving selection centered.
 
