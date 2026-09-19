@@ -65,7 +65,12 @@ fn atom_opacity(i:u32) -> f32 {
     return mix(c.x,c.y,t)*mix(s.alpha.x,s.alpha.y,a);
 }
 fn position(i: u32) -> vec3<f32> {
-    return mix(state_a[i].position.xyz, state_b[i].position.xyz, atom_progress(i));
+    let t=atom_progress(i);
+    // Preserve exact coordinates at endpoints even when a driver contracts mix
+    // into a fused multiply-add. Analytic sphere depth amplifies tiny errors.
+    if t<=0.0 { return state_a[i].position.xyz; }
+    if t>=1.0 { return state_b[i].position.xyz; }
+    return mix(state_a[i].position.xyz, state_b[i].position.xyz, t);
 }
 fn guide(i: u32) -> vec3<f32> {
     var b = state_b[i].guide.xyz;
@@ -77,7 +82,11 @@ fn world(p: vec3<f32>) -> vec3<f32> { return (object.model*vec4<f32>(p,1.0)).xyz
 fn world_normal(n: vec3<f32>) -> vec3<f32> { return safe_normal((object.model*vec4<f32>(n,0.0)).xyz); }
 
 fn opacity(value:f32) -> f32 {
-    return clamp(object.params.y*value,0.0,1.0);
+    let alpha=clamp(object.params.y*value,0.0,1.0);
+    // Perspective interpolation can turn constant 1.0 into 0.99999994 on
+    // discrete GPUs. Snap that rounding error before splitting opaque/OIT
+    // passes, otherwise fully opaque triangles acquire holes or draw twice.
+    return select(alpha,1.0,alpha>=0.999999);
 }
 
 // Weighted blended OIT: accumulate premultiplied colors and background transmittance.

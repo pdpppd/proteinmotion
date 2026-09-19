@@ -23,7 +23,7 @@ export const guides = [
     file: "getting-started.md",
     title: "Get started",
     group: "START HERE",
-    description: "Install ProteinMotion and render a video.",
+    description: "Install on macOS or Windows with NVIDIA graphics and render a video.",
   },
   {
     slug: "agent-skill",
@@ -184,7 +184,7 @@ export const guides = [
     file: "VALIDATION.md",
     title: "Tests & benchmarks",
     group: "REFERENCE",
-    description: "Test results, M3 Max rendering times, and input data.",
+    description: "Test results, Apple M3 Max and NVIDIA RTX rendering times, and input data.",
   },
   {
     slug: "contributing",

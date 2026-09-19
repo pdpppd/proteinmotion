@@ -19,6 +19,7 @@ website/out/
 website/public/downloads/
 *.tsbuildinfo
 output/playwright/
+output/windows-nvidia/
 .playwright-cli/
 .*_offsets.npz
 .*_offsets.lock

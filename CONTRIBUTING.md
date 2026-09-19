@@ -14,9 +14,9 @@ pytest
 python -m build
 ```
 
-GPU and hardware-export tests are marked `gpu` and should be run on a native GPU adapter. Optional video checks need `ffmpeg` and `ffprobe` (`brew install ffmpeg` on macOS). CPU checks can run with `pytest -m "not gpu"`.
+GPU and hardware-export tests are marked `gpu` and should be run on a native GPU adapter. Some optional example-rendering scripts need `ffmpeg` and `ffprobe` (`brew install ffmpeg` on macOS). CPU checks can run with `pytest -m "not gpu"`.
 
-GitHub Actions runs CPU tests and linting on Ubuntu, then builds and installs the wheel in a clean environment. For rendering or animation changes, also run the local GPU suite on Apple silicon and inspect the output. Record the setup and results in the validation report.
+GitHub Actions runs CPU tests and linting on Ubuntu and Windows, then builds and installs the wheel in a clean environment. For rendering or animation changes, run the local GPU suite on Apple silicon or Windows/NVIDIA and inspect the output. Video checks decode frames with PyAV and do not require an FFmpeg executable. Windows symlink tests skip when Developer Mode or administrator privileges are unavailable. Record the setup and results in the validation report.
 
 ## Documentation development
 

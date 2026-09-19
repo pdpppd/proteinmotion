@@ -11,7 +11,11 @@ permissions:
 
 jobs:
   python:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -25,8 +29,20 @@ jobs:
       - run: pytest -m "not gpu" -q
       - run: python -m build
       - name: Check the built wheel outside the checkout
+        if: runner.os != 'Windows'
         run: |
           python -m venv "$RUNNER_TEMP/proteinmotion-wheel"
           "$RUNNER_TEMP/proteinmotion-wheel/bin/python" -m pip install dist/*.whl
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/proteinmotion-wheel/bin/python" -I "$GITHUB_WORKSPACE/scripts/check_installed_package.py"
+      - name: Check the built wheel on Windows outside the checkout
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $wheelPython = Join-Path $env:RUNNER_TEMP 'proteinmotion-wheel/Scripts/python.exe'
+          python -m venv (Join-Path $env:RUNNER_TEMP 'proteinmotion-wheel')
+          $wheel = (Get-ChildItem dist/*.whl).FullName
+          & $wheelPython -m pip install $wheel
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Set-Location $env:RUNNER_TEMP
+          & $wheelPython -I (Join-Path $env:GITHUB_WORKSPACE 'scripts/check_installed_package.py')

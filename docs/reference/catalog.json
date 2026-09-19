@@ -112,7 +112,7 @@
     "time": "Timeline position in seconds.",
     "output": "Output file path.",
     "renderer": "Existing Renderer to reuse; None creates and closes one for this frame.",
-    "codec": "FFmpeg encoder name; auto selects hardware H.264 on macOS when available.",
+    "codec": "FFmpeg encoder name. auto tries H.264 VideoToolbox on macOS or NVENC elsewhere, then falls back to libx264 with a warning if hardware initialization fails.",
     "bitrate": "Target video bitrate, such as \"20M\".",
     "progress": "Print frame progress and render timing.",
     "topology": "Atom identities, residues, bonds, and chains in a Topology object.",
@@ -255,14 +255,16 @@
     "endpoints": "\"donor_acceptor\" or \"hydrogen_acceptor\" for hydrogen-bond line endpoints.",
     "line_options": "Additional Distance style options.",
     "t": "Animation progress in [0, 1].",
-    "require_metal": "Require the Metal backend. None requires Metal on macOS and requests a high-performance adapter elsewhere.",
+    "require_metal": "Require the Metal backend. None defaults to Metal on macOS unless a backend is explicitly selected; otherwise prefers a discrete GPU and Vulkan.",
+    "backend": "Native GPU backend: Vulkan, D3D12, Metal, OpenGL or auto. None uses PROTEINMOTION_GPU_BACKEND or the platform default. Vulkan is the tested Windows path.",
+    "adapter_name": "Case-insensitive GPU name/vendor substring. None uses PROTEINMOTION_GPU_ADAPTER or selects a discrete GPU when available.",
     "readback_format": "\"rgba\" for image arrays or \"nv12\" for video encoding.",
     "exc_type": "Exception type supplied by the context manager.",
     "exc_value": "Exception instance supplied by the context manager.",
     "traceback": "Traceback supplied by the context manager.",
     "args": "Exception information supplied by the context manager.",
     "fstop": "Lens f-number. Lower values produce a shallower depth of field. Must be positive.",
-    "blender": "Optional Blender executable path. Otherwise use PROTEINMOTION_BLENDER, PATH or the macOS application.",
+    "blender": "Optional Blender executable path. Otherwise use PROTEINMOTION_BLENDER, PATH or a standard Windows/macOS installation.",
     "samples": "Positive number of EEVEE samples per pixel; default 64.",
     "supersampling": "Spatial resolution multiplier of at least 1. Output is downsampled to the requested size.",
     "max_blur": "Maximum depth-of-field blur size in output pixels.",
@@ -633,7 +635,7 @@
       "members": {
         "render": {
           "description": "Export the timeline to a video file.",
-          "returns": "Dictionary containing frames, seconds, fps, adapter, codec, and output. Here fps is render throughput.",
+          "returns": "Dictionary containing frames, seconds, fps, platform, adapter, codec, and output. Here fps is render throughput; platform, adapter and codec describe the runtime selection.",
           "parameters": {
             "renderer": "\"native\" (default) or \"eevee\"."
           }
@@ -1144,7 +1146,7 @@
     "eevee.find_blender": {
       "description": "Locate the Blender executable and explain how to install it if absent.",
       "returns": "Absolute executable path.",
-      "notes": "Search order: explicit path, PROTEINMOTION_BLENDER, PATH, /Applications/Blender.app/Contents/MacOS/Blender."
+      "notes": "Search order: explicit path, PROTEINMOTION_BLENDER, PATH, standard macOS application or newest Windows Program Files/Blender Foundation/Blender <version>/blender.exe."
     },
     "animation.FocusPull": {
       "description": "Animate lens focus to a protein, residue selection or world point.",

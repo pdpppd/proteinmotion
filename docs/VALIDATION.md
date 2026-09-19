@@ -1,5 +1,44 @@
 # Validation and performance
 
+## Windows and NVIDIA: 18–19 September 2026
+
+Tested on Windows 11 (build 26200), **NVIDIA GeForce RTX 5070 Ti, 16 GB VRAM**, driver 595.97, and AMD Ryzen 7 9800X3D. Python 3.12.13, wgpu 0.32.0, PyAV 18.1.0, NumPy 2.5.3, Gemmi 0.7.5 and MDAnalysis 2.10.0 were used. The selected native adapter reports `Vulkan`.
+
+**190 tests passed, 2 skipped**, with `PROTEINMOTION_TEST_EEVEE=1`, after integrating the v0.10.0 DNA/RNA changes. Skips are macOS-only HEVC VideoToolbox and a symlink test requiring Windows Developer Mode or administrator privileges. The suite covers rendering, surfaces, transparency, density, annotations, protein and nucleotide morph endpoints, reproducible seeking, NV12 padding and BT.709 conversion. Hardware exports test H.264, HEVC and AV1 NVENC, decode every frame, and verify dimensions, color metadata and presentation timestamps. Separate checks cover RGBA/NV12 input with unaligned dimensions and fractional frame rates, and hardware-failure fallback without overwriting an existing output.
+
+An ordinary `scene.render(output)` call selects the platform, GPU backend and encoder at runtime. The GPU suite checks its reported choices and encoded output. A CLI export with no GPU or codec flags also selected Windows, the NVIDIA RTX 5070 Ti, Vulkan and `h264_nvenc`.
+
+Two shader fixes were required on NVIDIA: snap interpolated opacity near 1 before dividing opaque and transparent passes, and return exact coordinates at interpolation endpoints. The previous shader failed eight rendering tests on this GPU; the existing assertions now pass without increasing their tolerances. Adapter selection prefers discrete hardware and Vulkan, with explicit GPU/backend overrides. Automatic export now selects NVENC on this machine.
+
+### Export benchmark
+
+The unmodified `examples/quickstart.py` scene exports **600 frames, 1920 × 1080, 60 fps, 4× MSAA**. One warmup per codec precedes three interleaved runs. Timings include renderer startup, scene evaluation, GPU drawing, NV12 readback, encoding and file finalization. They exclude scene construction and validation. Other desktop applications remained running.
+
+| Encoder | Median export time | Median throughput |
+|---|---:|---:|
+| Previous Windows default: `libx264`, CRF 18, fast | 4.071 s | 147.4 fps |
+| New automatic choice: `h264_nvenc`, P4, HQ, VBR/CQ 18, 20 Mbit/s target | 1.920 s | 312.5 fps |
+
+This is a **2.12× throughput improvement** for this scene on this machine. Encoder quality scales and rate control differ; these are throughput measurements, not an equal-quality codec comparison. All 3,600 measured frames decoded with correct dimensions, BT.709 limited-range metadata and timestamps. Representative frames at 1, 4 and 9 seconds were visually inspected. [Full measurements](windows-nvidia-report.json).
+
+Reproduce from the repository in PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/benchmark_export.py --repeats 3
+```
+
+### Packaging and Blender
+
+The source distribution and wheel build successfully. A wheel installed into a separate environment, run with isolated Python from outside the checkout, passed resource, starter-project and CLI checks and rendered a 60-frame movie using Vulkan/NVENC. Every frame decoded. No external FFmpeg executable or CUDA Toolkit was installed for these checks.
+
+Windows discovery found Blender 5.2 under `Program Files/Blender Foundation`. Both optional EEVEE integration tests passed, including depth of field, overlays, opacity layers, all molecular representations, density and plots. The process runs without a console window.
+
+### Limits
+
+DirectX 12 produced device-loss errors in transparency passes with this driver/wgpu combination. Vulkan is the validated Windows path. Interactive preview, Linux, other Windows GPUs and Metal were not retested during this Windows run. Encoding still copies NV12 through CPU staging memory before NVENC upload. Earlier Apple silicon measurements below describe different scenes and hardware and should not be compared directly with this benchmark.
+
+## Earlier Apple silicon validation
+
 Tested on 16–17 September 2026 on the local **Apple M3 Max, 40 GPU cores, 64 GB RAM**,
 macOS 26.6.2, arm64 Python 3.12.8. The native adapter reports `backend_type=Metal`.
 wgpu 0.32.0, Gemmi 0.7.5, PyAV 18.1.0, NumPy 2.5.3, and MDAnalysis 2.10.0 were used.
@@ -284,7 +323,7 @@ gallery and representative encoded video frames were visually inspected.
 
 ## Current limitations
 
-Rendering and hardware export are tested on Apple silicon Macs. Other platform configurations remain untested. Backbone orientation guides are built on the CPU for each new state; large trajectories can be limited by this work or frame decoding.
+Rendering and hardware export are tested on Apple silicon Macs and Windows 11 with an NVIDIA RTX 5070 Ti. Other platform configurations remain untested. Backbone orientation guides are built on the CPU for each new state; large trajectories can be limited by this work or frame decoding.
 
 Morphs interpolate coordinates, with residue order preserved in contact-guided matches. Bond lengths and atomic clashes can change during a morph. Ball-and-stick morphs move each residue as a group and crossfade the two atom sets. The matching report records whether the search completed and proved optimality.
 

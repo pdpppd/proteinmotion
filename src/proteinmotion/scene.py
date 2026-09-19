@@ -159,6 +159,7 @@ class ProteinScene:
 
     def render(self, output, *, codec="auto", bitrate="20M", progress=True, renderer="native", eevee=None):
         """Export a movie with the native GPU renderer or optional Blender EEVEE."""
+        import platform
         import time
 
         from .renderer import Renderer
@@ -170,6 +171,7 @@ class ProteinScene:
         if renderer == "native" and eevee is not None:
             raise ValueError("EEVEE settings require renderer='eevee'")
         count = max(1, math.ceil(self.duration * self.fps))
+        platform_name = platform.system()
         start = time.perf_counter()
         if renderer == "eevee":
             from .eevee import EEVEE
@@ -178,6 +180,12 @@ class ProteinScene:
                 with VideoWriter(
                     output, self.width, self.height, self.fps, codec=codec, bitrate=bitrate
                 ) as writer:
+                    if progress:
+                        print(
+                            f"Platform: {platform_name}; renderer: EEVEE "
+                            f"({backend.adapter_info.get('backend', 'default')}); encoder: {writer.codec}",
+                            flush=True,
+                        )
                     for i in range(count):
                         writer.write(backend.render(self.seek(i / self.fps), self.camera, self.background))
                         if progress and i % max(1, int(self.fps)) == 0:
@@ -185,19 +193,26 @@ class ProteinScene:
                 adapter = backend.adapter_info
             elapsed = time.perf_counter() - start
             if progress:
-                print(f"\rEEVEE: rendered {count} frames in {elapsed:.2f}s → {output}")
+                print(f"\rEEVEE: rendered {count} frames in {elapsed:.2f}s -> {output}")
             return {
                 "frames": count,
                 "seconds": elapsed,
                 "fps": count / elapsed,
                 "adapter": adapter,
                 "codec": writer.codec,
+                "platform": platform_name,
                 "output": str(output),
             }
         with Renderer(self.width, self.height, msaa=self.msaa, readback_format="nv12") as renderer:
             with VideoWriter(
                 output, self.width, self.height, self.fps, codec=codec, bitrate=bitrate, pixel_format="nv12"
             ) as writer:
+                if progress:
+                    print(
+                        f"Platform: {platform_name}; GPU: {renderer.adapter_info['device']} "
+                        f"({renderer.adapter_info['backend_type']}); encoder: {writer.codec}",
+                        flush=True,
+                    )
                 # Triple-buffered GPU readback overlaps rendering and hardware encoding.
                 for i in range(count):
                     pixels = renderer.enqueue(self.seek(i / self.fps), self.camera, self.background)
@@ -210,13 +225,14 @@ class ProteinScene:
             adapter = renderer.adapter_info
         elapsed = time.perf_counter() - start
         if progress:
-            print(f"\rRendered {count} frames in {elapsed:.2f}s ({count / elapsed:.1f} fps) → {output}")
+            print(f"\rRendered {count} frames in {elapsed:.2f}s ({count / elapsed:.1f} fps) -> {output}")
         return {
             "frames": count,
             "seconds": elapsed,
             "fps": count / elapsed,
             "adapter": adapter,
             "codec": writer.codec,
+            "platform": platform_name,
             "output": str(output),
         }
 

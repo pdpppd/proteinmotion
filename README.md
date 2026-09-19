@@ -17,7 +17,18 @@ The [calmodulin and troponin C demo](https://pdpppd.github.io/proteinmotion/docs
 
 ## Install
 
-Use Python 3.11 or later and a GPU. On Macs with Apple silicon, use an arm64 Python installation. ProteinMotion uses Metal for rendering and VideoToolbox for video encoding on macOS.
+Use Python 3.11 or later and a GPU. Windows NVIDIA systems use Vulkan for rendering and NVENC for video encoding. macOS uses Metal and VideoToolbox; on Apple silicon, use an arm64 Python installation.
+
+For the Windows support in this checkout, install from source in PowerShell:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,preview]"
+.\.venv\Scripts\python.exe -m proteinmotion doctor --check-encoders
+.\.venv\Scripts\python.exe -m proteinmotion render examples/quickstart.py Quickstart --fps 60 -o first-film.mp4
+```
+
+Install a current NVIDIA driver. CUDA Toolkit and a separate FFmpeg executable are not required. `doctor` should report your NVIDIA card under `selected_adapter` and a usable `h264_nvenc` encoder. See [Windows setup and GPU selection](docs/getting-started.md#windows-and-nvidia-gpus).
 
 Install v0.10.0 from GitHub Releases:
 
@@ -72,7 +83,7 @@ EEVEE adds depth of field with focus on a protein, residue, or selected region. 
 proteinmotion render my-movie/film.py ProteinMovie --renderer eevee --fps 60 -o film.mp4
 ```
 
-ProteinMotion finds Blender on `PATH` or at `/Applications/Blender.app` on macOS. For another location, pass `--blender /path/to/blender` or set `PROTEINMOTION_BLENDER`. On macOS, EEVEE uses Metal.
+ProteinMotion finds Blender on `PATH`, in standard Windows `Program Files/Blender Foundation/Blender <version>` folders, or at `/Applications/Blender.app` on macOS. For another location, pass `--blender /path/to/blender` or set `PROTEINMOTION_BLENDER`. On macOS, EEVEE uses Metal.
 
 Set lens focus in your scene before the first animation:
 
@@ -150,7 +161,7 @@ proteinmotion render examples/nmr_regions.py RegionTour --fps 60 -o regions.mp4
 
 ## Rendering and scientific methods
 
-Rendering and export are tested on Apple silicon Macs. In one M3 Max run, a 24-second NMR cartoon video at 1080p/60 fps exported in 3.69 seconds. This includes rendering, GPU readback, and encoding; loading and scene construction were timed separately. See [benchmarks and test results](https://pdpppd.github.io/proteinmotion/docs/validation/) for the hardware, inputs, and measurements.
+Rendering and export are tested on Apple silicon Macs and Windows with an NVIDIA RTX 5070 Ti. On the RTX, a 600-frame 1080p/60 fps Quickstart export took a median 1.92 seconds with NVENC versus 4.07 seconds with CPU encoding across three runs. This includes rendering, GPU readback, and encoding; scene construction is excluded. See [benchmarks and test results](docs/VALIDATION.md) for settings, hardware, and limits.
 
 Morphs and NMR playback interpolate coordinates for visualization. Use an MD trajectory when you need motion from a simulation. Hydrogen bonds use geometric criteria. Electrostatic estimates use a screened Coulomb model and depend on the supplied charges. The [rendering guide](https://pdpppd.github.io/proteinmotion/docs/rendering/) and [interaction guide](https://pdpppd.github.io/proteinmotion/docs/interactions/) describe the methods and their limits.
 

@@ -1,6 +1,8 @@
 # Get started
 
-ProteinMotion requires Python 3.11 or later and a GPU. On macOS, it uses Metal for rendering and VideoToolbox for video encoding. The examples and rendering tests use Apple silicon Macs.
+ProteinMotion requires Python 3.11 or later and a GPU. Windows NVIDIA systems use Vulkan and NVENC. macOS uses Metal and VideoToolbox. Rendering tests cover Apple silicon and an NVIDIA RTX 5070 Ti on Windows 11.
+
+The same scene scripts work on both platforms. Each render automatically detects the operating system and available GPU, then selects the backend and video encoder. The render command prints the detected platform, GPU/backend and encoder before exporting. Platform flags are optional overrides.
 
 ## Install the release
 
@@ -18,6 +20,29 @@ proteinmotion doctor
 The package includes shaders, fonts, licenses, a sample structure, a starter scene, and the AI agent skill. PyAV supplies the FFmpeg libraries used for export.
 
 On Apple silicon, use native arm64 Python. `doctor` reports the GPU backend and available encoders; look for `Metal` and `h264_videotoolbox`.
+
+## Windows and NVIDIA GPUs
+
+The Windows changes are available in the source checkout. The v0.10.0 release above predates these changes. Use a 64-bit Python installation and a current NVIDIA driver. In PowerShell, from the repository:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[preview]"
+.\.venv\Scripts\python.exe -m proteinmotion doctor --check-encoders
+.\.venv\Scripts\python.exe -m proteinmotion render examples/quickstart.py Quickstart --fps 60 -o first-film.mp4
+```
+
+These commands use the virtual environment directly and do not require changing PowerShell's execution policy. The package supplies wgpu-native and PyAV's FFmpeg libraries. CUDA Toolkit and the `ffmpeg` command are not required.
+
+`doctor` lists compiled encoders; `--check-encoders` also tests whether they can encode a small frame. Check that `selected_adapter` identifies your NVIDIA GPU with `backend_type: Vulkan`, and that `h264_nvenc` is usable. Automatic selection prefers a discrete GPU over integrated graphics. To select a GPU explicitly:
+
+```powershell
+.\.venv\Scripts\python.exe -m proteinmotion render examples/quickstart.py Quickstart --gpu-backend Vulkan --gpu-adapter NVIDIA --codec h264_nvenc --fps 60 -o first-film.mp4
+```
+
+`--codec auto` prefers H.264 NVENC on Windows/Linux and VideoToolbox on macOS. If hardware encoder initialization fails, it warns and uses `libx264`. An explicit `--codec h264_nvenc` reports a failure instead of switching encoders. `hevc_nvenc` and `av1_nvenc` are also available when supported by the GPU and PyAV build.
+
+GPU selection also works for `still`, `preview`, and `doctor`. For Python scripts, set `$env:PROTEINMOTION_GPU_BACKEND = "Vulkan"` and `$env:PROTEINMOTION_GPU_ADAPTER = "NVIDIA"` before launching Python, or pass `backend="Vulkan", adapter_name="NVIDIA"` to `Renderer`. Vulkan is the tested Windows backend; DirectX 12 currently has device-loss failures in the transparency tests on the tested driver. See [rendering and platform limits](rendering.md).
 
 ## Create and render a video
 
@@ -69,7 +94,7 @@ proteinmotion render my-movie/film.py ProteinMovie --fps 60 --bitrate 20M -o my-
 
 Preview requires the `preview` extra: drag to orbit; wheel to zoom; Space to play/pause; Left/Right to seek; Home to rewind; R to reset the preview camera; Escape to close. Preview camera adjustments apply to the preview window only.
 
-`scene.seek(t)` restores the scene at time `t`, including when seeking backward. `scene.render_frame(t)` returns an RGBA array; `output='frame.png'` saves it. Reuse a `Renderer` for many stills. MP4 export selects `h264_videotoolbox` on macOS when available, with `allow_sw=0` to require hardware encoding. `--codec libx264` explicitly chooses CPU encoding; molecular rendering still requires a GPU. `hevc_videotoolbox` is also supported. Export replaces the requested output only after encoding succeeds.
+`scene.seek(t)` restores the scene at time `t`, including when seeking backward. `scene.render_frame(t)` returns an RGBA array; `output='frame.png'` saves it. Reuse a `Renderer` for many stills. MP4 export automatically tries `h264_videotoolbox` on macOS and `h264_nvenc` on Windows/Linux, then warns and falls back to `libx264` if hardware initialization fails. `--codec libx264` explicitly chooses CPU encoding; molecular rendering still requires a GPU. `hevc_videotoolbox`, `hevc_nvenc` and `av1_nvenc` are also supported when available. Export replaces the requested output only after encoding succeeds.
 
 The CLI is also available as `python -m proteinmotion`.
 

@@ -17,8 +17,8 @@ SPECIAL = {"__len__", "__or__", "__enter__", "__exit__"}
 
 
 def generate():
-    catalog = json.loads(CATALOG.read_text())
-    trees = {p.stem: ast.parse(p.read_text()) for p in sorted(SOURCE.glob("*.py"))}
+    catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
+    trees = {p.stem: ast.parse(p.read_text(encoding="utf-8")) for p in sorted(SOURCE.glob("*.py"))}
     definitions = {}
     imports = {}
     for module, tree in trees.items():
@@ -248,7 +248,8 @@ def generate():
         "modules": [dict(id=key, **value) for key, value in catalog["modules"].items()],
         "symbols": symbols,
         "dependencies": {
-            str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in dependencies
+            p.relative_to(ROOT).as_posix(): hashlib.sha256(p.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+            for p in dependencies
         },
     }
 
@@ -259,10 +260,10 @@ def main():
     args = parser.parse_args()
     text = json.dumps(generate(), indent=2, ensure_ascii=False) + "\n"
     if args.check:
-        if not OUTPUT.exists() or OUTPUT.read_text() != text:
+        if not OUTPUT.exists() or OUTPUT.read_text(encoding="utf-8") != text:
             raise SystemExit("Reference data is stale. Run python3 scripts/build_reference.py.")
     else:
-        OUTPUT.write_text(text)
+        OUTPUT.write_text(text, encoding="utf-8")
     print("Reference data checked." if args.check else f"Wrote {OUTPUT.relative_to(ROOT)}")
 
 

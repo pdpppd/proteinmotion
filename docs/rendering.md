@@ -1,6 +1,6 @@
 # Rendering
 
-Python defines the scene and animation timeline. The GPU renders the molecular geometry, text, and annotations. On macOS, wgpu-native compiles the shaders for Metal, and VideoToolbox encodes the video.
+Python defines the scene and animation timeline. The GPU renders the molecular geometry, text, and annotations. wgpu-native compiles the same shaders for Metal on macOS and Vulkan on Windows/Linux. VideoToolbox and NVIDIA NVENC provide hardware video encoding.
 
 ## Native GPU rendering
 
@@ -58,15 +58,21 @@ Morphs and state playback interpolate coordinates. They illustrate structural ch
 
 ## Video export
 
-Both backends encode with PyAV and use VideoToolbox on macOS. EEVEE reads completed RGBA frames from Blender before encoding. The native renderer uses the transfer path below.
+Both renderers encode with PyAV. Automatic encoding prefers VideoToolbox on macOS and H.264 NVENC on Windows/Linux, with a warning and `libx264` fallback if hardware initialization fails. Explicit codecs fail visibly if unavailable. EEVEE reads completed RGBA frames from Blender before encoding. The native renderer uses the transfer path below.
 
-A Metal compute pass converts each frame to limited-range BT.709 NV12. PyAV sends the result to VideoToolbox for encoding. NV12 transfers 1.5 bytes per pixel, compared with 4 for RGBA. The current export path maps and copies GPU staging buffers before encoding.
+A GPU compute pass converts each frame to limited-range BT.709 NV12. Three staging buffers overlap rendering and readback. NV12 transfers 1.5 bytes per pixel, compared with 4 for RGBA, reducing transfer size by 62.5%. PyAV passes NV12 to VideoToolbox or NVENC without converting it to planar YUV on the CPU. The path still maps and copies staging buffers; NVENC then uploads the frame. It does not share a zero-copy texture with the renderer.
+
+NVENC uses preset P4, high-quality tuning, variable bitrate and a quality target of 18. `--bitrate` sets its target bitrate (20 Mbit/s by default); this is not a fixed file-size guarantee. H.264 is the automatic codec. Use `--codec hevc_nvenc` or `--codec av1_nvenc` for supported NVIDIA cards, or `--codec libx264` for software H.264. Software CRF and NVENC CQ values are different quality scales. [FFmpeg NVENC options](https://www.ffmpeg.org/doxygen/trunk/nvenc__h264_8c_source.html).
 
 Large scenes can be limited by GPU buffer size, geometry and pixel processing, CPU frame decoding, or encoder speed. See [tests and benchmarks](VALIDATION.md) for measured results and their conditions.
 
 ## Platforms
 
-Rendering and hardware export are tested on Apple silicon Macs. macOS uses Metal by default. The backend can select native wgpu adapters on other platforms, but those configurations remain untested.
+Rendering and hardware export are tested on Apple silicon Macs and Windows 11 with an NVIDIA RTX 5070 Ti (driver 595.97, wgpu 0.32.0). macOS defaults to Metal. Windows/Linux selection prefers a discrete GPU and then Vulkan; software adapters are excluded. `--gpu-backend` and `--gpu-adapter` override selection, as do `PROTEINMOTION_GPU_BACKEND` and `PROTEINMOTION_GPU_ADAPTER`. The existing wgpu environment selectors remain supported.
+
+Detection happens when a renderer and video writer are created, including direct calls to `scene.render()` from Python. No platform flags are needed for normal use. Exports with progress enabled print the detected platform and selected backend/encoder. The returned render report includes `platform`, `adapter` and `codec`; `progress=False` suppresses console output.
+
+Vulkan passes the Windows rendering tests. DirectX 12 produced device-loss errors during transparency passes on this setup and is exposed for diagnosis, not recommended for production exports. Linux, other Windows GPUs, and interactive preview have not been validated in this Windows run. See [validation results](VALIDATION.md).
 
 ProteinMotion exports images and videos as a standalone package. Use the exported files when composing a larger Manim scene or editing a video.
 

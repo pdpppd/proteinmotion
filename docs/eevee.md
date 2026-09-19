@@ -6,9 +6,9 @@ Render a ProteinMotion scene through Blender EEVEE and focus on selected atoms o
 
 ## Install Blender
 
-Install [Blender 4.5 or later](https://www.blender.org/download/) separately. EEVEE is included with Blender. ProteinMotion starts it in the background; the Blender interface can stay closed. This integration was tested with Blender 5.2 on an Apple M3 Max using Metal.
+Install [Blender 4.5 or later](https://www.blender.org/download/) separately. EEVEE is included with Blender. ProteinMotion starts it in the background; the Blender interface can stay closed. This integration was tested with Blender 5.2 on an Apple M3 Max using Metal and on Windows with an NVIDIA RTX 5070 Ti.
 
-ProteinMotion finds `blender` on `PATH` or the standard macOS installation at `/Applications/Blender.app`. For another location:
+ProteinMotion finds `blender` on `PATH`, standard Windows installations under `Program Files/Blender Foundation/Blender <version>`, or the macOS installation at `/Applications/Blender.app`. Windows discovery chooses the newest installed version. For another location:
 
 ```bash
 export PROTEINMOTION_BLENDER="/path/to/blender"

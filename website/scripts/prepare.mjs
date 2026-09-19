@@ -9,7 +9,7 @@ import {
 } from "node:fs/promises";
 import { resolve } from "node:path";
 execFileSync(
-  process.env.PYTHON ?? "python3",
+  process.env.PYTHON ?? (process.platform === "win32" ? "python" : "python3"),
   ["../scripts/build_reference.py", "--check"],
   { stdio: "inherit" },
 );
@@ -48,13 +48,17 @@ const rendered = JSON.parse(
 );
 const hashes = new Map();
 async function hash(file) {
-  if (!hashes.has(file))
+  if (!hashes.has(file)) {
+    let data = await readFile(file);
+    // Git may check Python sources out with CRLF on Windows. Source identity
+    // uses LF on every platform; binary structure and media hashes stay exact.
+    if (file.endsWith(".py"))
+      data = Buffer.from(data.toString("utf8").replace(/\r\n/g, "\n"));
     hashes.set(
       file,
-      createHash("sha256")
-        .update(await readFile(file))
-        .digest("hex"),
+      createHash("sha256").update(data).digest("hex"),
     );
+  }
   return hashes.get(file);
 }
 for (const [id, example] of Object.entries(rendered)) {

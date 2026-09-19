@@ -1,4 +1,4 @@
-"""ProteinMotion: programmatic molecular films, rendered through native Metal."""
+"""ProteinMotion: programmatic molecular films, rendered on native GPUs."""
 
 from . import rates
 from .animation import (

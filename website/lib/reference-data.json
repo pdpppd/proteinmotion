@@ -484,7 +484,7 @@
               "annotation": false,
               "default": "'auto'",
               "kind": "keyword only",
-              "description": "FFmpeg encoder name; auto selects hardware H.264 on macOS when available."
+              "description": "FFmpeg encoder name. auto tries H.264 VideoToolbox on macOS or NVENC elsewhere, then falls back to libx264 with a warning if hardware initialization fails."
             },
             {
               "name": "bitrate",
@@ -520,7 +520,7 @@
             }
           ],
           "description": "Export the timeline to a video file.",
-          "returns": "Dictionary containing frames, seconds, fps, adapter, codec, and output. Here fps is render throughput.",
+          "returns": "Dictionary containing frames, seconds, fps, platform, adapter, codec, and output. Here fps is render throughput; platform, adapter and codec describe the runtime selection.",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
           "line": 160
@@ -536,7 +536,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
-          "line": 223
+          "line": 239
         }
       ],
       "extra_parameters": []
@@ -8475,7 +8475,7 @@
       "description": "Render protein and annotation objects with a reusable GPU renderer.",
       "notes": "Use a with block to release resources. draw() submits GPU work without readback. render() returns one completed frame. enqueue() and drain() overlap GPU rendering and CPU encoding.",
       "import_path": "proteinmotion.renderer",
-      "signature": "Renderer(width=1920, height=1080, *, msaa=4, require_metal=None, readback_format='rgba')",
+      "signature": "Renderer(\n    width=1920,\n    height=1080,\n    *,\n    msaa=4,\n    require_metal=None,\n    readback_format='rgba',\n    backend=None,\n    adapter_name=None,\n)",
       "parameters": [
         {
           "name": "width",
@@ -8507,7 +8507,7 @@
           "annotation": false,
           "default": "None",
           "kind": "keyword only",
-          "description": "Require the Metal backend. None requires Metal on macOS and requests a high-performance adapter elsewhere."
+          "description": "Require the Metal backend. None defaults to Metal on macOS unless a backend is explicitly selected; otherwise prefers a discrete GPU and Vulkan."
         },
         {
           "name": "readback_format",
@@ -8516,6 +8516,22 @@
           "default": "'rgba'",
           "kind": "keyword only",
           "description": "\"rgba\" for image arrays or \"nv12\" for video encoding."
+        },
+        {
+          "name": "backend",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Native GPU backend: Vulkan, D3D12, Metal, OpenGL or auto. None uses PROTEINMOTION_GPU_BACKEND or the platform default. Vulkan is the tested Windows path."
+        },
+        {
+          "name": "adapter_name",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Case-insensitive GPU name/vendor substring. None uses PROTEINMOTION_GPU_ADAPTER or selects a discrete GPU when available."
         }
       ],
       "returns": "",
@@ -8565,7 +8581,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 544
+          "line": 546
         },
         {
           "name": "enqueue",
@@ -8603,7 +8619,7 @@
           "returns": "Frame array, or None while the readback pipeline fills.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 548
+          "line": 550
         },
         {
           "name": "drain",
@@ -8616,7 +8632,7 @@
           "returns": "Iterator of frame arrays.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 592
+          "line": 594
         },
         {
           "name": "render",
@@ -8654,7 +8670,7 @@
           "returns": "RGBA uint8 array or NV12 array, according to readback_format.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 596
+          "line": 598
         },
         {
           "name": "close",
@@ -8667,7 +8683,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 602
+          "line": 604
         },
         {
           "name": "__enter__",
@@ -8680,7 +8696,7 @@
           "returns": "The renderer.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 629
+          "line": 631
         },
         {
           "name": "__exit__",
@@ -8701,7 +8717,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 632
+          "line": 634
         }
       ],
       "extra_parameters": []
@@ -8723,7 +8739,7 @@
           "annotation": true,
           "default": "None",
           "kind": "positional or keyword",
-          "description": "Optional Blender executable path. Otherwise use PROTEINMOTION_BLENDER, PATH or the macOS application."
+          "description": "Optional Blender executable path. Otherwise use PROTEINMOTION_BLENDER, PATH or a standard Windows/macOS installation."
         },
         {
           "name": "samples",
@@ -8768,10 +8784,10 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/eevee.py",
-      "line": 22,
+      "line": 23,
       "bases": [],
       "attributes": {
-        "blender": "Optional Blender executable path. Otherwise use PROTEINMOTION_BLENDER, PATH or the macOS application.",
+        "blender": "Optional Blender executable path. Otherwise use PROTEINMOTION_BLENDER, PATH or a standard Windows/macOS installation.",
         "samples": "Positive number of EEVEE samples per pixel; default 64.",
         "supersampling": "Spatial resolution multiplier of at least 1. Output is downsampled to the requested size.",
         "max_blur": "Maximum depth-of-field blur size in output pixels.",
@@ -8822,7 +8838,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/eevee.py",
-      "line": 71,
+      "line": 84,
       "bases": [],
       "attributes": {},
       "guide": "eevee",
@@ -8865,7 +8881,7 @@
           "returns": "An RGBA uint8 array with shape (height, width, 4).",
           "notes": "",
           "source": "src/proteinmotion/eevee.py",
-          "line": 121
+          "line": 139
         },
         {
           "name": "close",
@@ -8878,7 +8894,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/eevee.py",
-          "line": 177
+          "line": 195
         },
         {
           "name": "__enter__",
@@ -8891,7 +8907,7 @@
           "returns": "The renderer.",
           "notes": "",
           "source": "src/proteinmotion/eevee.py",
-          "line": 202
+          "line": 220
         },
         {
           "name": "__exit__",
@@ -8929,7 +8945,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/eevee.py",
-          "line": 205
+          "line": 223
         }
       ],
       "extra_parameters": []
@@ -8941,7 +8957,7 @@
       "kind": "function",
       "href": "/reference/eevee/find_blender/",
       "description": "Locate the Blender executable and explain how to install it if absent.",
-      "notes": "Search order: explicit path, PROTEINMOTION_BLENDER, PATH, /Applications/Blender.app/Contents/MacOS/Blender.",
+      "notes": "Search order: explicit path, PROTEINMOTION_BLENDER, PATH, standard macOS application or newest Windows Program Files/Blender Foundation/Blender <version>/blender.exe.",
       "import_path": "proteinmotion.eevee",
       "signature": "find_blender(executable=None)",
       "parameters": [
@@ -8956,7 +8972,7 @@
       ],
       "returns": "Absolute executable path.",
       "source": "src/proteinmotion/eevee.py",
-      "line": 51,
+      "line": 52,
       "bases": [],
       "attributes": {},
       "guide": "eevee",
@@ -12566,21 +12582,22 @@
     }
   ],
   "dependencies": {
-    "docs/reference/catalog.json": "c28d90996906e0f7928187326226733755b114e7776e92d7ab3792b24c20bebc",
-    "scripts/build_reference.py": "ae856e77fd527326575f8e45523fa04ca32f72f72b857ff999317e1fdf0ec3a2",
-    "src/proteinmotion/__init__.py": "3066ea9b89435fa3db62ebd4aad2caae35186ee67c32d925c4c9c52eb79a1098",
+    "docs/reference/catalog.json": "3c1590bf442f55eb694f0762ee0a619ddce2c6fde2bb059bdde8ceadfa4140e1",
+    "scripts/build_reference.py": "ecbc89319e1116b96836ce27b0f52a815d8e42311734e7f52ba1ec8828acde81",
+    "src/proteinmotion/__init__.py": "e6d83cddffe897cd378ff68e5bd39285118b139bd77224fefb8d7fd94de5457d",
     "src/proteinmotion/__main__.py": "3129adff95e0f38b87ab34cddfc27082c7892bcaec267ff5d40f160fdf55b44a",
     "src/proteinmotion/_blender_worker.py": "3010c14ed7ddb07d86b8d6163b32591eefb4d9dc3eeba526bde223f6e303ef1e",
     "src/proteinmotion/_eevee_geometry.py": "503ebb308cba42141022a50bf59bfed2facec6a82d36e97c0492310a8d388869",
+    "src/proteinmotion/_gpu.py": "8247a7f698078769443adc5402c3cbfee4997c2915f4d90278435062e3a9a3c0",
     "src/proteinmotion/animation.py": "cf89ecfe7a008c04e27cefb20eb572f70502d94728e3c6f1759e4553a5da6c0d",
     "src/proteinmotion/annotations.py": "d3cf73a04dddbd885bb71e549c4833aa4a076ac329eccbceb0d8025bd9a24870",
     "src/proteinmotion/authoring.py": "da24509aaef749da2b2dbaf88557a697ec16c13b6e1f3f261e9702adefcb619f",
     "src/proteinmotion/backbone.py": "b9136cc97b24148ec7cd1f36a6839bd54a013fefe6a53df6b3c423e9373ed8b8",
     "src/proteinmotion/camera.py": "a95ecbca7c056199192fec11273a7273302dd1531016ad9bffe74322d713f210",
-    "src/proteinmotion/cli.py": "da4e8468ed4c0fc592ca2581efc0813f762d04a09f75e01b4b96d53b231691c7",
+    "src/proteinmotion/cli.py": "e7741ade44b361f508e86a80db661cf3c507b04c52bf84a7a78b0ff132f56bf9",
     "src/proteinmotion/density.py": "c062508e5511848bbc0657da0c04483c79c2dc9070297645db4459d236feab8a",
     "src/proteinmotion/distances.py": "906f8c6f568b91f4b5fd28ebbd6e04cbce554f7f09209e76bfb2fa9dd3a43ea3",
-    "src/proteinmotion/eevee.py": "19272f5a9cbf8ac2d484adad2765b460338e1cc0fad376c83273ec6e6cd37a71",
+    "src/proteinmotion/eevee.py": "f5f344f5e901ed4ed67ecc90116981646c9e4668372e69a65d134c49ee6594ef",
     "src/proteinmotion/geometry.py": "1f2f018c5b359147289f604db7aaa25e42724ab6943f00c7048ffbc9a5e73ae1",
     "src/proteinmotion/interactions.py": "92d23e15f6b14853fa985ba2121c8a7ec60c2f915d03fec33d98af2c7344d32c",
     "src/proteinmotion/matching.py": "07362dbf610bae60e3b21506e83cffabe1a518b998f930d1c53bde5cb7d8b4fd",
@@ -12594,13 +12611,13 @@
     "src/proteinmotion/protein.py": "317939c58cf1893d6e90c4214b08b94b3fd9ed7a0e7a97afc41ddc0e1b91d657",
     "src/proteinmotion/rates.py": "f367d8cd0550b494af67a66b90c17dea4b1239efaa9c9f4bd89316defc2a45ce",
     "src/proteinmotion/regions.py": "fbab4528164ae509f4e30ac921218bb865f367288e37c3ad5b3b2add1fc05a35",
-    "src/proteinmotion/renderer.py": "e58db49e4a69d8bfde18854c41f1baa1cdc54a36a9ba5e2a4bd4aa3a17d17a2d",
-    "src/proteinmotion/scene.py": "81811114aa223b436554a0be8114a725c79aa035f076f62cf9c1cadc8d8d6d8d",
+    "src/proteinmotion/renderer.py": "cec948cc247dfee2aaa4f029af6d576e3ff452e1de81df73ec0f791d54277bde",
+    "src/proteinmotion/scene.py": "dfbc26dc824613cd4d5c366e023e6155eb7960bba4571ae8d4bf65d21014c350",
     "src/proteinmotion/structure.py": "15d0dd45fc5170df51635e2cd8e7de60d381323989d4e3b1c476ccd85b2a22fe",
     "src/proteinmotion/styling.py": "ed2fabc9af4f77d0917f44e3918a2893dd3aa342a30cf5e0da76603424700f21",
     "src/proteinmotion/surface.py": "59d248d116c05d10cdb59650cf4780ef5690bb7596045f2e4f6338d87136ea25",
     "src/proteinmotion/text_geometry.py": "13e937524def811f9001cfe7aead3cc583b93f2c69a7d6983457910c5fe1a767",
     "src/proteinmotion/trajectory.py": "76fc3f315759fba7518a2243ea02e764933e58283d9205de65a6358c8101e28e",
-    "src/proteinmotion/video.py": "14d3fa9b3b6f0117ffda4c1a4f1ee742f5151b83ceca6d21556d4ddc7776c899"
+    "src/proteinmotion/video.py": "4cbda9f39d266d4ecf0d48827c8a80b811b56df5eafd9e58e690d91edd93b99c"
   }
 }

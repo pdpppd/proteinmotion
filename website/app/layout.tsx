@@ -16,11 +16,12 @@ export const metadata: Metadata = {
     template: "%s · ProteinMotion",
   },
   description:
-    "Animate proteins, DNA, and RNA in Python. Render cartoons, nucleotide bases, atoms, surfaces, labels, NMR ensembles, and MD trajectories.",
+    "Animate proteins, DNA, and RNA in Python with GPU rendering on macOS and Windows with NVIDIA graphics. Platform and video encoder selection are automatic.",
   icons: { icon: asset("icon.svg") },
   openGraph: {
     title: "ProteinMotion",
-    description: "Protein, DNA, and RNA animation in Python.",
+    description:
+      "Protein, DNA, and RNA animation in Python. GPU rendering on Apple silicon Macs and Windows PCs with NVIDIA graphics.",
     type: "website",
     images: [
       {

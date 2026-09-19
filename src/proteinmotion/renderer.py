@@ -1,12 +1,12 @@
-"""Native wgpu renderer. Metal on macOS; no browser or OpenGL context required."""
+"""Native wgpu renderer: Metal on macOS, Vulkan on Windows/Linux by default."""
 
-import sys
 from collections import deque
 from importlib.resources import files
 
 import numpy as np
 import wgpu
 
+from ._gpu import select_adapter
 from .annotations import Annotation
 from .geometry import atom_metadata, segments, state_data, sweep_grid
 from .mesh import MeshGPU, MeshObject
@@ -163,22 +163,24 @@ class _MoleculeGPU:
 
 
 class Renderer:
-    def __init__(self, width=1920, height=1080, *, msaa=4, require_metal=None, readback_format="rgba"):
+    def __init__(
+        self,
+        width=1920,
+        height=1080,
+        *,
+        msaa=4,
+        require_metal=None,
+        readback_format="rgba",
+        backend=None,
+        adapter_name=None,
+    ):
         if readback_format not in ("rgba", "nv12"):
             raise ValueError("readback_format must be rgba or nv12")
         if readback_format == "nv12" and (width % 2 or height % 2):
             raise ValueError("NV12 export requires even width and height")
         self.readback_format = readback_format
         self.width, self.height, self.msaa = width, height, msaa
-        require_metal = sys.platform == "darwin" if require_metal is None else require_metal
-        adapters = wgpu.gpu.enumerate_adapters_sync()
-        if require_metal:
-            candidates = [a for a in adapters if a.info["backend_type"] == "Metal"]
-            if not candidates:
-                raise RuntimeError("No Metal adapter found. Run proteinmotion doctor for diagnostics.")
-            self.adapter = candidates[0]
-        else:
-            self.adapter = wgpu.gpu.request_adapter_sync(power_preference="high-performance")
+        self.adapter = select_adapter(backend=backend, adapter_name=adapter_name, require_metal=require_metal)
         self.adapter_info = dict(self.adapter.info)
         # State A/B, atom metadata, bonds, segments and per-atom motion/visibility controls.
         self.device = self.adapter.request_device_sync(

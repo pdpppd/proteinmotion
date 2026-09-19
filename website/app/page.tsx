@@ -37,7 +37,15 @@ export default function Home() {
             </a>
           </div>
           <p className="mt-5 font-mono text-[11px] text-muted">
-            Python 3.11+ · Apple silicon · MIT licensed
+            Python 3.11+ · macOS · Windows + NVIDIA · MIT licensed
+          </p>
+          <p className="mt-3 max-w-md text-xs leading-6 text-muted">
+            GPU rendering on Apple silicon Macs and Windows PCs with NVIDIA
+            graphics. ProteinMotion detects your platform and selects rendering
+            and video encoding automatically.{" "}
+            <Link href="/docs/getting-started/" className="text-accent">
+              Platform setup <ArrowRightIcon className="inline" />
+            </Link>
           </p>
         </div>
         <HeroPlayer />

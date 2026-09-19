@@ -1,6 +1,7 @@
 import argparse
 import importlib.util
 import json
+import os
 import shlex
 import shutil
 import sys
@@ -8,6 +9,11 @@ from pathlib import Path
 
 from . import __version__
 from .scene import ProteinScene
+
+
+def _shell_quote(path):
+    value = str(path)
+    return "'" + value.replace("'", "''") + "'" if sys.platform == "win32" else shlex.quote(value)
 
 
 def load_scene(path, name, **kwargs):
@@ -29,11 +35,15 @@ def load_scene(path, name, **kwargs):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="proteinmotion", description="Programmatic molecular films on native Metal"
+        prog="proteinmotion", description="Programmatic molecular films on native GPUs"
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("doctor", help="Report the native GPU and video encoder environment")
+    doctor = commands.add_parser("doctor", help="Report the native GPU and video encoder environment")
+    doctor.add_argument(
+        "--check-encoders", action="store_true", help="Test actual encoder initialization and encoding"
+    )
+    gpu_parsers = [doctor]
     starter = commands.add_parser("init", help="Create a starter film and bundled PDB input")
     starter.add_argument(
         "directory", type=Path, help="Movie folder; existing film/data are never overwritten"
@@ -49,6 +59,7 @@ def main():
     )
     for mode in ("render", "still", "preview"):
         p = commands.add_parser(mode)
+        gpu_parsers.append(p)
         p.add_argument("file", type=Path)
         p.add_argument("scene")
         p.add_argument("--width", type=int, default=1920 if mode != "preview" else 1280)
@@ -68,7 +79,20 @@ def main():
             p.add_argument("--bitrate", default="20M")
         if mode == "still":
             p.add_argument("--time", type=float, default=0)
+    for p in gpu_parsers:
+        p.add_argument(
+            "--gpu-backend",
+            choices=("auto", "Vulkan", "D3D12", "Metal", "OpenGL"),
+            help="Native GPU backend (Windows/Linux prefer Vulkan; macOS prefers Metal)",
+        )
+        p.add_argument("--gpu-adapter", help="GPU name/vendor substring, e.g. NVIDIA or RTX 5070")
     args = parser.parse_args()
+    for flag, variable in (
+        ("gpu_backend", "PROTEINMOTION_GPU_BACKEND"),
+        ("gpu_adapter", "PROTEINMOTION_GPU_ADAPTER"),
+    ):
+        if getattr(args, flag, None) is not None:
+            os.environ[variable] = getattr(args, flag)
     if args.command in ("init", "install-skill"):
         from .authoring import SKILL_NAME, init_movie, install_skill
 
@@ -77,8 +101,8 @@ def main():
                 destination = init_movie(args.directory)
                 print(f"Created {destination / 'film.py'} and {destination / '1ubq.cif'}")
                 print(
-                    f"proteinmotion render {shlex.quote(str(destination / 'film.py'))} "
-                    f"ProteinMovie --fps 60 -o {shlex.quote(str(destination / 'film.mp4'))}"
+                    f"proteinmotion render {_shell_quote(destination / 'film.py')} "
+                    f"ProteinMovie --fps 60 -o {_shell_quote(destination / 'film.mp4')}"
                 )
             else:
                 destination = install_skill(args.path, force=args.force)
@@ -93,8 +117,9 @@ def main():
         import av
         import wgpu
 
+        from ._gpu import select_adapter
         from .eevee import find_blender
-        from .video import available_encoders
+        from .video import available_encoders, probe_encoders
 
         try:
             blender = find_blender()
@@ -102,17 +127,26 @@ def main():
             blender = None
 
         encoders = available_encoders()
+        selected, gpu_error = None, None
+        try:
+            selected = dict(select_adapter().info)
+        except (RuntimeError, ValueError) as exc:
+            gpu_error = str(exc)
         print(
             json.dumps(
                 {
                     "proteinmotion": __version__,
                     "python": sys.version,
                     "machine": platform.machine(),
+                    "platform": platform.platform(),
                     "wgpu": wgpu.__version__,
                     "pyav": av.__version__,
                     "adapters": [dict(a.info) for a in wgpu.gpu.enumerate_adapters_sync()],
+                    "selected_adapter": selected,
+                    "gpu_error": gpu_error,
                     "ffmpeg_executable_optional": shutil.which("ffmpeg"),
                     "encoders": encoders,
+                    **({"encoder_checks": probe_encoders()} if args.check_encoders else {}),
                     "blender_executable_optional": blender,
                 },
                 indent=2,

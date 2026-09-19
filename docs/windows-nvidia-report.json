@@ -1,0 +1,164 @@
+{
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.13",
+  "wgpu": "0.32.0",
+  "pyav": "18.1.0",
+  "scene": "Quickstart",
+  "scene_sha256": "2c7652f024eed7a488cec1ede96368d89e66d9376265abba54d097c819ade66c",
+  "width": 1920,
+  "height": 1080,
+  "video_fps": 60,
+  "msaa": 4,
+  "bitrate": "20M",
+  "summary": {
+    "libx264": {
+      "median_seconds": 4.070517999999993,
+      "median_fps": 147.4013872435894
+    },
+    "auto": {
+      "median_seconds": 1.919864100000268,
+      "median_fps": 312.5221207063126
+    }
+  },
+  "results": [
+    {
+      "frames": 600,
+      "seconds": 4.070517999999993,
+      "fps": 147.4013872435894,
+      "adapter": {
+        "vendor": "NVIDIA",
+        "architecture": "",
+        "device": "NVIDIA GeForce RTX 5070 Ti",
+        "description": "595.97",
+        "stackgroup_min_size": 4,
+        "stackgroup_max_size": 128,
+        "vendor_id": 4318,
+        "device_id": 11269,
+        "adapter_type": "DiscreteGPU",
+        "backend_type": "Vulkan"
+      },
+      "codec": "libx264",
+      "output": "libx264-1.mp4",
+      "requested_codec": "libx264",
+      "repeat": 1,
+      "decoded_frames": 600,
+      "bytes": 1748363
+    },
+    {
+      "frames": 600,
+      "seconds": 1.9977521999999226,
+      "fps": 300.3375493717505,
+      "adapter": {
+        "vendor": "NVIDIA",
+        "architecture": "",
+        "device": "NVIDIA GeForce RTX 5070 Ti",
+        "description": "595.97",
+        "stackgroup_min_size": 4,
+        "stackgroup_max_size": 128,
+        "vendor_id": 4318,
+        "device_id": 11269,
+        "adapter_type": "DiscreteGPU",
+        "backend_type": "Vulkan"
+      },
+      "codec": "h264_nvenc",
+      "output": "auto-1.mp4",
+      "requested_codec": "auto",
+      "repeat": 1,
+      "decoded_frames": 600,
+      "bytes": 6210021
+    },
+    {
+      "frames": 600,
+      "seconds": 4.16701890000013,
+      "fps": 143.9878278449808,
+      "adapter": {
+        "vendor": "NVIDIA",
+        "architecture": "",
+        "device": "NVIDIA GeForce RTX 5070 Ti",
+        "description": "595.97",
+        "stackgroup_min_size": 4,
+        "stackgroup_max_size": 128,
+        "vendor_id": 4318,
+        "device_id": 11269,
+        "adapter_type": "DiscreteGPU",
+        "backend_type": "Vulkan"
+      },
+      "codec": "libx264",
+      "output": "libx264-2.mp4",
+      "requested_codec": "libx264",
+      "repeat": 2,
+      "decoded_frames": 600,
+      "bytes": 1748363
+    },
+    {
+      "frames": 600,
+      "seconds": 1.919864100000268,
+      "fps": 312.5221207063126,
+      "adapter": {
+        "vendor": "NVIDIA",
+        "architecture": "",
+        "device": "NVIDIA GeForce RTX 5070 Ti",
+        "description": "595.97",
+        "stackgroup_min_size": 4,
+        "stackgroup_max_size": 128,
+        "vendor_id": 4318,
+        "device_id": 11269,
+        "adapter_type": "DiscreteGPU",
+        "backend_type": "Vulkan"
+      },
+      "codec": "h264_nvenc",
+      "output": "auto-2.mp4",
+      "requested_codec": "auto",
+      "repeat": 2,
+      "decoded_frames": 600,
+      "bytes": 6210021
+    },
+    {
+      "frames": 600,
+      "seconds": 4.0178828000002795,
+      "fps": 149.33237972993095,
+      "adapter": {
+        "vendor": "NVIDIA",
+        "architecture": "",
+        "device": "NVIDIA GeForce RTX 5070 Ti",
+        "description": "595.97",
+        "stackgroup_min_size": 4,
+        "stackgroup_max_size": 128,
+        "vendor_id": 4318,
+        "device_id": 11269,
+        "adapter_type": "DiscreteGPU",
+        "backend_type": "Vulkan"
+      },
+      "codec": "libx264",
+      "output": "libx264-3.mp4",
+      "requested_codec": "libx264",
+      "repeat": 3,
+      "decoded_frames": 600,
+      "bytes": 1748363
+    },
+    {
+      "frames": 600,
+      "seconds": 1.7782007999999223,
+      "fps": 337.4197109797871,
+      "adapter": {
+        "vendor": "NVIDIA",
+        "architecture": "",
+        "device": "NVIDIA GeForce RTX 5070 Ti",
+        "description": "595.97",
+        "stackgroup_min_size": 4,
+        "stackgroup_max_size": 128,
+        "vendor_id": 4318,
+        "device_id": 11269,
+        "adapter_type": "DiscreteGPU",
+        "backend_type": "Vulkan"
+      },
+      "codec": "h264_nvenc",
+      "output": "auto-3.mp4",
+      "requested_codec": "auto",
+      "repeat": 3,
+      "decoded_frames": 600,
+      "bytes": 6210021
+    }
+  ],
+  "notes": "One warmup per codec; interleaved measured runs. Includes renderer startup, scene evaluation, GPU upload, drawing, NV12 readback, encoding and container finalization. Excludes scene construction and frame validation. Desktop applications remained running. Encoders have different rate-control/quality settings; this is a throughput comparison."
+}

@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -49,13 +50,25 @@ class EEVEEOptions:
 
 
 def find_blender(executable=None):
-    """Find Blender via an explicit path, PROTEINMOTION_BLENDER, PATH or macOS app."""
+    """Find Blender via an explicit path, environment, PATH or standard installation."""
     explicit = executable or os.environ.get("PROTEINMOTION_BLENDER")
     candidates = (
         [explicit]
         if explicit
         else [shutil.which("blender"), "/Applications/Blender.app/Contents/MacOS/Blender"]
     )
+    if not explicit and sys.platform == "win32":
+        installed = []
+        for variable in ("ProgramW6432", "ProgramFiles", "ProgramFiles(x86)"):
+            if root := os.environ.get(variable):
+                installed.extend((Path(root) / "Blender Foundation").glob("Blender */blender.exe"))
+        candidates.extend(
+            sorted(
+                set(installed),
+                key=lambda p: tuple(map(int, re.findall(r"\d+", p.parent.name))),
+                reverse=True,
+            )
+        )
     for candidate in candidates:
         if candidate:
             path = Path(shutil.which(str(candidate)) or str(candidate)).expanduser()
@@ -98,7 +111,12 @@ class EEVEE:
                 str(self.folder),
             ]
             self.process = subprocess.Popen(
-                command, stdin=subprocess.PIPE, stdout=self.log, stderr=subprocess.STDOUT, text=True
+                command,
+                stdin=subprocess.PIPE,
+                stdout=self.log,
+                stderr=subprocess.STDOUT,
+                text=True,
+                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
             )
             self.adapter_info = self._wait(self.folder / "ready.json")
         except BaseException:

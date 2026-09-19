@@ -62,7 +62,12 @@ def test_bundle_rejects_symlinked_destinations(tmp_path):
     outside = tmp_path / "outside"
     outside.mkdir()
     link = tmp_path / "skill"
-    link.symlink_to(outside, target_is_directory=True)
+    try:
+        link.symlink_to(outside, target_is_directory=True)
+    except OSError as exc:
+        if getattr(exc, "winerror", None) == 1314:
+            pytest.skip("Windows symlinks require Developer Mode or administrator privileges")
+        raise
     with pytest.raises(FileExistsError):
         install_skill(link, force=True)
     assert list(outside.iterdir()) == []

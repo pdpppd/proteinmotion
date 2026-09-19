@@ -1,7 +1,8 @@
-import json
-import shutil
-import subprocess
+import platform
+import sys
+from fractions import Fraction
 
+import av
 import numpy as np
 import pytest
 
@@ -63,30 +64,91 @@ def test_gpu_seek_reproducibility_and_streaming(protein, renderer):
 
 @pytest.mark.gpu
 @pytest.mark.parametrize(
-    "codec,expected", [("auto", "h264"), ("libx264", "h264"), ("hevc_videotoolbox", "hevc")]
+    "codec,expected",
+    [
+        ("auto", "h264"),
+        ("libx264", "h264"),
+        ("h264_nvenc", "h264"),
+        ("hevc_nvenc", "hevc"),
+        ("av1_nvenc", "av1"),
+        ("hevc_videotoolbox", "hevc"),
+    ],
 )
-def test_hardware_video_export_and_frame_count(protein, tmp_path, codec, expected):
-    from proteinmotion.video import available_encoders
+def test_hardware_video_export_and_frame_count(protein, tmp_path, codec, expected, encoder_checks, capsys):
+    if codec not in ("auto", "libx264") and not encoder_checks.get(codec, {}).get("usable"):
+        pytest.skip(f"{codec} unavailable: {encoder_checks.get(codec)}")
 
-    if codec != "auto" and codec not in available_encoders():
-        pytest.skip(f"{codec} not provided by this PyAV build")
-    if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
-        pytest.skip("FFmpeg/ffprobe unavailable")
     s = ProteinScene(width=320, height=240, fps=10)
     s.add(protein)
     s.camera.frame(protein)
     s.play(Rotate(protein, 1), run_time=0.5)
     output = tmp_path / "tiny.mp4"
-    result = s.render(output, progress=False, codec=codec)
+    # The ordinary API call must detect the encoder without CLI flags or doctor.
+    result = s.render(output) if codec == "auto" else s.render(output, progress=False, codec=codec)
     assert result["frames"] == 5
-    info = json.loads(
-        subprocess.check_output(["ffprobe", "-v", "error", "-show_streams", "-of", "json", str(output)])
-    )
-    stream = info["streams"][0]
-    assert (stream["width"], stream["height"], int(stream["nb_frames"])) == (320, 240, 5)
-    assert stream["codec_name"] == expected
-    assert stream["color_space"] == "bt709"
-    assert stream["color_range"] == "tv"
+    assert result["platform"] == platform.system()
+    if codec != "auto":
+        assert result["codec"] == codec
+        assert capsys.readouterr().out == ""
+    else:
+        preferred = "h264_videotoolbox" if sys.platform == "darwin" else "h264_nvenc"
+        if encoder_checks.get(preferred, {}).get("usable"):
+            assert result["codec"] == preferred
+        output_log = capsys.readouterr().out
+        assert f"Platform: {platform.system()}" in output_log
+        assert result["adapter"]["device"] in output_log
+        assert result["adapter"]["backend_type"] in output_log
+        assert result["codec"] in output_log
+    with av.open(output) as movie:
+        stream = movie.streams.video[0]
+        assert (stream.width, stream.height) == (320, 240)
+        assert stream.codec_context.codec.id == av.Codec(expected, "r").id
+        assert stream.codec_context.colorspace == 1  # BT.709
+        assert stream.codec_context.color_range == 1  # limited range
+        frames = list(movie.decode(video=0))
+        assert len(frames) == 5
+        assert [f.pts * f.time_base for f in frames] == [Fraction(i, 10) for i in range(5)]
+        assert (
+            np.abs(
+                frames[0].to_ndarray(format="rgb24").astype(int) - frames[-1].to_ndarray(format="rgb24")
+            ).sum()
+            > 1000
+        )
+
+
+@pytest.fixture(scope="module")
+def encoder_checks():
+    from proteinmotion.video import probe_encoders
+
+    return probe_encoders()
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("pixel_format", ["rgba", "nv12"])
+def test_nvenc_padded_frames_and_fractional_timestamps(tmp_path, encoder_checks, pixel_format):
+    from proteinmotion.video import VideoWriter
+
+    if not encoder_checks.get("h264_nvenc", {}).get("usable"):
+        pytest.skip("H.264 NVENC unavailable")
+    # Even dimensions that are not aligned to encoder strides or GPU copy rows.
+    width, height = 386, 258
+    rate = Fraction(30000, 1001)
+    pixels = np.full((height, width, 4), 255, np.uint8)
+    if pixel_format == "nv12":
+        pixels = np.full((height * 3 // 2, width), 128, np.uint8)
+        pixels[:height] = 235
+    path = tmp_path / "padded.mp4"
+    with VideoWriter(path, width, height, rate, codec="h264_nvenc", pixel_format=pixel_format) as writer:
+        assert writer.stream.pix_fmt == "nv12"
+        for _ in range(4):
+            writer.write(pixels)
+    with av.open(path) as movie:
+        frames = list(movie.decode(video=0))
+    assert len(frames) == 4
+    assert [f.pts * f.time_base for f in frames] == [i / rate for i in range(4)]
+    for frame in frames:
+        assert (frame.width, frame.height) == (width, height)
+        assert frame.to_ndarray(format="rgb24").min() >= 250
 
 
 def test_failed_video_export_preserves_existing_file(tmp_path):
@@ -95,7 +157,7 @@ def test_failed_video_export_preserves_existing_file(tmp_path):
     path = tmp_path / "existing.mp4"
     path.write_bytes(b"existing content")
     with pytest.raises(RuntimeError, match="deliberate"):
-        with VideoWriter(path, 320, 240, 30):
+        with VideoWriter(path, 320, 240, 30, codec="libx264"):
             raise RuntimeError("deliberate failure")
     assert path.read_bytes() == b"existing content"
     assert not list(tmp_path.glob(".proteinmotion-*"))
