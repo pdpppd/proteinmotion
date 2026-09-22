@@ -1,5 +1,13 @@
 # Validation and performance
 
+## PyPI release preparation: 22 September 2026
+
+Version 0.10.1 passed **187 tests, with five NVIDIA-only cases skipped**, on the Apple M3 Max with Python 3.12.8 and `PROTEINMOTION_TEST_EEVEE=1`. The checks include native Metal rendering, EEVEE, hardware export, and the Windows platform-selection logic. Blender discovery now searches the macOS application path only on macOS; encoder-fallback tests handle PyAV builds that omit NVENC.
+
+The wheel built from the source archive passed `twine check --strict`. Fresh installations outside the checkout passed resource, CLI, starter-scene, and skill checks on Python 3.11.9, 3.12.8, 3.13.12, and 3.14.6. The Python 3.12 installation rendered and decoded all 60 frames of a 640×360 movie using Metal and H.264 VideoToolbox. A separate pipx installation exposed the CLI and passed GPU/encoder diagnostics.
+
+The website build, TypeScript checks, and all 107 exported pages passed verification. The new PyPI workflow passed actionlint and requires wheel-installation checks on Linux, Windows, and macOS before an upload. These local results precede the first PyPI upload; Windows/NVIDIA hardware results from the previous version are recorded below.
+
 ## Windows and NVIDIA: 18–19 September 2026
 
 Tested on Windows 11 (build 26200), **NVIDIA GeForce RTX 5070 Ti, 16 GB VRAM**, driver 595.97, and AMD Ryzen 7 9800X3D. Python 3.12.13, wgpu 0.32.0, PyAV 18.1.0, NumPy 2.5.3, Gemmi 0.7.5 and MDAnalysis 2.10.0 were used. The selected native adapter reports `Vulkan`.

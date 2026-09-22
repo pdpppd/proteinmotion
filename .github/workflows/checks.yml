@@ -28,6 +28,7 @@ jobs:
       - run: ruff format --check src tests examples scripts skills
       - run: pytest -m "not gpu" -q
       - run: python -m build
+      - run: python -m twine check --strict dist/*
       - name: Check the built wheel outside the checkout
         if: runner.os != 'Windows'
         run: |

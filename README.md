@@ -9,9 +9,9 @@ ProteinMotion is a Python package for animating proteins, DNA, and RNA. Load a s
 
 [Documentation](https://pdpppd.github.io/proteinmotion/) · [Video examples](https://pdpppd.github.io/proteinmotion/gallery/) · [Reference manual](https://pdpppd.github.io/proteinmotion/reference/) · [Releases](https://github.com/pdpppd/proteinmotion/releases)
 
-[![Calmodulin helix with depth of field](website/public/media/calmodulin-in-focus.jpg)](https://pdpppd.github.io/proteinmotion/docs/calmodulin-in-focus/)
+[![Calmodulin helix with depth of field](https://pdpppd.github.io/proteinmotion/media/calmodulin-in-focus.jpg)](https://pdpppd.github.io/proteinmotion/docs/calmodulin-in-focus/)
 
-**Calmodulin in focus** is a 68-second EEVEE film at 1080p/60 fps. It shows helix close-ups, focus pulls, transparent surroundings, backbone atoms, and a surface colored by B factor. [Full script and output](https://pdpppd.github.io/proteinmotion/docs/calmodulin-in-focus/) · [Python source](examples/calmodulin_in_focus.py)
+**Calmodulin in focus** is a 68-second EEVEE film at 1080p/60 fps. It shows helix close-ups, focus pulls, transparent surroundings, backbone atoms, and a surface colored by B factor. [Full script and output](https://pdpppd.github.io/proteinmotion/docs/calmodulin-in-focus/) · [Python source](https://github.com/pdpppd/proteinmotion/blob/main/examples/calmodulin_in_focus.py)
 
 The [calmodulin and troponin C demo](https://pdpppd.github.io/proteinmotion/docs/showcase/) also covers NMR conformations, backbone morphing, distance measurements, and interaction highlights.
 
@@ -19,30 +19,27 @@ The [calmodulin and troponin C demo](https://pdpppd.github.io/proteinmotion/docs
 
 Use Python 3.11 or later and a GPU. Windows NVIDIA systems use Vulkan for rendering and NVENC for video encoding. macOS uses Metal and VideoToolbox; on Apple silicon, use an arm64 Python installation.
 
-For the Windows support in this checkout, install from source in PowerShell:
-
-```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[dev,preview]"
-.\.venv\Scripts\python.exe -m proteinmotion doctor --check-encoders
-.\.venv\Scripts\python.exe -m proteinmotion render examples/quickstart.py Quickstart --fps 60 -o first-film.mp4
-```
-
-Install a current NVIDIA driver. CUDA Toolkit and a separate FFmpeg executable are not required. `doctor` should report your NVIDIA card under `selected_adapter` and a usable `h264_nvenc` encoder. See [Windows setup and GPU selection](docs/getting-started.md#windows-and-nvidia-gpus).
-
-Install v0.10.0 from GitHub Releases:
+Install from PyPI into your Python environment:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install \
-  https://github.com/pdpppd/proteinmotion/releases/download/v0.10.0/proteinmotion-0.10.0-py3-none-any.whl
-proteinmotion doctor
+python -m pip install proteinmotion
+proteinmotion doctor --check-encoders
 ```
 
-The package includes fonts, shaders, a sample structure, and a starter script. PyAV provides the FFmpeg libraries used for video export. See the [installation guide](https://pdpppd.github.io/proteinmotion/docs/getting-started/) for optional preview and MD trajectory readers.
+To make the `proteinmotion` command available from any directory, install it with [pipx](https://pipx.pypa.io/stable/installation/):
 
-DNA/RNA support is included in v0.10.0. The [DNA/RNA guide](https://pdpppd.github.io/proteinmotion/docs/dna-rna/) includes runnable examples and rendered output.
+```bash
+pipx install proteinmotion
+pipx ensurepath
+```
+
+Open a new terminal after `ensurepath`. The pipx installation has its own Python environment. For scripts that import `proteinmotion` directly, use the pip command in the environment where you run those scripts.
+
+Install optional trajectory readers and the interactive preview with `python -m pip install "proteinmotion[md,preview]"`, or `pipx install "proteinmotion[md,preview]"` for the global command.
+
+On Windows, use 64-bit Python and a current NVIDIA driver. `doctor --check-encoders` checks the GPU and tests available video encoders. See [Windows setup and GPU selection](https://pdpppd.github.io/proteinmotion/docs/getting-started/#windows-and-nvidia-gpus).
+
+The package includes fonts, shaders, a sample structure, and a starter script. PyAV supplies the FFmpeg libraries used for video export. See the [installation guide](https://pdpppd.github.io/proteinmotion/docs/getting-started/) for virtual environments and platform setup.
 
 ## Render a video
 
@@ -114,7 +111,7 @@ The [guides](https://pdpppd.github.io/proteinmotion/docs/scenes/) explain the op
 
 ## Use with an AI agent
 
-The [ProteinMotion Movies skill](skills/proteinmotion-movies/SKILL.md) gives AI agents instructions and examples for writing scenes, rendering videos, and checking the results. Use it with an agent that can read local files and run Python commands.
+The [ProteinMotion Movies skill](https://github.com/pdpppd/proteinmotion/blob/main/skills/proteinmotion-movies/SKILL.md) gives AI agents instructions and examples for writing scenes, rendering videos, and checking the results. Use it with an agent that can read local files and run Python commands.
 
 Copy the skill to your agent's skills directory:
 
@@ -122,7 +119,7 @@ Copy the skill to your agent's skills directory:
 proteinmotion install-skill --path /path/to/skills/proteinmotion-movies
 ```
 
-You can also [download the skill ZIP](https://github.com/pdpppd/proteinmotion/releases/download/v0.10.0/proteinmotion-movies-v0.10.0.zip) and extract it there. For agents that read instructions directly, point them to `SKILL.md` and keep the references and assets beside it.
+The installed skill includes its references and example files. For agents that read instructions directly, point them to `SKILL.md` and keep those files beside it.
 
 Example request:
 
@@ -136,21 +133,21 @@ These scripts and their input structures are in the repository:
 
 | Example | Source |
 |---|---|
-| DNA morphs with C1′ matching and delayed nucleotide motion | [dna_morph.py](examples/dna_morph.py) |
-| DNA base styles, strand transparency, and surfaces | [dna_styles.py](examples/dna_styles.py) |
-| tRNA regions, modified bases, and B-factor surfaces | [rna_styles.py](examples/rna_styles.py) |
-| B factors, residue colors, and cartoon thickness | [numerical_properties.py](examples/numerical_properties.py) |
-| NMR playback with distance, contact, and sequence plots | [synchronized_plots.py](examples/synchronized_plots.py) |
-| Electron-density contours and slices | [density_maps.py](examples/density_maps.py) |
-| Calmodulin in focus: 68-second EEVEE film | [calmodulin_in_focus.py](examples/calmodulin_in_focus.py) |
-| EEVEE depth of field and residue focus | [eevee_focus.py](examples/eevee_focus.py) |
-| Calmodulin and troponin C feature demo | [feature_showcase.py](examples/feature_showcase.py) |
-| Residue colors, surfaces, distances, and interactions | [molecular_tools.py](examples/molecular_tools.py) |
-| Text, residue labels, and callouts | [labels_and_callouts.py](examples/labels_and_callouts.py) |
-| Camera focus, 3D highlights, and NMR states | [nmr_regions.py](examples/nmr_regions.py) |
-| Contact-guided backbone and ball-and-stick morphs | [backbone_morph.py](examples/backbone_morph.py) |
-| Hydrogen bonds in an idealized alpha helix | [alpha_helix_hbonds.py](examples/alpha_helix_hbonds.py) |
-| GroEL/GroES assembly | [large_protein.py](examples/large_protein.py) |
+| DNA morphs with C1′ matching and delayed nucleotide motion | [dna_morph.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/dna_morph.py) |
+| DNA base styles, strand transparency, and surfaces | [dna_styles.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/dna_styles.py) |
+| tRNA regions, modified bases, and B-factor surfaces | [rna_styles.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/rna_styles.py) |
+| B factors, residue colors, and cartoon thickness | [numerical_properties.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/numerical_properties.py) |
+| NMR playback with distance, contact, and sequence plots | [synchronized_plots.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/synchronized_plots.py) |
+| Electron-density contours and slices | [density_maps.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/density_maps.py) |
+| Calmodulin in focus: 68-second EEVEE film | [calmodulin_in_focus.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/calmodulin_in_focus.py) |
+| EEVEE depth of field and residue focus | [eevee_focus.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/eevee_focus.py) |
+| Calmodulin and troponin C feature demo | [feature_showcase.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/feature_showcase.py) |
+| Residue colors, surfaces, distances, and interactions | [molecular_tools.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/molecular_tools.py) |
+| Text, residue labels, and callouts | [labels_and_callouts.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/labels_and_callouts.py) |
+| Camera focus, 3D highlights, and NMR states | [nmr_regions.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/nmr_regions.py) |
+| Contact-guided backbone and ball-and-stick morphs | [backbone_morph.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/backbone_morph.py) |
+| Hydrogen bonds in an idealized alpha helix | [alpha_helix_hbonds.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/alpha_helix_hbonds.py) |
+| GroEL/GroES assembly | [large_protein.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/large_protein.py) |
 
 ```bash
 git clone https://github.com/pdpppd/proteinmotion.git
@@ -161,7 +158,7 @@ proteinmotion render examples/nmr_regions.py RegionTour --fps 60 -o regions.mp4
 
 ## Rendering and scientific methods
 
-Rendering and export are tested on Apple silicon Macs and Windows with an NVIDIA RTX 5070 Ti. On the RTX, a 600-frame 1080p/60 fps Quickstart export took a median 1.92 seconds with NVENC versus 4.07 seconds with CPU encoding across three runs. This includes rendering, GPU readback, and encoding; scene construction is excluded. See [benchmarks and test results](docs/VALIDATION.md) for settings, hardware, and limits.
+Rendering and export are tested on Apple silicon Macs and Windows with an NVIDIA RTX 5070 Ti. On the RTX, a 600-frame 1080p/60 fps Quickstart export took a median 1.92 seconds with NVENC versus 4.07 seconds with CPU encoding across three runs. This includes rendering, GPU readback, and encoding; scene construction is excluded. See [benchmarks and test results](https://github.com/pdpppd/proteinmotion/blob/main/docs/VALIDATION.md) for settings, hardware, and limits.
 
 Morphs and NMR playback interpolate coordinates for visualization. Use an MD trajectory when you need motion from a simulation. Hydrogen bonds use geometric criteria. Electrostatic estimates use a screened Coulomb model and depend on the supplied charges. The [rendering guide](https://pdpppd.github.io/proteinmotion/docs/rendering/) and [interaction guide](https://pdpppd.github.io/proteinmotion/docs/interactions/) describe the methods and their limits.
 
@@ -174,8 +171,8 @@ pytest
 python -m build
 ```
 
-Documentation is in `docs/`; the website is in `website/`. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and checks, and the [writing guide](docs/writing-guide.md) for documentation style.
+Documentation is in `docs/`; the website is in `website/`. See [CONTRIBUTING.md](https://github.com/pdpppd/proteinmotion/blob/main/CONTRIBUTING.md) for setup and checks, and the [writing guide](https://github.com/pdpppd/proteinmotion/blob/main/docs/writing-guide.md) for documentation style.
 
 ## License
 
-The package and website use the [MIT license](LICENSE). `Write` timing is adapted from MIT-licensed Manim. The bundled Source Sans 3 fonts use the SIL Open Font License. See [third-party notices](THIRD_PARTY.md) and [structure sources](https://pdpppd.github.io/proteinmotion/docs/rendering/#structure-provenance).
+The package and website use the [MIT license](https://github.com/pdpppd/proteinmotion/blob/main/LICENSE). `Write` timing is adapted from MIT-licensed Manim. The bundled Source Sans 3 fonts use the SIL Open Font License. See [third-party notices](https://github.com/pdpppd/proteinmotion/blob/main/THIRD_PARTY.md) and [structure sources](https://pdpppd.github.io/proteinmotion/docs/rendering/#structure-provenance).

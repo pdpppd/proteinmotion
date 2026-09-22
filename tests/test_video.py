@@ -8,19 +8,25 @@ from proteinmotion import video
 
 
 @pytest.mark.parametrize("pixel_format", ["rgba", "nv12"])
-def test_auto_falls_back_when_hardware_is_compiled_but_unusable(tmp_path, monkeypatch, pixel_format):
+def test_auto_falls_back_when_hardware_is_unavailable(tmp_path, monkeypatch, pixel_format):
     monkeypatch.setattr(video.sys, "platform", "win32")
     monkeypatch.setattr(video, "available_encoders", lambda: ["h264_nvenc", "libx264"])
     configure = video._configure_encoder
+    open_encoder = video.VideoWriter._open
     attempted = []
 
-    def unavailable(ctx, codec, *args):
+    def track_open(self, codec, bits):
+        # PyAV may reject an unavailable codec before configuration, e.g. NVENC on macOS.
         attempted.append(codec)
+        return open_encoder(self, codec, bits)
+
+    def unavailable(ctx, codec, *args):
         if codec == "h264_nvenc":
             raise av.error.ExternalError(1, "NVENC driver unavailable")
         configure(ctx, codec, *args)
 
     monkeypatch.setattr(video, "_configure_encoder", unavailable)
+    monkeypatch.setattr(video.VideoWriter, "_open", track_open)
     path = tmp_path / "movie with spaces.mp4"
     path.write_bytes(b"original")
     shape = (240, 320, 4) if pixel_format == "rgba" else (360, 320)

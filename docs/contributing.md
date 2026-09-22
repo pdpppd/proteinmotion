@@ -72,6 +72,32 @@ The AI agent skill source is `skills/proteinmotion-movies`. Its six resource fil
 
 Build with `python -m build` (the wheel is built from the sdist). Install that wheel into a fresh environment, change out of the checkout, and run `python -I /path/to/repo/scripts/check_installed_package.py --render` on a native GPU. CI runs the same installed-resource check without rendering. Distribute the wheel, source archive, skill ZIP and checksums as versioned GitHub Release assets. Publish versioned release assets after the release checks pass.
 
+
+### PyPI publishing
+
+The `publish.yml` workflow builds the source archive and wheel, validates the PyPI description, and checks the installed wheel on Linux, Windows, and macOS. Linux installation checks cover Python 3.11–3.14. A manual run with `publish` left false performs these checks without uploading.
+
+Configure a pending GitHub publisher in the PyPI account that will own the project:
+
+| Field | Value |
+|---|---|
+| PyPI project | `proteinmotion` |
+| GitHub owner | `pdpppd` |
+| Repository | `proteinmotion` |
+| Workflow filename | `publish.yml` |
+| GitHub environment | `pypi` |
+
+Create the `pypi` environment in GitHub repository settings and restrict its deployments to release tags. PyPI Trusted Publishing uses GitHub's short-lived identity credentials; it needs no stored PyPI API token. PyPI creates the project on the first successful upload. See the [PyPI setup guide](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/).
+
+For a release:
+
+1. Update `pyproject.toml`, `proteinmotion.__version__`, and the website package version, then run `python scripts/build_reference.py`.
+2. Run package checks, `python -m build`, and `python -m twine check --strict dist/*`. Verify an isolated installation and a native GPU render with `scripts/check_installed_package.py --render`.
+3. Commit the release and create its matching `v<version>` tag. Publish a GitHub Release for that tag to start the PyPI workflow. The upload job requires the tag to match the package version and waits for all installation checks.
+4. Confirm the version on PyPI, then install it with `python -m pip install --index-url https://pypi.org/simple proteinmotion==<version>` in a fresh environment.
+
+A manual publishing run must select the version tag and set `publish` to true. PyPI distribution filenames are permanent: change the version for a corrected release instead of replacing files. Keep previous release artifacts in separate directories when building a new version.
+
 ### Reference manual
 
 The manual reads signatures, defaults, inheritance, and source locations from the Python files. Descriptions and example links are maintained in `docs/reference/catalog.json`. After changing either, regenerate the reference data:

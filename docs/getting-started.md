@@ -6,16 +6,26 @@ The same scene scripts work on both platforms. Each render automatically detects
 
 ## Install the release
 
-Create a virtual environment and install v0.10.0 from [GitHub Releases](https://github.com/pdpppd/proteinmotion/releases/tag/v0.10.0):
+Install from [PyPI](https://pypi.org/project/proteinmotion/) into a virtual environment:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install \
-  https://github.com/pdpppd/proteinmotion/releases/download/v0.10.0/proteinmotion-0.10.0-py3-none-any.whl
+python -m pip install proteinmotion
 proteinmotion --version
-proteinmotion doctor
+proteinmotion doctor --check-encoders
 ```
+
+### Install the command globally
+
+Use [pipx](https://pipx.pypa.io/stable/installation/) to make the command available from any directory:
+
+```bash
+pipx install proteinmotion
+pipx ensurepath
+```
+
+Open a new terminal after `ensurepath`, then run `proteinmotion init my-movie`. pipx keeps the package and its dependencies in an isolated environment. Use `pipx upgrade proteinmotion` to update it. To import ProteinMotion from your own Python process or notebook, install it with pip in that environment.
 
 The package includes shaders, fonts, licenses, a sample structure, a starter scene, and the AI agent skill. PyAV supplies the FFmpeg libraries used for export.
 
@@ -23,13 +33,14 @@ On Apple silicon, use native arm64 Python. `doctor` reports the GPU backend and 
 
 ## Windows and NVIDIA GPUs
 
-The Windows changes are available in the source checkout. The v0.10.0 release above predates these changes. Use a 64-bit Python installation and a current NVIDIA driver. In PowerShell, from the repository:
+Use 64-bit Python 3.11 or later and a current NVIDIA driver. In PowerShell:
 
 ```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[preview]"
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install "proteinmotion[preview]"
 .\.venv\Scripts\python.exe -m proteinmotion doctor --check-encoders
-.\.venv\Scripts\python.exe -m proteinmotion render examples/quickstart.py Quickstart --fps 60 -o first-film.mp4
+.\.venv\Scripts\python.exe -m proteinmotion init my-movie
+.\.venv\Scripts\python.exe -m proteinmotion render my-movie/film.py ProteinMovie --fps 60 -o first-film.mp4
 ```
 
 These commands use the virtual environment directly and do not require changing PowerShell's execution policy. The package supplies wgpu-native and PyAV's FFmpeg libraries. CUDA Toolkit and the `ffmpeg` command are not required.
@@ -37,7 +48,7 @@ These commands use the virtual environment directly and do not require changing 
 `doctor` lists compiled encoders; `--check-encoders` also tests whether they can encode a small frame. Check that `selected_adapter` identifies your NVIDIA GPU with `backend_type: Vulkan`, and that `h264_nvenc` is usable. Automatic selection prefers a discrete GPU over integrated graphics. To select a GPU explicitly:
 
 ```powershell
-.\.venv\Scripts\python.exe -m proteinmotion render examples/quickstart.py Quickstart --gpu-backend Vulkan --gpu-adapter NVIDIA --codec h264_nvenc --fps 60 -o first-film.mp4
+.\.venv\Scripts\python.exe -m proteinmotion render my-movie/film.py ProteinMovie --gpu-backend Vulkan --gpu-adapter NVIDIA --codec h264_nvenc --fps 60 -o first-film.mp4
 ```
 
 `--codec auto` prefers H.264 NVENC on Windows/Linux and VideoToolbox on macOS. If hardware encoder initialization fails, it warns and uses `libx264`. An explicit `--codec h264_nvenc` reports a failure instead of switching encoders. `hevc_nvenc` and `av1_nvenc` are also available when supported by the GPU and PyAV build.
@@ -68,11 +79,10 @@ You can also point an agent directly to the installed `SKILL.md`. See the [AI ag
 
 ## Optional dependencies
 
-Install extras from the same release URL:
+Install the extras you need:
 
 ```bash
-python -m pip install \
-  "proteinmotion[preview,md] @ https://github.com/pdpppd/proteinmotion/releases/download/v0.10.0/proteinmotion-0.10.0-py3-none-any.whl"
+python -m pip install "proteinmotion[preview,md]"
 ```
 
 | Extra | Purpose |

@@ -1,5 +1,5 @@
 {
-  "version": "0.10.0",
+  "version": "0.10.1",
   "exports": [
     "NucleicAcid",
     "BaseStyle",
@@ -8838,7 +8838,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/eevee.py",
-      "line": 84,
+      "line": 82,
       "bases": [],
       "attributes": {},
       "guide": "eevee",
@@ -8881,7 +8881,7 @@
           "returns": "An RGBA uint8 array with shape (height, width, 4).",
           "notes": "",
           "source": "src/proteinmotion/eevee.py",
-          "line": 139
+          "line": 137
         },
         {
           "name": "close",
@@ -8894,7 +8894,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/eevee.py",
-          "line": 195
+          "line": 193
         },
         {
           "name": "__enter__",
@@ -8907,7 +8907,7 @@
           "returns": "The renderer.",
           "notes": "",
           "source": "src/proteinmotion/eevee.py",
-          "line": 220
+          "line": 218
         },
         {
           "name": "__exit__",
@@ -8945,7 +8945,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/eevee.py",
-          "line": 223
+          "line": 221
         }
       ],
       "extra_parameters": []
@@ -12584,7 +12584,7 @@
   "dependencies": {
     "docs/reference/catalog.json": "3c1590bf442f55eb694f0762ee0a619ddce2c6fde2bb059bdde8ceadfa4140e1",
     "scripts/build_reference.py": "ecbc89319e1116b96836ce27b0f52a815d8e42311734e7f52ba1ec8828acde81",
-    "src/proteinmotion/__init__.py": "e6d83cddffe897cd378ff68e5bd39285118b139bd77224fefb8d7fd94de5457d",
+    "src/proteinmotion/__init__.py": "be220951c102065c95972dbc496b3d574e5750ed19fb1a5dd9270c9abbf38643",
     "src/proteinmotion/__main__.py": "3129adff95e0f38b87ab34cddfc27082c7892bcaec267ff5d40f160fdf55b44a",
     "src/proteinmotion/_blender_worker.py": "3010c14ed7ddb07d86b8d6163b32591eefb4d9dc3eeba526bde223f6e303ef1e",
     "src/proteinmotion/_eevee_geometry.py": "503ebb308cba42141022a50bf59bfed2facec6a82d36e97c0492310a8d388869",
@@ -12597,7 +12597,7 @@
     "src/proteinmotion/cli.py": "e7741ade44b361f508e86a80db661cf3c507b04c52bf84a7a78b0ff132f56bf9",
     "src/proteinmotion/density.py": "c062508e5511848bbc0657da0c04483c79c2dc9070297645db4459d236feab8a",
     "src/proteinmotion/distances.py": "906f8c6f568b91f4b5fd28ebbd6e04cbce554f7f09209e76bfb2fa9dd3a43ea3",
-    "src/proteinmotion/eevee.py": "f5f344f5e901ed4ed67ecc90116981646c9e4668372e69a65d134c49ee6594ef",
+    "src/proteinmotion/eevee.py": "b65ba003c3675ac97ec3f9d67f96d3410964fcd384d28d86094884aae74dbcc4",
     "src/proteinmotion/geometry.py": "1f2f018c5b359147289f604db7aaa25e42724ab6943f00c7048ffbc9a5e73ae1",
     "src/proteinmotion/interactions.py": "92d23e15f6b14853fa985ba2121c8a7ec60c2f915d03fec33d98af2c7344d32c",
     "src/proteinmotion/matching.py": "07362dbf610bae60e3b21506e83cffabe1a518b998f930d1c53bde5cb7d8b4fd",

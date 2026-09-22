@@ -52,11 +52,9 @@ class EEVEEOptions:
 def find_blender(executable=None):
     """Find Blender via an explicit path, environment, PATH or standard installation."""
     explicit = executable or os.environ.get("PROTEINMOTION_BLENDER")
-    candidates = (
-        [explicit]
-        if explicit
-        else [shutil.which("blender"), "/Applications/Blender.app/Contents/MacOS/Blender"]
-    )
+    candidates = [explicit] if explicit else [shutil.which("blender")]
+    if not explicit and sys.platform == "darwin":
+        candidates.append("/Applications/Blender.app/Contents/MacOS/Blender")
     if not explicit and sys.platform == "win32":
         installed = []
         for variable in ("ProgramW6432", "ProgramFiles", "ProgramFiles(x86)"):
