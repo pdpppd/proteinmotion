@@ -1,12 +1,14 @@
 # Validation and performance
 
-## PyPI release preparation: 22 September 2026
+## PyPI release: 22 September 2026
 
 Version 0.10.1 passed **187 tests, with five NVIDIA-only cases skipped**, on the Apple M3 Max with Python 3.12.8 and `PROTEINMOTION_TEST_EEVEE=1`. The checks include native Metal rendering, EEVEE, hardware export, and the Windows platform-selection logic. Blender discovery now searches the macOS application path only on macOS; encoder-fallback tests handle PyAV builds that omit NVENC.
 
 The wheel built from the source archive passed `twine check --strict`. Fresh installations outside the checkout passed resource, CLI, starter-scene, and skill checks on Python 3.11.9, 3.12.8, 3.13.12, and 3.14.6. The Python 3.12 installation rendered and decoded all 60 frames of a 640×360 movie using Metal and H.264 VideoToolbox. A separate pipx installation exposed the CLI and passed GPU/encoder diagnostics.
 
-The website build, TypeScript checks, and all 107 exported pages passed verification. The new PyPI workflow passed actionlint and requires wheel-installation checks on Linux, Windows, and macOS before an upload. These local results precede the first PyPI upload; Windows/NVIDIA hardware results from the previous version are recorded below.
+The website build, TypeScript checks, and all 107 exported pages passed verification. The PyPI workflow passed actionlint. Its [release run](https://github.com/pdpppd/proteinmotion/actions/runs/35745225332) passed installation checks on Linux with Python 3.11–3.14 and on Windows and macOS with Python 3.12, then published the wheel and source archive through Trusted Publishing.
+
+A fresh installation of [version 0.10.1 from PyPI](https://pypi.org/project/proteinmotion/0.10.1/) passed `pip check`, CLI, packaged-resource, starter-scene, and skill checks outside the source checkout. The downloaded wheel's SHA-256 matched the tested release artifact. On the Apple M3 Max, this installation rendered a 60-frame, 640×360 movie using Metal and H.264 VideoToolbox; every frame decoded successfully. Windows/NVIDIA hardware results from the previous version are recorded below.
 
 ## Windows and NVIDIA: 18–19 September 2026
 

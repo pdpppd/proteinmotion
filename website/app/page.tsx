@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRightIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import HeroPlayer from "@/components/HeroPlayer";
 import { codeHTML } from "@/lib/content";
-import { repo } from "@/lib/config";
+import { pypi, repo } from "@/lib/config";
 const snippet = `class MyFilm(ProteinScene):
     def construct(self):
         p = Protein.from_file("protein.cif").cartoon()
@@ -18,7 +18,7 @@ export default function Home() {
   return (
     <main id="main" className="mx-auto max-w-[1400px] px-5 md:px-10">
       <section className="grid items-center gap-12 pb-14 pt-12 lg:grid-cols-[.85fr_1.15fr] lg:gap-14 lg:pb-20 lg:pt-20">
-        <div>
+        <div className="min-w-0">
           <h1 className="max-w-lg text-[2.7rem] font-medium leading-[1.05] tracking-[-.055em] sm:text-[3.7rem]">
             Molecular animation <br />
             <span className="text-muted">in Python</span>
@@ -36,6 +36,32 @@ export default function Home() {
               <GitHubLogoIcon /> View source
             </a>
           </div>
+          <div className="code-block mt-6 flex max-w-md items-center gap-2 px-4 py-3">
+            <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap text-xs">
+              python -m pip install proteinmotion
+            </code>
+            <button
+              type="button"
+              className="copy-code shrink-0"
+              aria-label="Copy installation command"
+            >
+              Copy
+            </button>
+          </div>
+          <p className="mt-3 max-w-md text-xs leading-6 text-muted">
+            Install from{" "}
+            <a href={pypi} className="text-accent underline underline-offset-4">
+              PyPI
+            </a>
+            , or use{" "}
+            <Link
+              href="/docs/getting-started/#install-the-command-globally"
+              className="text-accent underline underline-offset-4"
+            >
+              pipx for a global command
+            </Link>
+            .
+          </p>
           <p className="mt-5 font-mono text-[11px] text-muted">
             Python 3.11+ · macOS · Windows + NVIDIA · MIT licensed
           </p>

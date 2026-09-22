@@ -74,12 +74,11 @@ The AI agent skill source is `skills/proteinmotion-movies`. Its resource files a
 
 Build with `python -m build` (the wheel is built from the sdist). Install that wheel into a fresh environment, change out of the checkout, and run `python -I /path/to/repo/scripts/check_installed_package.py --render` on a native GPU. CI runs the same installed-resource check without rendering. Distribute the wheel, source archive, skill ZIP and checksums as versioned GitHub Release assets. Publish versioned release assets after the release checks pass.
 
-
 ### PyPI publishing
 
 The `publish.yml` workflow builds the source archive and wheel, validates the PyPI description, and checks the installed wheel on Linux, Windows, and macOS. Linux installation checks cover Python 3.11–3.14. A manual run with `publish` left false performs these checks without uploading.
 
-Configure a pending GitHub publisher in the PyPI account that will own the project:
+The [PyPI project](https://pypi.org/project/proteinmotion/) uses this GitHub Trusted Publisher:
 
 | Field | Value |
 |---|---|
@@ -89,7 +88,7 @@ Configure a pending GitHub publisher in the PyPI account that will own the proje
 | Workflow filename | `publish.yml` |
 | GitHub environment | `pypi` |
 
-Create the `pypi` environment in GitHub repository settings and restrict its deployments to release tags. PyPI Trusted Publishing uses GitHub's short-lived identity credentials; it needs no stored PyPI API token. PyPI creates the project on the first successful upload. See the [PyPI setup guide](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/).
+The repository's `pypi` environment allows deployments from tags matching `v*`. Trusted Publishing authenticates each upload with GitHub's short-lived identity credentials. Maintain the publisher settings above when changing the workflow or repository.
 
 For a release:
 

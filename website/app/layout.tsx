@@ -8,7 +8,7 @@ import "@fontsource/geist-mono/400.css";
 import "./globals.css";
 import Header from "@/components/Header";
 import CodeActions from "@/components/CodeActions";
-import { asset, repo, site } from "@/lib/config";
+import { asset, pypi, repo, site } from "@/lib/config";
 export const metadata: Metadata = {
   metadataBase: new URL(site + "/"),
   title: {
@@ -51,6 +51,7 @@ export default function RootLayout({
             <div className="flex gap-5">
               <Link href="/docs/rendering/">Rendering</Link>
               <a href={`${repo}/blob/main/LICENSE`}>License</a>
+              <a href={pypi}>PyPI</a>
               <a href={repo}>GitHub</a>
             </div>
           </div>

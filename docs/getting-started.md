@@ -6,7 +6,7 @@ The same scene scripts work on both platforms. Each render automatically detects
 
 ## Install the release
 
-Install from [PyPI](https://pypi.org/project/proteinmotion/) into a virtual environment:
+ProteinMotion is available on [PyPI](https://pypi.org/project/proteinmotion/). Install it into a virtual environment:
 
 ```bash
 python3 -m venv .venv
@@ -25,11 +25,22 @@ pipx install proteinmotion
 pipx ensurepath
 ```
 
-Open a new terminal after `ensurepath`, then run `proteinmotion init my-movie`. pipx keeps the package and its dependencies in an isolated environment. Use `pipx upgrade proteinmotion` to update it. To import ProteinMotion from your own Python process or notebook, install it with pip in that environment.
+Open a new terminal after `ensurepath`, then run `proteinmotion init my-movie`. pipx keeps the package and its dependencies in an isolated environment. To import ProteinMotion from your own Python process or notebook, install it with pip in that environment.
 
 The package includes shaders, fonts, licenses, a sample structure, a starter scene, and the AI agent skill. PyAV supplies the FFmpeg libraries used for export.
 
 On Apple silicon, use native arm64 Python. `doctor` reports the GPU backend and available encoders; look for `Metal` and `h264_videotoolbox`.
+
+### Update an installation
+
+For a pip installation, activate its Python environment and run:
+
+```bash
+python -m pip install --upgrade proteinmotion
+proteinmotion --version
+```
+
+For the global command, run `pipx upgrade proteinmotion`. See the [release notes](https://github.com/pdpppd/proteinmotion/releases) for changes in each version.
 
 ## Windows and NVIDIA GPUs
 

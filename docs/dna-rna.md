@@ -2,7 +2,7 @@
 
 Load DNA or RNA with `NucleicAcid.from_file()`. It uses the same scene, camera, selection, color, opacity, and trajectory controls as `Protein`. For a protein–DNA or protein–RNA complex, use `Protein.from_file()` to draw both polymer types together.
 
-These features are included in v0.10.0. Follow the [installation guide](getting-started.md), then download a script and its input structures below. The repository also includes the structures under `examples/data/`.
+Follow the [installation guide](getting-started.md), then download a script and its input structures below. The repository also includes the structures under `examples/data/`.
 
 ## Base styles
 

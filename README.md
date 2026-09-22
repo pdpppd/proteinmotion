@@ -4,10 +4,11 @@ ProteinMotion is a Python package for animating proteins, DNA, and RNA. Load a s
 
 [![Checks](https://github.com/pdpppd/proteinmotion/actions/workflows/checks.yml/badge.svg)](https://github.com/pdpppd/proteinmotion/actions/workflows/checks.yml)
 [![Documentation](https://github.com/pdpppd/proteinmotion/actions/workflows/pages.yml/badge.svg)](https://pdpppd.github.io/proteinmotion/)
+[![PyPI](https://img.shields.io/pypi/v/proteinmotion?color=376e59)](https://pypi.org/project/proteinmotion/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-376e59)](https://www.python.org/)
-[![MIT license](https://img.shields.io/badge/license-MIT-376e59)](LICENSE)
+[![MIT license](https://img.shields.io/badge/license-MIT-376e59)](https://github.com/pdpppd/proteinmotion/blob/main/LICENSE)
 
-[Documentation](https://pdpppd.github.io/proteinmotion/) · [Video examples](https://pdpppd.github.io/proteinmotion/gallery/) · [Reference manual](https://pdpppd.github.io/proteinmotion/reference/) · [Releases](https://github.com/pdpppd/proteinmotion/releases)
+[Documentation](https://pdpppd.github.io/proteinmotion/) · [Video examples](https://pdpppd.github.io/proteinmotion/gallery/) · [Reference manual](https://pdpppd.github.io/proteinmotion/reference/) · [PyPI](https://pypi.org/project/proteinmotion/) · [Releases](https://github.com/pdpppd/proteinmotion/releases)
 
 [![Calmodulin helix with depth of field](https://pdpppd.github.io/proteinmotion/media/calmodulin-in-focus.jpg)](https://pdpppd.github.io/proteinmotion/docs/calmodulin-in-focus/)
 
@@ -19,7 +20,7 @@ The [calmodulin and troponin C demo](https://pdpppd.github.io/proteinmotion/docs
 
 Use Python 3.11 or later and a GPU. Windows NVIDIA systems use Vulkan for rendering and NVENC for video encoding. macOS uses Metal and VideoToolbox; on Apple silicon, use an arm64 Python installation.
 
-Install from PyPI into your Python environment:
+Install from [PyPI](https://pypi.org/project/proteinmotion/) into your Python environment:
 
 ```bash
 python -m pip install proteinmotion
@@ -34,6 +35,8 @@ pipx ensurepath
 ```
 
 Open a new terminal after `ensurepath`. The pipx installation has its own Python environment. For scripts that import `proteinmotion` directly, use the pip command in the environment where you run those scripts.
+
+To update an existing installation, run `python -m pip install --upgrade proteinmotion` or `pipx upgrade proteinmotion`, depending on how you installed it.
 
 Install optional trajectory readers and the interactive preview with `python -m pip install "proteinmotion[md,preview]"`, or `pipx install "proteinmotion[md,preview]"` for the global command.
 

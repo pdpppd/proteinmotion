@@ -1,5 +1,6 @@
 export const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "/proteinmotion";
 export const repo = "https://github.com/pdpppd/proteinmotion";
+export const pypi = "https://pypi.org/project/proteinmotion/";
 export const site = "https://pdpppd.github.io/proteinmotion";
 const assetRevisions: Record<string, string> = {
   "media/showcase.mp4": "2",
