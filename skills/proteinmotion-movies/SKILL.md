@@ -1,6 +1,6 @@
 ---
 name: proteinmotion-movies
-description: Create and render protein, DNA, and RNA movies with ProteinMotion from PDB/mmCIF structures or trajectories, including base representations, surfaces, eased motion, region annotations, and protein morphs. Use for making or revising molecular animation scripts and their rendered videos.
+description: Create and render protein, DNA, and RNA movies with ProteinMotion from PDB/mmCIF structures or trajectories, including base representations, surfaces, ligands, metal ions and side chains drawn over cartoons, eased motion, region annotations, and protein morphs. Use for making or revising molecular animation scripts and their rendered videos.
 ---
 
 # ProteinMotion Movies
@@ -27,7 +27,7 @@ If hardware rendering fails, diagnose the reported adapter and encoder before ch
 
 For a new project, `proteinmotion init movie` creates `movie/film.py` and `movie/1ubq.cif`. The bundled [starter scene](assets/film.py) and [ubiquitin structure](assets/1ubq.cif) are also directly reusable. Use this structure only for a demo with no requested input. Substitute the user's structure and actual selections when provided; do not keep the starter's residue numbers or labels on a different protein.
 
-Load inputs and inspect chain IDs, residue numbers, atom availability, and state counts before choosing labels or analyses. Resolve structure paths relative to `Path(__file__).parent` so the script works from any current directory. Keep input structures alongside the script or use explicit user paths.
+Load inputs and inspect chain IDs, residue numbers, atom availability, bound ligands and ions (`p.topology.residue_categories`), and state counts before choosing labels or analyses. Cartoons draw ligands, ions, and loaded waters by default; hide crystallization additives that are not part of the story. Resolve structure paths relative to `Path(__file__).parent` so the script works from any current directory. Keep input structures alongside the script or use explicit user paths.
 
 Compose a normal `ProteinScene.construct()` with `add`, `play`, and `wait`. Configure each object's initial geometry, palette, radii, and transform **before adding it**; frame the camera before the first `play`/`wait`. Use animations for subsequent changes so seeking and export reproduce the timeline. Clip durations add up; `run_time` belongs to `play`, not animation constructors. Angles are radians and coordinates are Å.
 
@@ -36,9 +36,10 @@ For an explanatory tour, prefer a continuous model and eased focus/representatio
 Read only the relevant supporting reference:
 
 - [DNA and RNA](references/nucleic-acids.md): nucleotide backbones, base styles, modified residues, surfaces, color, opacity, and trajectories.
-- [Animation and state changes](references/animation.md): representations, residue styling, ligands and side chains, timelines, trajectories, same-topology deformation, and different-protein contact-map morphs.
+- [Ligands, ions, and side chains](references/ligands-and-side-chains.md): default ligand/ion display, category and distance selectors, `ShowSideChains`/`ShowAtoms`, colors, and binding-site storyboards.
+- [Animation and state changes](references/animation.md): representations, residue styling, timelines, trajectories, same-topology deformation, and different-protein contact-map morphs.
 - [Numerical values, plots, and density](references/data-visualization.md): B factors, RMSF, custom residue values, synchronized plots, MRC/CCP4 contours, and slices.
-- [Annotations and interactions](references/annotations-and-interactions.md): selectors (including ligands, ions, and distance), focus, text, 3D regions, distance rulers, hydrogen bonds, and imported-charge electrostatics.
+- [Annotations and interactions](references/annotations-and-interactions.md): selectors, focus, text, 3D regions, distance rulers, hydrogen bonds, and imported-charge electrostatics.
 
 ## Render and check
 

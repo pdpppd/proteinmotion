@@ -62,6 +62,7 @@ packages = ["src/proteinmotion"]
 "skills/proteinmotion-movies/references/nucleic-acids.md" = "proteinmotion/_skill/references/nucleic-acids.md"
 "skills/proteinmotion-movies/references/animation.md" = "proteinmotion/_skill/references/animation.md"
 "skills/proteinmotion-movies/references/annotations-and-interactions.md" = "proteinmotion/_skill/references/annotations-and-interactions.md"
+"skills/proteinmotion-movies/references/ligands-and-side-chains.md" = "proteinmotion/_skill/references/ligands-and-side-chains.md"
 "skills/proteinmotion-movies/assets/film.py" = "proteinmotion/_skill/assets/film.py"
 "skills/proteinmotion-movies/assets/1ubq.cif" = "proteinmotion/_skill/assets/1ubq.cif"
 

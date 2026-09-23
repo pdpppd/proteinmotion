@@ -1,6 +1,6 @@
 # DNA and RNA movies
 
-Requires ProteinMotion 0.10.0 or later. Inspect chain IDs, author residue numbers, modified residues, atom names, and state counts before writing a scene. For a protein–nucleic acid complex, use `Protein.from_file()`; it draws both polymer types. `NucleicAcid.from_file()` uses the base color palette by default and requires at least one nucleotide.
+Requires ProteinMotion 0.10.0 or later; ions and ligands on the cartoon require 0.11.0. Inspect chain IDs, author residue numbers, modified residues, atom names, and state counts before writing a scene. For a protein–nucleic acid complex, use `Protein.from_file()`; it draws both polymer types. `NucleicAcid.from_file()` uses the base color palette by default and requires at least one nucleotide.
 
 ```python
 from pathlib import Path
@@ -51,3 +51,5 @@ Use multi-model files or `Trajectory.from_mdanalysis(...)` for playback. The MD 
 For hydrogen bonds between standard bases, load explicit H coordinates and choose `hydrogens="explicit"`. Modified bases need explicit donor/acceptor selections. Supply imported atomic charges for DNA/RNA electrostatics. Contact-map distances show backbone proximity rather than base-pair assignments.
 
 The repository examples use PDB 1BNA (DNA) and 1EHZ (yeast tRNA). Keep the actual input structures beside delivered scripts and state whether motion comes from deposited models, MD, or a visual deformation.
+
+Metal ions and bound ligands such as spermine draw over the cartoon by default. Use `ShowAtoms(dna.select(within=3.5, of=ligand))` for contacted nucleotides, with `BaseStyle(dna, "none")` in the same `play` so base slabs do not overlap the atoms. For a large RNA, `bases="ladder"` keeps ions and phosphate groups readable. See [ligands, ions, and side chains](ligands-and-side-chains.md).

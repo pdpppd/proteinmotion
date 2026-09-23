@@ -48,6 +48,7 @@ def main():
         "_skill/references/data-visualization.md",
         "_skill/references/nucleic-acids.md",
         "_skill/references/annotations-and-interactions.md",
+        "_skill/references/ligands-and-side-chains.md",
         "_skill/assets/film.py",
         "_skill/assets/1ubq.cif",
     ]:

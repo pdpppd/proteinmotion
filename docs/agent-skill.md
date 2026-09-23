@@ -48,6 +48,8 @@ Example requests:
 
 > Animate my XTC trajectory. Keep the camera centered on residues 50–90 and show the distance between the two atoms I selected.
 
+> Make a 20-second video of the heme pocket in my structure. Hide the glycerol, focus on the heme, and grow the side chains within 4 Å of it one residue at a time.
+
 > Morph calmodulin into troponin C using contact-map matching. Fade unmatched residues, then rotate troponin C to show the final structure.
 
 The skill instructs the agent to inspect the input structure, write a scene, render it, and check the framing and labels. It also explains how to describe interpolated states, inferred hydrogens, and approximate electrostatic calculations.
@@ -58,7 +60,10 @@ The skill instructs the agent to inspect the input structure, write a scene, ren
 |---|---|
 | `SKILL.md` | Setup, scene creation, rendering, and review instructions |
 | `references/animation.md` | Timing, styling, trajectories, and morphs |
-| `references/annotations-and-interactions.md` | Labels, region tools, and measurements |
+| `references/ligands-and-side-chains.md` | Ligands, ions, side chains, and binding-site storyboards |
+| `references/annotations-and-interactions.md` | Labels, selectors, region tools, and measurements |
+| `references/nucleic-acids.md` | DNA and RNA base styles, selections, and surfaces |
+| `references/data-visualization.md` | Residue values, synchronized plots, and density maps |
 | `assets/film.py` | Starter scene used by `proteinmotion init` |
 | `assets/1ubq.cif` | Ubiquitin structure for the starter scene |
 | `agents/openai.yaml` | Codex display metadata |

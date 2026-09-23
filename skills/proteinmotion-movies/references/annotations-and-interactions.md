@@ -16,6 +16,8 @@ ligand = p.select(resname="ATP")  # Also: ligands=True, water=True (with include
 pocket = p.select(within=4.0, of=ligand)  # Whole residues; excludes the ligand itself.
 ```
 
+Category rules, distance caveats, and binding-site patterns are in [ligands, ions, and side chains](ligands-and-side-chains.md).
+
 Inspect the input first; chain IDs and residue numbers are not assumed contiguous or zero-based. `Region.atom_indices` refers to topology atom indices. Selections follow their protein through motion. To dim everything outside a selection:
 
 ```python
