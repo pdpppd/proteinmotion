@@ -18,10 +18,10 @@ Inspect `p.topology.residue_categories` (one string per residue: `polymer`, `lig
 
 ```python
 ions = p.select(ions=True)
-ligand = p.select(resname="ATP")          # One name or a list; case-insensitive.
+ligand = p.select(resname="ATP")  # One name or a list; case-insensitive.
 bound = p.select(ligands=True, ions=True)  # Categories combine with each other.
 calcium = p.select(ions=True, residues=149)  # Other filters must all match.
-site = p.select(within=3.0, of=calcium)    # Whole residues, excluding the reference itself.
+site = p.select(within=3.0, of=calcium)  # Whole residues, excluding the reference itself.
 backbone_near = p.select(within=5.0, of=ions, atoms=["P", "OP1", "OP2"])
 ```
 
@@ -36,7 +36,7 @@ Initial state, before `add`:
 
 ```python
 p.select(ions=True).hide_atoms()
-site.side_chains().show_atoms()   # Region of side-chain atoms plus Cα.
+site.side_chains().show_atoms()  # Region of side-chain atoms plus Cα.
 ```
 
 Animations, inside `play`:
