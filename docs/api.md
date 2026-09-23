@@ -2,7 +2,7 @@
 
 [Browse the reference manual](https://pdpppd.github.io/proteinmotion/reference/) for individual class and function pages, parameters, methods, and rendered examples.
 
-This quick reference covers the public Python API in version 0.10.1. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which are in their own modules.
+This quick reference covers the public Python API in version 0.11.0. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which are in their own modules.
 
 ## ProteinScene
 
@@ -42,6 +42,7 @@ Protein.from_trajectory(trajectory)
 | `surface(kind="ses", probe_radius=1.4, resolution=0.7, update="rebuild")` | Voxel molecular surface; see [surface options](styling.md) |
 | `set_color(color)` / `color_residues(color, chain=None, residues=None)` | Atom/residue tint across every representation; `None` clears it |
 | `set_opacity(value)` / `set_residue_opacity(value, chain=None, residues=None)` | Global or selected opacity in [0, 1] |
+| `show_atoms()` / `hide_atoms()` | Draw every atom as ball-and-stick over the cartoon, or remove all such atoms, including the default ligands and ions |
 | `hydrogen_bonds(**options)` / `electrostatics(charges="formal", **options)` | Live interaction analyses |
 | `center()` / `shift(vector)` / `rotate(angle, axis)` / `scale(factor)` | Configure the molecular transform |
 | `positions` | Current interpolated coordinates in the protein's local frame |
@@ -51,6 +52,8 @@ Protein.from_trajectory(trajectory)
 | `animate` | Build fluent transform or opacity animations |
 
 Coordinates/radii are ångströms; angles are radians. Cartoon/ribbon color accepts `secondary`, `rainbow`, `chain`, or `#RRGGBB`. Ball-and-stick uses element colors as its base palette. Residue overrides apply to every representation.
+
+Cartoons and ribbons draw ligands, ions, and loaded waters (atoms outside the traced chains) as ball-and-stick. [Ligands, ions, and side chains](ligands-and-side-chains.md).
 
 ## NucleicAcid and BaseStyle
 
@@ -62,16 +65,19 @@ Coordinates/radii are ångströms; angles are radians. Cartoon/ribbon color acce
 
 ```python
 region = protein.select(chain="A", residues=(23, 34), atoms="CA")
+ligand = protein.select(resname="HEM")
+metals = protein.select(ions=True)
+pocket = protein.select(within=4.0, of=ligand)
 region = Region(protein, atom_indices)
 combined = region_a | region_b
 marker = region.highlight(style="box", color="#f2ba67", padding=1.5)
 ```
 
-Selections use PDB author residue numbers. Tuples are inclusive ranges; lists select explicit numbers. The chain and atom-name filters also accept lists. Empty selections raise an error. Explicit atom indices are zero-based.
+Selections use PDB author residue numbers. Tuples are inclusive ranges; lists select explicit numbers. The chain, atom-name, and `resname` filters also accept lists. `ligands=True`, `ions=True`, and `water=True` select residues outside the traced chains and combine with each other. `within=r, of=region` selects whole residues with an atom within r Å of `region`, excluding that region's own residues. Other filters must all match. Empty selections raise an error. Explicit atom indices are zero-based.
 
 `region.atom_indices`, `region.residue_indices`, `region.positions`, and `region.world_positions` expose the selected atoms/residues and current coordinates. Indices are read-only. Unions require the same parent protein.
 
-`region.set_color(color)`, `region.set_opacity(value)` and their `.animate` equivalents style the selection. `region.distance_to(other, **options)` creates a distance ruler. [Styling and surface guide](styling.md).
+`region.set_color(color)`, `region.set_opacity(value)` and their `.animate` equivalents style the selection. `region.show_atoms()` and `region.hide_atoms()` draw or remove the selection as ball-and-stick over a cartoon. `region.side_chains()` returns the side chains of its amino acids, including Cα. `region.distance_to(other, **options)` creates a distance ruler. [Styling and surface guide](styling.md).
 
 Highlight styles are `sphere`, `box`, and `atoms`. All accept `color`, `opacity`, and `padding`; boxes also use `line_width`. Highlights follow their parent coordinates and transforms. Animate opacity on the highlight and transforms on its parent. [More examples](regions.md).
 
@@ -149,6 +155,8 @@ self.play(self.camera.animate.zoom(1.3), run_time=1)
 | `Representation(protein, name)` | Transition to `cartoon`, `ribbon`, `ball_and_stick`, or `surface` |
 | `Colorize(target, color, residue_delay=0, reverse=False, easing="smooth")` | Fade a protein/region to a tint, or `None` to restore its palette |
 | `SetOpacity(target, opacity, residue_delay=0, reverse=False, easing="smooth")` | Fade selected atoms/residues, with optional N-to-C staggering |
+| `ShowAtoms(target, ...)` / `HideAtoms(target, ...)` | Draw or remove atoms as ball-and-stick over a cartoon, ribbon, or surface |
+| `ShowSideChains(target, ...)` / `HideSideChains(target, ...)` | Grow or remove amino acid side chains, joined to the cartoon at Cα |
 | `Morph(protein, target, align=True)` | Morph matching atom topology or ordered coordinate arrays |
 | `Deform(protein, function)` | Transform coordinates through a callable |
 | `Focus(camera, region, margin=1.25, aspect=16/9, follow=True)` | Animate camera focus; evaluate after molecular motion |
@@ -157,7 +165,7 @@ self.play(self.camera.animate.zoom(1.3), run_time=1)
 
 Default motion easing is quintic `smooth`. Trajectory playback uses a linear clip clock by default. `state_easing` changes the blend inside each adjacent model pair; `rate_func` changes progress through the whole clip. Built-ins include `linear`, `smooth`, `ease_in_out_sine`, and `there_and_back`.
 
-`Colorize` and `SetOpacity` use a linear clip clock and their own `easing` for residue transitions. Disjoint selections may run together; `run_time` must exceed their total residue start delay. `FadeIn`/`FadeOut` target whole proteins or annotations; use `SetOpacity` for regions.
+`Colorize`, `SetOpacity`, and the atom animations accept `residue_delay`, `reverse`, and `easing`. They use a linear clip clock and their own `easing` for residue transitions. Disjoint selections may run together; `run_time` must exceed their total residue start delay. `FadeIn`/`FadeOut` target whole proteins or annotations; use `SetOpacity` for regions.
 
 For `BackboneMorph`, use `motion_easing` for individual residue motion; its timeline must stay linear to preserve delays in seconds. See [matching options and limitations](morphing.md).
 

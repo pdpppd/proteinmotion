@@ -587,5 +587,26 @@
       "examples/data/2dcg.cif": "e04d03a6a580eb1ddb72ce0bee039f6e0f2ee0df0fcded7aebccd9ed27a1f52b"
     },
     "code": "\"\"\"C1\u2032 contact-guided morph between chain A of PDB 1BNA and 2DCG.\n\nMatched nucleotides are gold. Unmatched source residues fade out and unmatched\ndestination residues fade in. This is a visual interpolation, not simulated dynamics.\nRender: proteinmotion render examples/dna_morph.py DNAMorph --fps 60 -o dna-morph.mp4\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import (\n    BackboneMorph,\n    NucleicAcid,\n    ProteinScene,\n    Representation,\n    Text,\n    Write,\n    match_backbones,\n)\n\nDATA = Path(__file__).resolve().parent / \"data\"\n\n\nclass DNAMorph(ProteinScene):\n    def construct(self):\n        source = (\n            NucleicAcid.from_file(DATA / \"1bna.cif\", chains=\"A\")\n            .cartoon(bases=\"rings\", color=\"#75b8d9\")\n            .center()\n        )\n        target = (\n            NucleicAcid.from_file(DATA / \"2dcg.cif\", chains=\"A\")\n            .cartoon(bases=\"rings\", color=\"#df92a0\")\n            .center()\n        )\n        source.rotate(1.35, axis=(1, 0, 0)).rotate(-0.28, axis=(0, 0, 1))\n        target.rotate(1.35, axis=(1, 0, 0)).rotate(-0.28, axis=(0, 0, 1))\n        match = match_backbones(source, target, max_contact_error=0.20, max_candidates=None, search_seconds=2)\n        self.match = match\n        for p, ids in ((source, match.source_indices), (target, match.target_indices)):\n            p.color_residues(\"#ffd47b\", chain=\"A\", residues=[p.topology.residues[i].resid for i in ids])\n            extras = [r.resid for r in p.topology.residues if not r.is_nucleic]\n            if extras:\n                p.set_residue_opacity(0, chain=\"A\", residues=extras)\n        self.add(source)\n        self.camera.frame(source, aspect=self.width / self.height).zoom(1.1)\n        self.camera.depth_cue = 0.25\n        self.add(Text(\"1BNA A \u2192 2DCG A \u00b7 matched nucleotides in gold\", position=(0.055, 0.89), font_size=27))\n        self.play(Write(Text(\"DNA morph \u00b7 C1\u2032 anchors\", position=(0.055, 0.10), font_size=40)), run_time=1)\n        self.wait(1)\n        self.play(\n            BackboneMorph(source, target, match=match, residue_delay=0.25, align=True),\n            run_time=5,\n        )\n        self.focus(target, margin=1.4, run_time=1.5)\n        self.play(Representation(target, \"ball_and_stick\"), run_time=1.2)\n        self.play(self.camera.animate.orbit(theta=0.35), run_time=2)\n        self.wait(0.5)"
+  },
+  "ligands-and-side-chains": {
+    "title": "Ions and coordinating side chains",
+    "caption": "1CLL Ca\u00b2\u207a ions on the cartoon, and the side chains within 3 \u00c5 of each ion.",
+    "source": "examples/ligands_and_side_chains.py",
+    "scene": "LigandsAndSideChains",
+    "duration": 13.1,
+    "frames": 786,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/docs/ligands-and-side-chains.mp4",
+    "poster": "media/docs/ligands-and-side-chains.jpg",
+    "poster_time": 6.5,
+    "video_sha256": "a8333ba906701ddcabc18dcff6ed63a1fcc95265a9d10aaca1160eca66d1b45a",
+    "poster_sha256": "3bd9effa093c7165c6c6e63b843dd1d0b82635250644f74cb13c0b914ea99581",
+    "dependencies": {
+      "examples/ligands_and_side_chains.py": "3595b1d724d14597b6459cf67c5ce6c0268f5a699e06aac4b60a5a4d717f54d0",
+      "examples/data/1cll.cif": "a8be375d00d2d5d47ffacae491f775167d1c0488ab8485cabd269410e596d3aa"
+    },
+    "code": "\"\"\"Show 1CLL Ca\u00b2\u207a ions on the cartoon and grow the side chains that coordinate them.\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Protein, ProteinScene, ShowSideChains, Unwrite, Write\n\nDATA = Path(__file__).parent / \"data\"\n\n\nclass LigandsAndSideChains(ProteinScene):\n    def construct(self):\n        # Ions and ligands outside the traced chain draw as ball-and-stick detail.\n        p = Protein.from_file(DATA / \"1cll.cif\").cartoon().center()\n        self.add(p)\n        self.camera.frame(p, margin=1.0, aspect=self.width / self.height)\n        self.camera.theta, self.camera.phi = 0.4, 0.15\n        self.camera.depth_cue = 0.3\n        self.play(self.camera.animate.orbit(0.4), run_time=1.5)\n\n        # Whole residues with an atom within 3 \u00c5 of the first Ca\u00b2\u207a ion.\n        ion = p.select(ions=True, residues=149)\n        site = p.select(within=3.0, of=ion)\n        self.focus(site | ion, margin=1.3, run_time=1.5)\n        self.play(ShowSideChains(site, residue_delay=0.2), run_time=1.8)\n        labels = p.label_residues(\n            residues=[20, 22, 24, 26, 31],\n            font_size=30,\n            color=\"#f2ba67\",\n            offsets={20: (-260, 90), 22: (-300, -40), 24: (-120, -170), 26: (260, -130), 31: (300, 70)},\n        )\n        self.play(Write(labels, lag_ratio=0.1), run_time=1.2)\n        self.play(self.camera.animate.orbit(0.5), run_time=2.5)\n        self.play(Unwrite(labels), run_time=0.6)\n\n        # Every residue within 3 \u00c5 of any of the four ions, staggered N to C.\n        self.focus(p, margin=1.0, run_time=1.5)\n        self.play(\n            ShowSideChains(p.select(within=3.0, of=p.select(ions=True)), residue_delay=0.04),\n            self.camera.animate.orbit(0.5),\n            run_time=2.5,\n        )"
   }
 }

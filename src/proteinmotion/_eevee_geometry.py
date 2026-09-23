@@ -4,9 +4,9 @@ from functools import lru_cache
 
 import numpy as np
 
-from .geometry import atom_metadata, residue_colors, segments, state_data
+from .geometry import atom_colors, atom_metadata, residue_colors, segments, state_data
 from .math3d import normalize
-from .styling import current_tints
+from .styling import atom_weights, current_tints
 
 
 def _tint(base, tint):
@@ -96,24 +96,27 @@ def _sphere():
     return vertices, np.vstack((faces, caps)).astype(np.int32)
 
 
-def _atoms(p, xyz, tint):
-    meta = atom_metadata(p)
-    radii = meta[:, 3] * p.atom_scale
-    colors = _tint(meta[:, :3], tint)
+def _atoms(p, xyz, tint, weights):
+    radii = atom_metadata(p)[:, 3] * p.atom_scale
+    colors = _tint(atom_colors(p), tint)
+    # Ball-and-stick fraction per atom, including detail atoms over a cartoon.
+    opacity = p.atom_opacities * weights
+    shown = np.flatnonzero(weights > 0)
     pieces = []
-    if getattr(p, "_draw_atoms", True):
+    if getattr(p, "_draw_atoms", True) and len(shown):
         verts, faces = _sphere()
         n, f = len(verts), len(faces)
         pieces.append(
             (
-                (xyz[:, None] + radii[:, None, None] * verts).reshape(-1, 3),
-                (faces[None] + np.arange(len(xyz))[:, None, None] * n).reshape(-1, 3),
-                np.repeat(colors, n, axis=0),
-                np.repeat(p.atom_opacities * p.representation[2], f),
-                np.tile(verts, (len(xyz), 1)),
+                (xyz[shown, None] + radii[shown, None, None] * verts).reshape(-1, 3),
+                (faces[None] + np.arange(len(shown))[:, None, None] * n).reshape(-1, 3),
+                np.repeat(colors[shown], n, axis=0),
+                np.repeat(opacity[shown], f),
+                np.tile(verts, (len(shown), 1)),
             )
         )
     bonds = p.topology.bonds
+    bonds = bonds[(weights[bonds[:, 0]] > 0) & (weights[bonds[:, 1]] > 0)] if len(bonds) else bonds
     if len(bonds):
         a, b = xyz[bonds[:, 0]], xyz[bonds[:, 1]]
         delta = b - a
@@ -136,7 +139,7 @@ def _atoms(p, xyz, tint):
         vertices = np.stack((a, b), 1)[:, :, None] + radius * normal[:, None]
         template = _triangles(2, 16)
         faces = (template[None] + np.arange(len(bonds))[:, None, None] * 32).reshape(-1, 3)
-        alpha = np.minimum(p.atom_opacities[bonds[:, 0]], p.atom_opacities[bonds[:, 1]]) * p.representation[2]
+        alpha = np.minimum(opacity[bonds[:, 0]], opacity[bonds[:, 1]])
         alpha = np.where(exposed > 1e-8, alpha, 0)
         # Color interpolation follows the original bond, including trimmed ends.
         t = np.stack((trim[:, 0] / np.maximum(length, 1e-8), 1 - trim[:, 1] / np.maximum(length, 1e-8)), 1)
@@ -177,8 +180,9 @@ class MeshExporter:
                 for i, weight in enumerate(p.base_style):
                     if weight > 0 and len(self.bases[p].parts[i][1]):
                         pieces.append(self.bases[p].evaluate(p, i))
-        if p.representation[2] > 0:
-            pieces.extend(_atoms(p, xyz, tint))
+        weights = atom_weights(p)
+        if np.any(weights > 0):
+            pieces.extend(_atoms(p, xyz, tint, weights))
         if p.surface_opacity > 0:
             options = p._surface_options
             cached = self.surfaces.get(p)

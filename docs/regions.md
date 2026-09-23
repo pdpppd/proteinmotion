@@ -24,6 +24,8 @@ Selections use **PDB author residue numbers**. A tuple `(23, 34)` selects the in
 
 Use `atoms="CA"` or `atoms=["N", "CA", "C", "O"]` to filter by atom name. `chain` accepts one chain ID or a list. All supplied filters must match. An empty selection raises an error.
 
+To select ligands, ions, or the residues around them, use `ligands=True`, `ions=True`, `resname="ATP"`, or `within=4.0, of=region`. See [Ligands, ions, and side chains](ligands-and-side-chains.md).
+
 Combine selections from the same protein with `region_a | region_b`. Residues that share an author number but have different insertion codes are selected together. For exact atom selection, use `Region(p, atom_indices)`.
 
 Three highlight styles are available:

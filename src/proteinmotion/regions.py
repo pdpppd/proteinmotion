@@ -2,6 +2,7 @@
 
 import gemmi
 import numpy as np
+from scipy.spatial import cKDTree
 
 from .math3d import color as parse_color
 from .protein import Protein
@@ -26,12 +27,39 @@ class Region:
         self._keys = protein.topology.keys
 
     @classmethod
-    def select(cls, protein, *, chain=None, residues=None, atoms=None):
-        """Residue numbers are PDB/auth numbers. A two-item tuple is an inclusive range."""
+    def select(
+        cls,
+        protein,
+        *,
+        chain=None,
+        residues=None,
+        atoms=None,
+        resname=None,
+        ligands=False,
+        ions=False,
+        water=False,
+        within=None,
+        of=None,
+    ):
+        """Residue numbers are PDB/auth numbers. A two-item tuple is an inclusive range.
+
+        Criteria combine with AND, except the ligands/ions/water categories, which
+        combine with each other. ``within`` measures the current coordinates once.
+        """
         chains = None if chain is None else {chain} if isinstance(chain, str) else set(chain)
         names = None if atoms is None else {atoms} if isinstance(atoms, str) else set(atoms)
         if names is not None:
             names = {n.replace("*", "'") for n in names}
+        resnames = None if resname is None else {resname} if isinstance(resname, str) else set(resname)
+        if resnames is not None:
+            resnames = {n.upper() for n in resnames}
+        categories = {c for c, on in (("ligand", ligands), ("ion", ions), ("water", water)) if on}
+        residue_categories = protein.topology.residue_categories if categories else None
+        near = None
+        if (within is None) != (of is None):
+            raise ValueError("Use within and of together, e.g. within=5.0, of=ligand")
+        if within is not None:
+            near = _residues_near(protein, within, of)
         numbers = None
         if residues is not None:
             if isinstance(residues, (int, np.integer)):
@@ -52,9 +80,14 @@ class Region:
             if (chains is None or atom.chain in chains)
             and (numbers is None or atom.resid in numbers)
             and (names is None or atom.name.replace("*", "'") in names)
+            and (resnames is None or atom.resname.upper() in resnames)
+            and (residue_categories is None or residue_categories[atom.residue_index] in categories)
+            and (near is None or near[atom.residue_index])
         ]
         if not ids:
-            raise ValueError("Selection contains no atoms; check chain, residue numbers and atom names")
+            raise ValueError(
+                "Selection contains no atoms; check chain, residue numbers, names, categories and distance"
+            )
         return cls(protein, np.array(ids, dtype=int))
 
     def _validate(self):
@@ -101,6 +134,24 @@ class Region:
 
         return set_opacity(self, opacity)
 
+    def show_atoms(self):
+        """Draw these atoms as ball-and-stick over a cartoon, ribbon or surface."""
+        from .styling import set_detail
+
+        return set_detail(self, 1.0)
+
+    def hide_atoms(self):
+        """Stop drawing these atoms as ball-and-stick detail."""
+        from .styling import set_detail
+
+        return set_detail(self, 0.0)
+
+    def side_chains(self):
+        """A region with the side chains of this region's amino acids, joined at Cα."""
+        from .styling import side_chains
+
+        return side_chains(self)
+
     @property
     def animate(self):
         from .styling import RegionAnimate
@@ -123,6 +174,30 @@ class Region:
         from .annotations import ResidueLabel
 
         return ResidueLabel(self, text, **kwargs)
+
+
+def _residues_near(protein, within, of):
+    """Residues with any atom within ``within`` Å of ``of``, compared in world space."""
+    if not np.isfinite(within) or within <= 0:
+        raise ValueError("within must be a finite, positive distance in Å")
+    if isinstance(of, Region):
+        of._validate()
+        reference, source, own = of.world_positions, of.protein, of.residue_indices
+    elif isinstance(of, Protein):
+        m = of.model_matrix
+        reference = of.positions @ m[:3, :3].T + m[:3, 3]
+        source, own = of, np.arange(len(of.topology.residues))
+    else:
+        raise TypeError("of must be a Region or Protein")
+    m = protein.model_matrix
+    points = protein.positions @ m[:3, :3].T + m[:3, 3]
+    distance, _ = cKDTree(reference).query(points, distance_upper_bound=within * protein.size)
+    owners = np.array([a.residue_index for a in protein.topology.atoms])
+    near = np.zeros(len(protein.topology.residues), bool)
+    near[owners[np.isfinite(distance)]] = True
+    if source is protein:
+        near[own] = False
+    return near
 
 
 class RegionHighlight(Protein):

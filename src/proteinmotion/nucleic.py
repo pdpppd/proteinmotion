@@ -81,7 +81,8 @@ class BaseGeometry:
         for style in BASE_STYLES:
             self._rows, self._faces, self._owners = [], [], []
             for ri, r in enumerate(p.topology.residues):
-                if not r.is_nucleic:
+                # Nucleotides off a traced strand (e.g. ATP) draw as ball-and-stick detail.
+                if not r.is_nucleic or p.topology.residue_categories[ri] != "polymer":
                     continue
                 names = groups[ri]
                 # Sugar and phosphate atoms are shown by the backbone/connector.

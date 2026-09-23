@@ -2,6 +2,7 @@
 
 import warnings
 from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
 
 import gemmi
@@ -62,6 +63,11 @@ class Residue:
         return "C1'" if self.is_nucleic else "CA"
 
 
+WATER_NAMES = frozenset(
+    {"HOH", "WAT", "H2O", "DOD", "D2O", "SOL", "TIP", "TIP3", "TIP4", "TIP5", "SPC", "T3P"}
+)
+
+
 @dataclass
 class Topology:
     atoms: tuple[Atom, ...]
@@ -72,6 +78,34 @@ class Topology:
     @property
     def keys(self):
         return tuple(a.key for a in self.atoms)
+
+    @cached_property
+    def residue_categories(self):
+        """Polymer residues lie on a traced chain; the rest are water, single-atom ions or ligands."""
+        traced = np.zeros(len(self.residues), bool)
+        for chain in self.chains:
+            traced[chain] = True
+        heavy = [[] for _ in self.residues]
+        for atom in self.atoms:
+            if atom.element not in ("H", "D"):
+                heavy[atom.residue_index].append(atom.element)
+        result = []
+        for i, r in enumerate(self.residues):
+            if traced[i]:
+                result.append("polymer")
+            elif r.name.upper() in WATER_NAMES:
+                result.append("water")
+            elif len(heavy[i]) == 1 and heavy[i][0] not in ("C", "N", "O"):
+                result.append("ion")
+            else:
+                result.append("ligand")
+        return tuple(result)
+
+    @cached_property
+    def untraced_atoms(self):
+        """Atoms a cartoon or ribbon cannot draw; these default to ball-and-stick detail."""
+        categories = self.residue_categories
+        return np.array([categories[a.residue_index] != "polymer" for a in self.atoms], bool)
 
 
 def coordinates(value, n_atoms=None):

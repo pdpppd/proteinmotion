@@ -80,6 +80,14 @@ export const guides = [
       "Set residue colors and transparency, and render molecular surfaces.",
   },
   {
+    slug: "ligands-and-side-chains",
+    file: "ligands-and-side-chains.md",
+    title: "Ligands & side chains",
+    group: "AUTHORING",
+    description:
+      "Show ligands, ions, and side chains as ball-and-stick over a cartoon.",
+  },
+  {
     slug: "numerical-properties",
     file: "numerical-properties.md",
     title: "Numerical properties",

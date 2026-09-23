@@ -13,13 +13,13 @@ Use the task's existing Python environment if it contains ProteinMotion. Otherwi
 
 ```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install "proteinmotion>=0.10.1"
+.venv/bin/python -m pip install "proteinmotion>=0.11.0"
 .venv/bin/proteinmotion doctor
 ```
 
 On Windows, use `py -3 -m venv .venv`, `.venv\Scripts\python.exe`, and `.venv\Scripts\proteinmotion.exe`. Windows/NVIDIA support requires version 0.10.1 or later, 64-bit Python, and a current NVIDIA driver. `doctor --check-encoders` should identify a Vulkan adapter and usable `h264_nvenc` encoder. On Apple silicon, use native arm64 Python; the corresponding backend and encoder are Metal and `h264_videotoolbox`.
 
-PyAV supplies the FFmpeg libraries. Add extras as needed: `"proteinmotion[md,preview]>=0.10.1"`. `md` adds trajectory readers; `preview` adds an interactive GPU window. For an existing global command installed with pipx, use that command to render scenes; install the package in the task's environment when importing it into another Python process.
+PyAV supplies the FFmpeg libraries. Add extras as needed: `"proteinmotion[md,preview]>=0.11.0"`. `md` adds trajectory readers; `preview` adds an interactive GPU window. For an existing global command installed with pipx, use that command to render scenes; install the package in the task's environment when importing it into another Python process.
 
 If hardware rendering fails, diagnose the reported adapter and encoder before changing renderers. `--codec libx264` selects CPU encoding; molecular rendering still needs a GPU.
 
@@ -36,9 +36,9 @@ For an explanatory tour, prefer a continuous model and eased focus/representatio
 Read only the relevant supporting reference:
 
 - [DNA and RNA](references/nucleic-acids.md): nucleotide backbones, base styles, modified residues, surfaces, color, opacity, and trajectories.
-- [Animation and state changes](references/animation.md): representations, residue styling, timelines, trajectories, same-topology deformation, and different-protein contact-map morphs.
+- [Animation and state changes](references/animation.md): representations, residue styling, ligands and side chains, timelines, trajectories, same-topology deformation, and different-protein contact-map morphs.
 - [Numerical values, plots, and density](references/data-visualization.md): B factors, RMSF, custom residue values, synchronized plots, MRC/CCP4 contours, and slices.
-- [Annotations and interactions](references/annotations-and-interactions.md): selectors, focus, text, 3D regions, distance rulers, hydrogen bonds, and imported-charge electrostatics.
+- [Annotations and interactions](references/annotations-and-interactions.md): selectors (including ligands, ions, and distance), focus, text, 3D regions, distance rulers, hydrogen bonds, and imported-charge electrostatics.
 
 ## Render and check
 

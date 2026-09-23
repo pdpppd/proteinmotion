@@ -308,7 +308,13 @@
     "bases": "Nucleotide base style: slabs, rings, sticks, ladder, or none. None in Representation preserves the current style.",
     "backbone_radius": "Positive nucleotide cartoon tube radius in ångströms.",
     "base_thickness": "Positive slab/ring thickness in ångströms.",
-    "base_radius": "Positive base-stick and connector radius in ångströms."
+    "base_radius": "Positive base-stick and connector radius in ångströms.",
+    "resname": "Residue name or names, such as \"ASP\" or [\"HEM\", \"ATP\"]; case-insensitive.",
+    "ligands": "Select non-polymer residues other than water and single-atom ions.",
+    "ions": "Select single-atom, non-carbon residues outside the traced chains, such as Ca²⁺ or Zn²⁺.",
+    "water": "Select water residues (HOH, WAT, SOL, and common MD names); load them with include_water=True.",
+    "within": "Distance in ångströms; keeps whole residues with any atom this close to of.",
+    "of": "Region or Protein used as the reference for within; its own residues are excluded when it belongs to the same protein."
   },
   "members": {
     "construct": {
@@ -848,6 +854,69 @@
         "target": "Protein or Region to style."
       },
       "notes": "Residues start in topology order from N to C. run_time must exceed (residue count − 1) × residue_delay. Use easing for each residue transition; the clip clock stays linear. Disjoint atom selections can animate together."
+    },
+    "styling.ShowAtoms": {
+      "description": "Grow atoms in as ball-and-stick detail over a cartoon, ribbon, or surface.",
+      "example": "ligands-and-side-chains",
+      "forward_parameters": [
+        "styling._AppearanceAnimation",
+        [
+          "residue_delay",
+          "reverse",
+          "easing"
+        ]
+      ],
+      "parameters": {
+        "target": "Protein or Region whose atoms to show."
+      },
+      "notes": "Detail atoms use the protein's atom_scale and bond_radius, element colors, and carbons in the structure palette. A bond appears once both of its atoms are visible. Residue staggering and run_time limits match SetOpacity."
+    },
+    "styling.HideAtoms": {
+      "description": "Fade ball-and-stick detail atoms back into the cartoon, ribbon, or surface.",
+      "example": "ligands-and-side-chains",
+      "parameters": {
+        "target": "Protein or Region whose detail atoms to hide."
+      },
+      "notes": "Use HideAtoms(protein) to remove the default ligand, ion, and water detail.",
+      "forward_parameters": [
+        "styling._AppearanceAnimation",
+        [
+          "residue_delay",
+          "reverse",
+          "easing"
+        ]
+      ]
+    },
+    "styling.ShowSideChains": {
+      "description": "Grow amino acid side chains from the cartoon as ball-and-stick detail.",
+      "example": "ligands-and-side-chains",
+      "parameters": {
+        "target": "Protein or Region; its amino acid residues supply the side chains."
+      },
+      "notes": "Each side chain includes Cα, where the cartoon passes, and proline keeps N to close its ring. Glycine, nucleotides, ligands, and ions are skipped. Equivalent to ShowAtoms(target.side_chains()).",
+      "forward_parameters": [
+        "styling._AppearanceAnimation",
+        [
+          "residue_delay",
+          "reverse",
+          "easing"
+        ]
+      ]
+    },
+    "styling.HideSideChains": {
+      "description": "Fade amino acid side chains back into the cartoon.",
+      "example": "ligands-and-side-chains",
+      "parameters": {
+        "target": "Protein or Region whose side chains to hide."
+      },
+      "forward_parameters": [
+        "styling._AppearanceAnimation",
+        [
+          "residue_delay",
+          "reverse",
+          "easing"
+        ]
+      ]
     },
     "styling.RegionAnimate": {
       "description": "Create styling animations through region.animate.",

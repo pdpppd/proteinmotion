@@ -35,6 +35,16 @@ self.play(SetOpacity(helix, 0.15, residue_delay=0.05), run_time=2)
 self.play(Colorize(helix, None), SetOpacity(helix, 1), run_time=1.5)
 ```
 
+Cartoons and ribbons draw ligands, ions, and loaded waters as ball-and-stick by default. Add side chains or any atoms the same way, residue by residue:
+
+```python
+site = p.select(within=3.0, of=p.select(ions=True))
+self.play(ShowSideChains(site, residue_delay=0.1), run_time=2)  # Joined to the cartoon at Cα.
+self.play(HideAtoms(p.select(ligands=True)), run_time=1)  # Also ShowAtoms / HideSideChains.
+```
+
+Use `region.show_atoms()`, `region.hide_atoms()`, or `p.hide_atoms()` for the initial state. Crystallization additives such as ethanol or sulfate count as ligands; hide them when they distract.
+
 Colors and residue opacity carry across representations. `Colorize(..., None)` restores the base palette. For staggered appearance tracks, keep the clip clock linear (the default for these animations); their internal easing handles each residue. `run_time` must exceed `(residue_count - 1) * residue_delay`. Do not add a global smooth `rate_func` to such clips.
 
 ## Ensembles and trajectory readers

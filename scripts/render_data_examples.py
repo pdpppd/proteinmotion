@@ -1,4 +1,4 @@
-"""Render numerical-property, plot, and density examples and verify every frame."""
+"""Render ligand, numerical-property, plot, and density examples and verify every frame."""
 
 import argparse
 import hashlib
@@ -13,6 +13,15 @@ from proteinmotion.cli import load_scene
 ROOT = Path(__file__).resolve().parents[1]
 MEDIA = ROOT / "website/public/media/docs"
 EXAMPLES = [
+    (
+        "ligands-and-side-chains",
+        "ligands_and_side_chains",
+        "LigandsAndSideChains",
+        6.5,
+        "Ions and coordinating side chains",
+        "1CLL Ca²⁺ ions on the cartoon, and the side chains within 3 Å of each ion.",
+        ["1cll.cif"],
+    ),
     (
         "numerical-properties",
         "numerical_properties",

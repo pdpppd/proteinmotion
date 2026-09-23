@@ -7,11 +7,14 @@ from .math3d import color as parse_color
 from .rates import linear
 
 
-def initial_appearance(count):
-    # tint before/after (RGB + strength), timing, and opacity before/after/timing.
-    data = np.zeros((count, 16), np.float32)
-    data[:, 9] = data[:, 13] = data[:, 15] = 1
+def initial_appearance(count, detail=None):
+    # tint before/after (RGB + strength), timing, opacity before/after/timing, and
+    # ball-and-stick detail before/after/start/span plus its easing flag.
+    data = np.zeros((count, 24), np.float32)
+    data[:, 9] = data[:, 13] = data[:, 15] = data[:, 19] = 1
     data[:, 12] = 1
+    if detail is not None:
+        data[:, 16] = data[:, 17] = detail
     data.flags.writeable = False
     return data
 
@@ -31,6 +34,18 @@ def current_opacities(protein):
     s = protein._appearance
     t = progress(protein._opacity_mix, s[:, 14], s[:, 15], s[:, 11] > 0.5)
     return (1 - t) * s[:, 12] + t * s[:, 13]
+
+
+def current_details(protein):
+    s = protein._appearance
+    t = progress(protein._detail_mix, s[:, 18], s[:, 19], s[:, 20] > 0.5)
+    return (1 - t) * s[:, 16] + t * s[:, 17]
+
+
+def atom_weights(protein):
+    """Per-atom ball-and-stick visibility: the representation blend, or per-atom detail."""
+    ball = float(protein.representation[2])
+    return ball + (1 - ball) * current_details(protein)
 
 
 def selection(target):
@@ -73,6 +88,27 @@ def set_opacity(target, value):
     return target
 
 
+def set_detail(target, value):
+    protein, ids = selection(target)
+    data = protein._appearance.copy()
+    current = current_details(protein)
+    current[ids] = value
+    data[:, 16] = data[:, 17] = current
+    data[:, 18:21] = [0, 1, 0]
+    data.flags.writeable = False
+    protein._appearance, protein._detail_mix = data, 1.0
+    return target
+
+
+# Per track: (from, to, start, span, easing) columns, the column range an animation
+# owns, the current-value evaluator, and the protein clock attribute.
+_TRACKS = {
+    "color": ((slice(0, 4), slice(4, 8), 8, 9, 10), (0, 11), current_tints, "_color_mix"),
+    "opacity": ((12, 13, 14, 15, 11), (11, 16), current_opacities, "_opacity_mix"),
+    "detail": ((16, 17, 18, 19, 20), (16, 21), current_details, "_detail_mix"),
+}
+
+
 class _AppearanceAnimation(Animation):
     requires_linear_timeline = True
 
@@ -107,21 +143,14 @@ class _AppearanceAnimation(Animation):
         self.duration = duration
         self.begin, self.span = self.start_time + ranks * self.residue_delay, span
         self.track = p._appearance.copy()
-        if self.kind == "color":
-            self.track[self.ids, :4] = current_tints(p)[self.ids]
-            self.track[self.ids, 4:8] = self.value
-            self.track[self.ids, 8] = self.begin
-            self.track[self.ids, 9] = self.span
-            self.track[self.ids, 10] = self.easing == "smooth"
-        else:
-            self.track[self.ids, 12] = current_opacities(p)[self.ids]
-            self.track[self.ids, 13] = self.value
-            self.track[self.ids, 14] = self.begin
-            self.track[self.ids, 15] = self.span
-            self.track[self.ids, 11] = self.easing == "smooth"
+        (before, after, begin, width, eased), written, current, _ = _TRACKS[self.kind]
+        self.track[self.ids, before] = current(p)[self.ids]
+        self.track[self.ids, after] = self.value
+        self.track[self.ids, begin] = self.begin
+        self.track[self.ids, width] = self.span
+        self.track[self.ids, eased] = self.easing == "smooth"
         self.track.flags.writeable = False
-        columns = np.arange(11) if self.kind == "color" else np.arange(11, 16)
-        self._write_indices = np.ix_(self.ids, columns)
+        self._write_indices = np.ix_(self.ids, np.arange(*written))
         self._other_mask = np.ones(self.track.shape, bool)
         self._other_mask[self._write_indices] = False
         self._combined = None
@@ -138,11 +167,7 @@ class _AppearanceAnimation(Animation):
             data.flags.writeable = False
             self._combined = data
         p._appearance = self._combined
-        clock = self.start_time + float(alpha) * self.duration
-        if self.kind == "color":
-            p._color_mix = clock
-        else:
-            p._opacity_mix = clock
+        setattr(p, _TRACKS[self.kind][3], self.start_time + float(alpha) * self.duration)
 
 
 class Colorize(_AppearanceAnimation):
@@ -168,6 +193,78 @@ class SetOpacity(_AppearanceAnimation):
         super().__init__(target, float(opacity), **kwargs)
 
 
+class ShowAtoms(_AppearanceAnimation):
+    """Grow atoms in as ball-and-stick over a cartoon, ribbon or surface.
+
+    With residue_delay the atoms appear residue by residue, N to C (reverse=True for C to N).
+    Bonds appear once both of their atoms are visible.
+    """
+
+    kind = "detail"
+    channels = frozenset({"atom_detail"})
+    visible = 1.0
+
+    def __init__(self, target, **kwargs):
+        super().__init__(self._atoms(target), self.visible, **kwargs)
+
+    @staticmethod
+    def _atoms(target):
+        return target
+
+
+class HideAtoms(ShowAtoms):
+    """Fade ball-and-stick detail atoms back into the cartoon, optionally residue by residue."""
+
+    visible = 0.0
+
+
+class ShowSideChains(ShowAtoms):
+    """Show amino acid side chains as ball-and-stick, attached at Cα to the cartoon."""
+
+    @staticmethod
+    def _atoms(target):
+        return side_chains(target)
+
+
+class HideSideChains(ShowSideChains):
+    """Fade amino acid side chains back into the cartoon."""
+
+    visible = 0.0
+
+
+# Amino acid backbone atoms, including terminal and backbone hydrogens.
+BACKBONE = frozenset({"N", "C", "O", "OXT", "HXT", "H", "H1", "H2", "H3", "HN", "HA", "HA2", "HA3"})
+
+
+def side_chains(target):
+    """Region of side-chain atoms plus Cα (and proline N) for the target's amino acids.
+
+    Cα joins the sticks to the cartoon, which passes through it. Glycine is skipped.
+    """
+    from .regions import Region
+
+    protein, ids = selection(target)
+    topology = protein.topology
+    owners = np.array([a.residue_index for a in topology.atoms])
+    wanted = np.unique(owners[ids])
+    keep = []
+    for ri in wanted:
+        r = topology.residues[ri]
+        if r.is_nucleic or r.ca < 0 or topology.residue_categories[ri] != "polymer":
+            continue
+        backbone = BACKBONE - {"N"} if r.name == "PRO" else BACKBONE
+        members = [
+            int(i)
+            for i in np.flatnonzero(owners == ri)
+            if i != r.ca and topology.atoms[i].name not in backbone
+        ]
+        if any(topology.atoms[i].element not in ("H", "D") for i in members):
+            keep.extend((r.ca, *members))
+    if not keep:
+        raise ValueError("Selection contains no amino acid side chains")
+    return Region(protein, np.array(keep, dtype=int))
+
+
 class RegionAnimate:
     def __init__(self, region):
         self.region = region
@@ -177,3 +274,11 @@ class RegionAnimate:
 
     def set_opacity(self, opacity, **kwargs):
         return SetOpacity(self.region, opacity, **kwargs)
+
+    def show_atoms(self, **kwargs):
+        """Animate these atoms in as ball-and-stick detail (see ShowAtoms)."""
+        return ShowAtoms(self.region, **kwargs)
+
+    def hide_atoms(self, **kwargs):
+        """Animate these detail atoms out (see HideAtoms)."""
+        return HideAtoms(self.region, **kwargs)

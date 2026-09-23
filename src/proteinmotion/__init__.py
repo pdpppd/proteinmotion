@@ -26,10 +26,10 @@ from .protein import NucleicAcid, Protein
 from .rates import ease_in_out_sine, linear, smooth, there_and_back
 from .regions import Region, RegionHighlight
 from .scene import ProteinScene, Scene
-from .styling import Colorize, SetOpacity
+from .styling import Colorize, HideAtoms, HideSideChains, SetOpacity, ShowAtoms, ShowSideChains
 from .trajectory import Trajectory
 
-__version__ = "0.10.1"
+__version__ = "0.11.0"
 __all__ = [
     "NucleicAcid",
     "BaseStyle",
@@ -51,6 +51,10 @@ __all__ = [
     "Distance",
     "Colorize",
     "SetOpacity",
+    "ShowAtoms",
+    "HideAtoms",
+    "ShowSideChains",
+    "HideSideChains",
     "Text",
     "Callout",
     "ResidueLabel",

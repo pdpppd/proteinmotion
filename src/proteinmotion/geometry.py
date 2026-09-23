@@ -16,7 +16,18 @@ ELEMENT_COLORS = {
     "H": "#e5eaf0",
     "Fe": "#d58b54",
     "Zn": "#afb7d9",
+    "Ca": "#8fd6a0",
+    "Mg": "#a3e08a",
+    "Mn": "#c49ae8",
+    "Na": "#b59cf0",
+    "K": "#9c8cf0",
+    "Cl": "#8be0c9",
+    "Cd": "#f0c987",
 }
+# Ligand carbons stand apart from the cartoon palette; other ligand atoms use element colors.
+LIGAND_CARBON = "#a6d96a"
+# Single-atom ions are shown as larger spheres than the atoms of a ball-and-stick model.
+ION_SCALE = 1.3
 SS_COLORS = {"H": "#56d8c0", "E": "#f2ba67", "C": "#91a9ce"}
 BASE_COLORS = {
     "A": "#72cfb3",
@@ -49,12 +60,54 @@ def residue_colors(protein):
 def atom_metadata(protein):
     if protein._metadata_override is not None:
         return protein._metadata_override
-    data = np.zeros((len(protein.topology.atoms), 4), np.float32)
-    for i, atom in enumerate(protein.topology.atoms):
+    topology = protein.topology
+    categories = topology.residue_categories
+    data = np.zeros((len(topology.atoms), 4), np.float32)
+    for i, atom in enumerate(topology.atoms):
         data[i, :3] = color(ELEMENT_COLORS.get(atom.element, "#c987cb"))
         data[i, 3] = max(float(gemmi.Element(atom.element).vdw_r), 1.0)
+        if categories[atom.residue_index] == "ion":
+            data[i, 3] *= ION_SCALE
     if protein.color_scheme != "element":
-        data[:, :3] = residue_colors(protein)[[a.residue_index for a in protein.topology.atoms]]
+        colors = residue_colors(protein)[[a.residue_index for a in topology.atoms]]
+        if protein.color_scheme in ("secondary", "base"):
+            # Structure palettes have no meaning for ligands and ions: color them by element.
+            detail = topology.untraced_atoms
+            colors[detail] = data[detail, :3]
+            carbon = detail & np.array([a.element == "C" for a in topology.atoms], bool)
+            colors[carbon] = color(LIGAND_CARBON)
+        data[:, :3] = colors
+    return data
+
+
+def detail_colors(protein):
+    """Atom colors over a cartoon: element colors, with carbons in the structure palette."""
+    meta = atom_metadata(protein)
+    if protein._metadata_override is not None or protein.color_scheme == "element":
+        return meta[:, :3].copy()
+    atoms = protein.topology.atoms
+    result = np.array([color(ELEMENT_COLORS.get(a.element, "#c987cb")) for a in atoms], np.float32)
+    carbon = np.array([a.element == "C" for a in atoms], bool)
+    result[carbon] = meta[carbon, :3]
+    return result
+
+
+def atom_colors(protein):
+    """Current sphere/bond base colors, blending detail colors into the ball-and-stick palette."""
+    ball = float(protein.representation[2])
+    return (1 - ball) * detail_colors(protein) + ball * atom_metadata(protein)[:, :3]
+
+
+def packed_metadata(protein):
+    """GPU atom records: ball-and-stick and detail RGBA8 colors (as raw bits) and radius."""
+
+    def pack(rgb):
+        c = np.round(np.clip(rgb, 0, 1) * 255).astype(np.uint32)
+        return (c[:, 0] | c[:, 1] << 8 | c[:, 2] << 16 | np.uint32(255) << 24).view(np.float32)
+
+    meta = atom_metadata(protein)
+    data = np.zeros_like(meta)
+    data[:, 0], data[:, 1], data[:, 3] = pack(meta[:, :3]), pack(detail_colors(protein)), meta[:, 3]
     return data
 
 

@@ -1,5 +1,13 @@
 # Validation and performance
 
+## Ligands, ions, and side chains: 22 September 2026
+
+Version 0.11.0 passed **198 tests, with five NVIDIA-only cases skipped**, on the Apple M3 Max with Python 3.12.8 and `PROTEINMOTION_TEST_EEVEE=1`. New tests use PDB 1CLL. They check residue categories, the ligand, ion, residue-name, and distance selectors against a direct distance calculation, side-chain atoms, staggered `ShowSideChains` timing, and seeking. Native renders of a finished animation and of the same static atom state are pixel-identical. Real Blender EEVEE frames change when ions and side chains are shown.
+
+Cartoons now draw ligands, ions, and loaded waters by default, so scenes with such groups render differently from version 0.10.1. Existing gallery and documentation previews were not re-rendered.
+
+The 41-second `examples/binding_sites_film.py` exported 2,460 frames at 1920 × 1080 and 60 fps in 12.6 s with Metal and H.264 VideoToolbox; every frame decoded. The wheel built from the source archive passed `twine check --strict`. A fresh Python 3.12 installation outside the checkout passed `pip check` and the installed-package check, including a rendered and decoded movie. The website build, TypeScript checks, and all 112 exported pages passed verification.
+
 ## PyPI release: 22 September 2026
 
 Version 0.10.1 passed **187 tests, with five NVIDIA-only cases skipped**, on the Apple M3 Max with Python 3.12.8 and `PROTEINMOTION_TEST_EEVEE=1`. The checks include native Metal rendering, EEVEE, hardware export, and the Windows platform-selection logic. Blender discovery now searches the macOS application path only on macOS; encoder-fallback tests handle PyAV builds that omit NVENC.

@@ -36,8 +36,10 @@ class Protein:
         self._metadata_override = None
         from .styling import initial_appearance
 
-        self._appearance = initial_appearance(len(topology.atoms))
-        self._color_mix = self._opacity_mix = 1.0
+        # Ligands, ions and other atoms outside traced chains draw as ball-and-stick
+        # detail over cartoons and ribbons; side chains can be added per residue.
+        self._appearance = initial_appearance(len(topology.atoms), topology.untraced_atoms)
+        self._color_mix = self._opacity_mix = self._detail_mix = 1.0
         self._cartoon_scale = np.ones(len(topology.residues), np.float32)
         self._cartoon_scale.flags.writeable = False
         self._surface_options = None
@@ -49,11 +51,52 @@ class Protein:
         # Stable reference geometry for base planes, independent of seeking order.
         self._base_reference = xyz
 
-    def select(self, *, chain=None, residues=None, atoms=None):
-        """Select PDB-numbered residues/atom names; the returned Region follows this protein."""
+    def select(
+        self,
+        *,
+        chain=None,
+        residues=None,
+        atoms=None,
+        resname=None,
+        ligands=False,
+        ions=False,
+        water=False,
+        within=None,
+        of=None,
+    ):
+        """Select atoms by chain, PDB residue number, atom and residue name, or category.
+
+        ``ligands``, ``ions`` and ``water`` choose non-polymer residues; set several to
+        combine them. ``within=r, of=region`` keeps whole residues with an atom within
+        r Å of that region, excluding the region's own residues. The returned Region
+        follows this protein.
+        """
         from .regions import Region
 
-        return Region.select(self, chain=chain, residues=residues, atoms=atoms)
+        return Region.select(
+            self,
+            chain=chain,
+            residues=residues,
+            atoms=atoms,
+            resname=resname,
+            ligands=ligands,
+            ions=ions,
+            water=water,
+            within=within,
+            of=of,
+        )
+
+    def show_atoms(self):
+        """Draw every atom as ball-and-stick over the current cartoon, ribbon or surface."""
+        from .styling import set_detail
+
+        return set_detail(self, 1.0)
+
+    def hide_atoms(self):
+        """Remove all ball-and-stick detail, including the default ligands and ions."""
+        from .styling import set_detail
+
+        return set_detail(self, 0.0)
 
     def label_residues(self, *, chain=None, residues=None, **kwargs):
         """Label selected amino acids or nucleotides at their backbone anchors."""
@@ -286,6 +329,7 @@ class Protein:
             appearance=self._appearance,
             color_mix=self._color_mix,
             opacity_mix=self._opacity_mix,
+            detail_mix=self._detail_mix,
             surface_options=self._surface_options,
             surface_opacity=self.surface_opacity,
             base_style=self.base_style.copy(),
@@ -304,6 +348,7 @@ class Protein:
         self._cartoon_scale = s["cartoon_scale"]
         self._appearance = s["appearance"]
         self._color_mix, self._opacity_mix = s["color_mix"], s["opacity_mix"]
+        self._detail_mix = s["detail_mix"]
         self._surface_options, self.surface_opacity = s["surface_options"], s["surface_opacity"]
         self._base_reference = s["base_reference"]
         for k in ("position", "orientation", "representation", "base_style"):

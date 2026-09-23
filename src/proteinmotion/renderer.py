@@ -8,8 +8,9 @@ import wgpu
 
 from ._gpu import select_adapter
 from .annotations import Annotation
-from .geometry import atom_metadata, segments, state_data, sweep_grid
+from .geometry import packed_metadata, segments, state_data, sweep_grid
 from .mesh import MeshGPU, MeshObject
+from .styling import atom_weights
 
 
 class _MoleculeGPU:
@@ -35,7 +36,7 @@ class _MoleculeGPU:
         self.keys = [None, None]
         # Hold cached arrays alive so Python cannot reuse an id for different data.
         self.state_references = [None, None]
-        self.metadata = storage(atom_metadata(protein))
+        self.metadata = storage(packed_metadata(protein))
         self.metadata_key = id(protein._metadata_override)
         self.metadata_reference = protein._metadata_override
         self.metadata_color = str(protein.color_scheme)
@@ -49,6 +50,8 @@ class _MoleculeGPU:
         self.appearance = storage(protein._appearance)
         self.appearance_reference = protein._appearance
         self.has_style_opacity = bool(np.any(protein._appearance[:, 12:14] != 1))
+        self.has_detail = bool(np.any(protein._appearance[:, 16:18] > 0))
+        self.partial_atoms = False
         self.shape_reference = protein._cartoon_scale
         self.color_key = str(protein.color_scheme)
         self.backbone_radius = protein.backbone_radius
@@ -87,7 +90,7 @@ class _MoleculeGPU:
         if id(protein._metadata_override) != self.metadata_key or self.metadata_color != str(
             protein.color_scheme
         ):
-            queue.write_buffer(self.metadata, 0, atom_metadata(protein))
+            queue.write_buffer(self.metadata, 0, packed_metadata(protein))
             self.metadata_key = id(protein._metadata_override)
             self.metadata_reference = protein._metadata_override
             self.metadata_color = str(protein.color_scheme)
@@ -100,6 +103,13 @@ class _MoleculeGPU:
             queue.write_buffer(self.appearance, 0, protein._appearance)
             self.appearance_reference = protein._appearance
             self.has_style_opacity = bool(np.any(protein._appearance[:, 12:14] != 1))
+            self.has_detail = bool(np.any(protein._appearance[:, 16:18] > 0))
+        # Growing detail atoms need the transparent pass, unlike a settled cartoon.
+        cartoon, ribbon, ball = protein.representation
+        weights = atom_weights(protein) if self.has_detail and ball < 1 else None
+        self.partial_atoms = (weights is not None and bool(np.any((weights > 0) & (weights < 1)))) or (
+            self.has_detail and 0 < protein.opacity < 1
+        )
         chosen = []
         for key, coords in zip(wanted, (protein._a, protein._b)):
             if key in self.keys:
@@ -122,8 +132,8 @@ class _MoleculeGPU:
             self.color_key = str(protein.color_scheme)
             self.shape_reference = protein._cartoon_scale
             self.backbone_radius = protein.backbone_radius
-        cartoon, ribbon, ball = protein.representation
-        fractions = [ball, cartoon + ribbon, protein.surface_opacity]
+        # The atom pass applies the ball-and-stick fraction per atom (see stick_opacity).
+        fractions = [1.0, cartoon + ribbon, protein.surface_opacity]
         if self.has_nucleic:
             fractions.extend((cartoon + ribbon) * protein.base_style)
         for i, opacity in enumerate(fractions):
@@ -136,7 +146,7 @@ class _MoleculeGPU:
                 protein.size,
                 float(getattr(protein, "_draw_atoms", True)),
             ]
-            u[24:28] = [protein._color_mix, protein._opacity_mix, 0, 0]
+            u[24:28] = [protein._color_mix, protein._opacity_mix, protein._detail_mix, ball]
             queue.write_buffer(self.uniforms[i], 0, u)
         if protein.surface_opacity > 0:
             if self.surface is None:
@@ -417,7 +427,7 @@ class Renderer:
                 render_pass.set_vertex_buffer(0, self.vertices)
                 render_pass.set_index_buffer(self.indices, "uint32")
                 render_pass.draw_indexed(self.n_indices, len(gpu.segment_data))
-            if protein.representation[2] * protein.opacity > 0:
+            if (protein.representation[2] > 0 or gpu.has_detail) and protein.opacity > 0:
                 render_pass.set_bind_group(1, bindings[0])
                 if len(protein.topology.bonds):
                     render_pass.set_pipeline(bond)
@@ -465,6 +475,7 @@ class Renderer:
             for draw in draws
             if draw[1].has_opacity_controls
             or draw[1].has_style_opacity
+            or draw[1].partial_atoms
             or any(
                 0 < draw[0].opacity * fraction < 1
                 for fraction in (

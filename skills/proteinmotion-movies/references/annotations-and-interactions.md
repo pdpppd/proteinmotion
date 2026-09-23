@@ -8,6 +8,14 @@ ends = p.select(residues=[23, 34], atoms="CA")  # An explicit list, not a range.
 backbone = p.select(residues=(23, 34), atoms=["N", "CA", "C", "O"])
 ```
 
+Select bound groups and their surroundings by category, name, or distance:
+
+```python
+ions = p.select(ions=True)  # Single-atom residues outside the traced chains.
+ligand = p.select(resname="ATP")  # Also: ligands=True, water=True (with include_water=True).
+pocket = p.select(within=4.0, of=ligand)  # Whole residues; excludes the ligand itself.
+```
+
 Inspect the input first; chain IDs and residue numbers are not assumed contiguous or zero-based. `Region.atom_indices` refers to topology atom indices. Selections follow their protein through motion. To dim everything outside a selection:
 
 ```python

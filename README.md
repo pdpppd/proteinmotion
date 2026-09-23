@@ -97,6 +97,7 @@ The selected atoms define the focus point and follow the protein during motion. 
 ## Features
 
 - **Representations:** cartoon, ribbon, ball-and-stick, and molecular surfaces.
+- **Ligands and side chains:** ligands, ions, and waters drawn as ball-and-stick over the cartoon. Side chains or any selected atoms can be shown or hidden residue by residue.
 - **DNA and RNA:** nucleotide backbones with base slabs, filled rings, sticks, or ladder rods. Colors, opacity, labels, surfaces, trajectories, and EEVEE focus work with nucleotide selections.
 - **Animation:** rotation, translation, camera movement, deformation, and transitions between representations.
 - **Residue styling:** color and opacity changes, applied together or delayed by residue.
@@ -105,7 +106,7 @@ The selected atoms define the focus point and follow the protein during motion. 
 - **Density:** MRC/CCP4 maps, animated contours, and moving slices, with map coordinates preserved.
 - **Labels:** text writing and erasing, amino acid and nucleotide names, and callout lines that connect labels to selected regions.
 - **Rendering:** native GPU rendering or Blender EEVEE with depth of field.
-- **Region tools:** camera focus and 3D sphere, box, or atom highlights.
+- **Region tools:** camera focus, 3D sphere, box, or atom highlights, and selection by ligand, ion, residue name, or distance.
 - **Measurements:** distance labels, hydrogen-bond detection, and screened Coulomb estimates with imported charges.
 - **States and trajectories:** multi-model PDB/mmCIF, NumPy arrays, and MDAnalysis readers for XTC, DCD, TRR, and other formats.
 - **Structure morphs:** contact-map matching using protein Cα or DNA/RNA C1′ atoms, delayed motion along each chain, and fades for unmatched residues.
@@ -139,6 +140,8 @@ These scripts and their input structures are in the repository:
 | DNA morphs with C1′ matching and delayed nucleotide motion | [dna_morph.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/dna_morph.py) |
 | DNA base styles, strand transparency, and surfaces | [dna_styles.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/dna_styles.py) |
 | tRNA regions, modified bases, and B-factor surfaces | [rna_styles.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/rna_styles.py) |
+| Ca²⁺ ions and their coordinating side chains | [ligands_and_side_chains.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/ligands_and_side_chains.py) |
+| Calcium sites and a nucleotide pocket: 41-second film | [binding_sites_film.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/binding_sites_film.py) |
 | B factors, residue colors, and cartoon thickness | [numerical_properties.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/numerical_properties.py) |
 | NMR playback with distance, contact, and sequence plots | [synchronized_plots.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/synchronized_plots.py) |
 | Electron-density contours and slices | [density_maps.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/density_maps.py) |

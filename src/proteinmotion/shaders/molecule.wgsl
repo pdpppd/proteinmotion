@@ -8,10 +8,11 @@ struct Object {
     model: mat4x4<f32>,
     params: vec4<f32>, // tween, opacity, atom scale, bond radius
     style: vec4<f32>,  // cartoon proportion, ribbon width, object scale, draw atoms
-    appearance: vec4<f32>, // color clock, opacity clock
+    appearance: vec4<f32>, // color clock, opacity clock, detail clock, ball-and-stick fraction
 };
 struct AtomState { position: vec4<f32>, guide: vec4<f32> };
-struct Appearance { before:vec4f, after:vec4f, timing:vec4f, alpha:vec4f };
+struct Appearance { before:vec4f, after:vec4f, timing:vec4f, alpha:vec4f,
+                    detail:vec4f, detail_timing:vec4f };
 struct Control { motion: vec4<f32>, visibility: vec4<f32> };
 struct Segment {
     atoms: vec4<u32>,
@@ -24,7 +25,7 @@ struct Segment {
 @group(1) @binding(0) var<uniform> object: Object;
 @group(1) @binding(1) var<storage, read> state_a: array<AtomState>;
 @group(1) @binding(2) var<storage, read> state_b: array<AtomState>;
-@group(1) @binding(3) var<storage, read> atoms: array<vec4<f32>>;
+@group(1) @binding(3) var<storage, read> atoms: array<vec4<f32>>; // packed colors, radius
 @group(1) @binding(4) var<storage, read> bonds: array<vec2<u32>>;
 @group(1) @binding(5) var<storage, read> segments: array<Segment>;
 @group(1) @binding(6) var<storage, read> controls: array<Control>;
@@ -63,6 +64,20 @@ fn atom_opacity(i:u32) -> f32 {
     let s=appearance[i];
     let a=appearance_progress(object.appearance.y,s.alpha.z,s.alpha.w,s.timing.w);
     return mix(c.x,c.y,t)*mix(s.alpha.x,s.alpha.y,a);
+}
+// Atoms and bonds draw with the ball-and-stick representation, or per atom as
+// detail (ligands, ions, side chains) over a cartoon, ribbon or surface.
+fn stick_opacity(i:u32) -> f32 {
+    let s=appearance[i];
+    let t=appearance_progress(object.appearance.z,s.detail.z,s.detail.w,s.detail_timing.x);
+    let ball=object.appearance.w;
+    return atom_opacity(i)*(ball+(1.0-ball)*mix(s.detail.x,s.detail.y,t));
+}
+// Ball-and-stick and detail palettes are packed as RGBA8 bits; blend by representation.
+fn atom_color(i:u32) -> vec3f {
+    let rgb=unpack4x8unorm(bitcast<u32>(atoms[i].x)).xyz;
+    let detail=unpack4x8unorm(bitcast<u32>(atoms[i].y)).xyz;
+    return mix(detail,rgb,object.appearance.w);
 }
 fn position(i: u32) -> vec3<f32> {
     let t=atom_progress(i);
@@ -197,11 +212,11 @@ struct Bond {
     out.p=world(a+dir*along+normal*object.params.w);
     out.clip=camera.vp*vec4<f32>(out.p,1.0);
     out.normal=world_normal(normal);
-    out.color=mix(tint(pair.x,atoms[pair.x].xyz),tint(pair.y,atoms[pair.y].xyz),color_t);
+    out.color=mix(tint(pair.x,atom_color(pair.x)),tint(pair.y,atom_color(pair.y)),color_t);
     out.sphere_a=vec4<f32>(world(a),radii.x*object.style.z);
     out.sphere_b=vec4<f32>(world(b),radii.y*object.style.z);
     // A bond disappears with its less-visible endpoint; no dangling half-bonds.
-    out.opacity=select(0.0,min(atom_opacity(pair.x),atom_opacity(pair.y)),exposed>1e-8);
+    out.opacity=select(0.0,min(stick_opacity(pair.x),stick_opacity(pair.y)),exposed>1e-8);
     return out;
 }
 
@@ -283,8 +298,8 @@ struct Sphere {
     var out:Sphere;
     out.plane=center+(u*corners[vertex].x+v*corners[vertex].y)*bound;
     out.clip=camera.vp*vec4<f32>(out.plane,1.0);
-    out.center=center; out.radius=radius; out.color=tint(instance,atoms[instance].xyz);
-    out.opacity=atom_opacity(instance);
+    out.center=center; out.radius=radius; out.color=tint(instance,atom_color(instance));
+    out.opacity=stick_opacity(instance);
     return out;
 }
 struct SpherePixel { @location(0) color:vec4<f32>, @builtin(frag_depth) depth:f32 };

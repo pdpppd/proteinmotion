@@ -27,6 +27,7 @@ for (const filename of [
   "eevee_focus.py",
   "calmodulin_in_focus.py",
   "numerical_properties.py",
+  "ligands_and_side_chains.py",
   "synchronized_plots.py",
   "density_maps.py",
   "docs_examples.py",
