@@ -142,6 +142,9 @@ These scripts and their input structures are in the repository:
 | tRNA regions, modified bases, and B-factor surfaces | [rna_styles.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/rna_styles.py) |
 | Ca²⁺ ions and their coordinating side chains | [ligands_and_side_chains.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/ligands_and_side_chains.py) |
 | Calcium sites and a nucleotide pocket: 41-second film | [binding_sites_film.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/binding_sites_film.py) |
+| Troponin C Cd²⁺ sites, a bound sulfate, and representation changes | [troponin_sites.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/troponin_sites.py) |
+| Ubiquitin side chains across NMR conformers | [side_chain_ensemble.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/side_chain_ensemble.py) |
+| Ions on tRNA and spermine on Z-DNA | [nucleic_ions.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/nucleic_ions.py) |
 | B factors, residue colors, and cartoon thickness | [numerical_properties.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/numerical_properties.py) |
 | NMR playback with distance, contact, and sequence plots | [synchronized_plots.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/synchronized_plots.py) |
 | Electron-density contours and slices | [density_maps.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/density_maps.py) |

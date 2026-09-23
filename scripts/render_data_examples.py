@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import math
 import re
 from pathlib import Path
 
@@ -21,6 +22,42 @@ EXAMPLES = [
         "Ions and coordinating side chains",
         "1CLL Ca²⁺ ions on the cartoon, and the side chains within 3 Å of each ion.",
         ["1cll.cif"],
+    ),
+    (
+        "binding-sites",
+        "binding_sites_film",
+        "BindingSites",
+        36,
+        "Calcium sites and a nucleotide pocket",
+        "1CLL Ca²⁺ sites, then the ADP and Mg²⁺ pocket of a GroEL subunit (1AON chain A).",
+        ["1cll.cif", "1aon.cif"],
+    ),
+    (
+        "troponin-sites",
+        "troponin_sites",
+        "TroponinSites",
+        14,
+        "Troponin C metal sites",
+        "1NCX: two Cd²⁺ EF-hand sites and a sulfate held by Arg47.",
+        ["1ncx.cif"],
+    ),
+    (
+        "side-chain-ensemble",
+        "side_chain_ensemble",
+        "SideChainEnsemble",
+        19,
+        "Side chains in an NMR ensemble",
+        "2K39 ubiquitin: the Leu8/Ile44/Val70 patch, then every side chain, across conformers.",
+        ["2k39.cif"],
+    ),
+    (
+        "nucleic-ions",
+        "nucleic_ions",
+        "NucleicIons",
+        14,
+        "Ions and ligands on nucleic acids",
+        "1EHZ tRNA with Mg²⁺ and Mn²⁺ ions, then spermine across 2DCG Z-DNA.",
+        ["1ehz.cif", "2dcg.cif"],
     ),
     (
         "numerical-properties",
@@ -52,6 +89,10 @@ EXAMPLES = [
 ]
 
 
+# Longer gallery films use a lower bitrate to keep the committed previews small.
+BITRATE = {"binding-sites": "4M", "troponin-sites": "4M", "side-chain-ensemble": "4M", "nucleic-ions": "4M"}
+
+
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -70,7 +111,7 @@ def main():
         scene = load_scene(source, cls, width=1280, height=720, fps=60).build()
         video, poster = MEDIA / (key + ".mp4"), MEDIA / (key + ".jpg")
         if not args.validate_only:
-            scene.render(video, bitrate="5M", progress=False)
+            scene.render(video, bitrate=BITRATE.get(key, "5M"), progress=False)
         count = 0
         with av.open(video) as container:
             assert container.streams.video[0].average_rate == 60
@@ -80,7 +121,7 @@ def main():
                 if count == round(poster_time * 60):
                     frame.to_image().save(poster, quality=92)
                 count += 1
-        assert count == round(scene.duration * 60)
+        assert count == max(1, math.ceil(scene.duration * scene.fps))
         dependencies = [source, *[ROOT / "examples/data" / p for p in data]]
         manifest[key] = dict(
             title=title,

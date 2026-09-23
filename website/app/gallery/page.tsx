@@ -19,8 +19,9 @@ export default function Gallery() {
       </h1>
       <p className="mt-5 max-w-2xl text-base leading-7 text-muted">
         Each video includes its Python script and render command. Calmodulin in
-        focus plays at 1080p/60 fps. The DNA and RNA examples use 720p/60 fps.
-        Each render command lists the settings used for its preview.
+        focus plays at 1080p/60 fps. The ligand, side-chain, DNA, and RNA
+        examples use 720p/60 fps. Each render command lists the settings used
+        for its preview.
       </p>
       <div className="mt-14 grid gap-x-10 gap-y-16 md:grid-cols-2">
         {demos.map((demo) => (

@@ -8,6 +8,8 @@ Cartoons now draw ligands, ions, and loaded waters by default, so scenes with su
 
 The 41-second `examples/binding_sites_film.py` exported 2,460 frames at 1920 × 1080 and 60 fps in 12.6 s with Metal and H.264 VideoToolbox; every frame decoded. The wheel built from the source archive passed `twine check --strict`. A fresh Python 3.12 installation outside the checkout passed `pip check` and the installed-package check, including a rendered and decoded movie. The website build, TypeScript checks, and all 112 exported pages passed verification.
 
+Four gallery films show the new capabilities: `binding_sites_film.py` (1CLL, 1AON), `troponin_sites.py` (1NCX), `side_chain_ensemble.py` (2K39), and `nucleic_ions.py` (1EHZ, 2DCG). Their 1280 × 720, 60 fps previews were encoded at 4 Mbit/s with H.264 VideoToolbox. All 2,460, 1,867, 1,578, and 1,794 frames decoded, and review stills were inspected for framing, label placement, and transitions.
+
 ## PyPI release: 22 September 2026
 
 Version 0.10.1 passed **187 tests, with five NVIDIA-only cases skipped**, on the Apple M3 Max with Python 3.12.8 and `PROTEINMOTION_TEST_EEVEE=1`. The checks include native Metal rendering, EEVEE, hardware export, and the Windows platform-selection logic. Blender discovery now searches the macOS application path only on macOS; encoder-fallback tests handle PyAV builds that omit NVENC.

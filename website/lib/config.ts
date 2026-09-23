@@ -221,6 +221,66 @@ export const demoCommand = (demo: Demo) =>
   `proteinmotion render ${demo.source} ${demo.scene} \\\n  -o ${demo.file}.mp4 --fps 60`;
 export const demos: Demo[] = [
   {
+    id: "binding-sites",
+    title: "Calcium sites and a nucleotide pocket",
+    file: "docs/binding-sites",
+    label: "LIGANDS · SIDE CHAINS",
+    detail:
+      "Calmodulin’s four Ca²⁺ ions appear with the cartoon, and the side chains within 3 Å of each ion grow from Cα. A GroEL subunit then shows its bound ADP and Mg²⁺, with residues beyond 8 Å faded to reveal the pocket.",
+    source: "examples/binding_sites_film.py",
+    scene: "BindingSites",
+    duration: "41 s",
+    pdb: "1CLL · 1AON",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/binding_sites_film.py BindingSites \\\n  --fps 60 -o binding-sites.mp4",
+  },
+  {
+    id: "troponin-sites",
+    title: "Troponin C metal sites",
+    file: "docs/troponin-sites",
+    label: "IONS · SIDE CHAINS · REPRESENTATIONS",
+    detail:
+      "Two Cd²⁺ ions in EF-hands III and IV, with their coordinating side chains, and a sulfate held by Arg47. The switch to ball-and-stick and back shows the atom colors blending between representations.",
+    source: "examples/troponin_sites.py",
+    scene: "TroponinSites",
+    duration: "31.1 s",
+    pdb: "1NCX",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/troponin_sites.py TroponinSites \\\n  --fps 60 -o troponin-sites.mp4",
+  },
+  {
+    id: "side-chain-ensemble",
+    title: "Side chains in an NMR ensemble",
+    file: "docs/side-chain-ensemble",
+    label: "SIDE CHAINS · NMR STATES",
+    detail:
+      "The Leu8, Ile44, and Val70 hydrophobic patch of ubiquitin grows from the cartoon, then every side chain appears in N-to-C order. Side chains follow the interpolated NMR conformers.",
+    source: "examples/side_chain_ensemble.py",
+    scene: "SideChainEnsemble",
+    duration: "26.3 s",
+    pdb: "2K39",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/side_chain_ensemble.py SideChainEnsemble \\\n  --fps 60 -o side-chain-ensemble.mp4",
+  },
+  {
+    id: "nucleic-ions",
+    title: "Ions and ligands on nucleic acids",
+    file: "docs/nucleic-ions",
+    label: "RNA · DNA · IONS AND LIGANDS",
+    detail:
+      "Mg²⁺ and Mn²⁺ ions on transfer RNA, with the phosphate groups and nucleotides around them. Spermine then lies across a Z-DNA duplex, and the nucleotides it contacts replace their base slabs with atoms.",
+    source: "examples/nucleic_ions.py",
+    scene: "NucleicIons",
+    duration: "29.9 s",
+    pdb: "1EHZ · 2DCG",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/nucleic_ions.py NucleicIons \\\n  --fps 60 -o nucleic-ions.mp4",
+  },
+  {
     id: "dna-morph",
     title: "DNA morph with C1′ anchors",
     file: "docs/dna-morph",
