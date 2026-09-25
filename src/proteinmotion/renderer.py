@@ -198,8 +198,9 @@ class Renderer:
         )
         d = self.device
         self.camera_buffer = d.create_buffer(
-            size=112, usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST
+            size=192, usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST
         )
+        self.cutaway_open = False
         self.camera_layout = d.create_bind_group_layout(
             entries=[
                 {
@@ -439,11 +440,26 @@ class Renderer:
     def _commands(self, proteins, camera, background):
         camera.update_tracking()
         d = self.device
-        u = np.zeros(28, np.float32)
+        u = np.zeros(48, np.float32)
         u[:16] = camera.matrix(self.width / self.height).T.ravel()
         u[16:20] = [*camera.eye, camera.distance - camera.radius * 1.05]
         u[20:24] = [*background, camera.distance + camera.radius * 1.5]
         u[24] = camera.depth_cue
+        cutaway = camera.cutaway_geometry()
+        self.cutaway_open = cutaway is not None
+        if cutaway is not None:
+            center, keep, window, outer, axis = cutaway
+            u[44:47] = axis
+            u[25:28] = camera.cutaway_rim
+            u[28:32] = [*center, keep]
+            u[32:36] = [camera.cutaway_opening, window, camera.cutaway_softness, camera.cutaway_band]
+            u[36] = keep * camera.cutaway_surface_keep
+            u[40:44] = [float(camera.cutaway_tunnel), outer, camera.cutaway_wall, camera.cutaway_rings]
+        self.tunnel_wall = (
+            cutaway is not None
+            and camera.cutaway_tunnel
+            and cutaway[3] > cutaway[1] * camera.cutaway_surface_keep + 1
+        )
         d.queue.write_buffer(self.camera_buffer, 0, u)
         draws = []
         mesh_draws = []
@@ -476,6 +492,7 @@ class Renderer:
             if draw[1].has_opacity_controls
             or draw[1].has_style_opacity
             or draw[1].partial_atoms
+            or self.cutaway_open
             or any(
                 0 < draw[0].opacity * fraction < 1
                 for fraction in (
@@ -528,6 +545,19 @@ class Renderer:
                 depth_stencil_attachment={"view": self.depth_view, "depth_read_only": True},
             )
             self._draw_molecules(trans, transparent_draws, self.transparency_pipelines)
+            if self.tunnel_wall:
+                if not hasattr(self, "tunnel_pipeline"):
+                    layout = d.create_pipeline_layout(bind_group_layouts=[self.camera_layout])
+                    self.tunnel_pipeline = self._pipeline(
+                        "tunnel_vertex",
+                        "tunnel_transparent",
+                        transparent=True,
+                        layout_override=layout,
+                        cull_mode="none",
+                    )
+                trans.set_pipeline(self.tunnel_pipeline)
+                trans.set_bind_group(0, self.camera_group)
+                trans.draw(72 * 64 * 6)
             for gpu in mesh_draws:
                 if 0 < gpu.obj.opacity < 1:
                     gpu.draw(trans, transparent=True)

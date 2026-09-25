@@ -2,7 +2,12 @@ struct Camera {
     vp: mat4x4<f32>,
     eye_fog_start: vec4<f32>,
     background_fog_end: vec4<f32>,
-    lighting: vec4<f32>,
+    lighting: vec4<f32>,  // depth cue, cutaway rim color
+    cutaway: vec4<f32>,   // target center, kept radius around it
+    cutaway_shape: vec4<f32>,  // opening in [0, 1], window radius at the target, edge softness, depth band
+    cutaway_surface: vec4<f32>,  // kept radius for cartoons, ribbons, bases and surfaces
+    cutaway_tunnel: vec4<f32>,   // tunnel mode, outer-surface distance from the target, wall opacity, ring spacing
+    cutaway_axis: vec4<f32>,     // tunnel direction from the target, fixed to the molecule
 };
 struct Object {
     model: mat4x4<f32>,
@@ -96,6 +101,55 @@ fn guide(i: u32) -> vec3<f32> {
 fn world(p: vec3<f32>) -> vec3<f32> { return (object.model*vec4<f32>(p,1.0)).xyz; }
 fn world_normal(n: vec3<f32>) -> vec3<f32> { return safe_normal((object.model*vec4<f32>(n,0.0)).xyz); }
 
+// View-dependent cutaway: fade geometry in front of the target inside a cone from the
+// eye, which is a fixed disc on screen. The target sphere and everything behind stay.
+fn cut_amount(p:vec3f) -> f32 { return cut_to(p,camera.cutaway.w); }
+fn cut_to(p:vec3f, keep:f32) -> f32 {
+    let shape=camera.cutaway_shape;
+    if shape.x<=0.0 { return 0.0; }
+    let eye=camera.eye_fog_start.xyz;
+    if camera.cutaway_tunnel.x>0.5 {
+        // Tunnel: a straight cylinder toward the camera. Perspective shows its walls.
+        let axis=tunnel_axis();
+        let d=p-camera.cutaway.xyz;
+        let height=dot(d,axis);
+        let r=length(d-axis*height);
+        let radius=shape.x*shape.y;
+        let radial=1.0-smoothstep(radius*(1.0-shape.z),radius,r);
+        let depth=smoothstep(keep,keep+shape.w,height);
+        return radial*depth;
+    }
+    let to_target=camera.cutaway.xyz-eye;
+    let dist=max(length(to_target),1e-4);
+    let axis=to_target/dist;
+    let d=p-eye;
+    let t=dot(d,axis);
+    let front=dist-keep;
+    let aperture=shape.x*shape.y*max(t,0.0)/dist;
+    let r=length(d-axis*t);
+    let radial=1.0-smoothstep(aperture*(1.0-shape.z),aperture,r);
+    let depth=1.0-smoothstep(front-shape.w,front,t);
+    return radial*depth;
+}
+fn tunnel_axis() -> vec3f {
+    return safe_normal(camera.cutaway_axis.xyz);
+}
+fn cutaway_rim(c:vec3f, p:vec3f) -> vec3f {
+    // A faint rim marks where geometry is fading, so the window reads as a lens.
+    let amount=cut_amount(p);
+    return mix(c,camera.lighting.yzw,clamp(amount*(1.0-amount)*1.6,0.0,0.4));
+}
+fn visible(value:f32, p:vec3f) -> f32 {
+    let alpha=clamp(object.params.y*value,0.0,1.0)*(1.0-cut_amount(p));
+    return select(alpha,1.0,alpha>=0.999999);
+}
+// Atoms keep the whole target sphere; cartoons and surfaces, which pass in front of a
+// ligand or enclose it, are carved closer to the target's center.
+fn surface_visible(value:f32, p:vec3f) -> f32 {
+    let alpha=clamp(object.params.y*value,0.0,1.0)*(1.0-cut_to(p,camera.cutaway_surface.x));
+    return select(alpha,1.0,alpha>=0.999999);
+}
+
 fn opacity(value:f32) -> f32 {
     let alpha=clamp(object.params.y*value,0.0,1.0);
     // Perspective interpolation can turn constant 1.0 into 0.99999994 on
@@ -132,6 +186,7 @@ fn shade(p: vec3<f32>, norm: vec3<f32>, base: vec3<f32>) -> vec4<f32> {
     var c = base*diffuse + vec3<f32>(spec)+base*rim*0.18;
     let d = distance(camera.eye_fog_start.xyz,p);
     let fog = smoothstep(camera.eye_fog_start.w,camera.background_fog_end.w,d)*camera.lighting.x;
+    c = cutaway_rim(c,p);
     c = mix(c,camera.background_fog_end.xyz,fog);
     return vec4<f32>(c,1.0);
 }
@@ -228,23 +283,34 @@ fn inside_bond_atom(in:Bond) -> bool {
 }
 
 @fragment fn bond_fragment(in:Bond) -> @location(0) vec4<f32> {
-    if opacity(in.opacity)<1.0 || inside_bond_atom(in) { discard; }
+    if visible(in.opacity,in.p)<1.0 || inside_bond_atom(in) { discard; }
     return shade(in.p,in.normal,in.color);
 }
 
 @fragment fn bond_transparent(in:Bond) -> TransparentPixel {
-    let alpha=opacity(in.opacity);
+    let alpha=visible(in.opacity,in.p);
     if alpha<=0.0 || alpha>=1.0 || inside_bond_atom(in) { discard; }
     return transparent(shade(in.p,in.normal,in.color).rgb,alpha,in.p);
 }
 
 @fragment fn surface_fragment(in:Surface) -> @location(0) vec4<f32> {
-    if opacity(in.opacity)<1.0 { discard; }
+    if surface_visible(in.opacity,in.p)<1.0 { discard; }
     return shade(in.p,in.normal,in.color);
 }
 
 @fragment fn surface_transparent(in:Surface) -> TransparentPixel {
-    let alpha=opacity(in.opacity);
+    let alpha=surface_visible(in.opacity,in.p);
+    if alpha<=0.0 || alpha>=1.0 { discard; }
+    return transparent(shade(in.p,in.normal,in.color).rgb,alpha,in.p);
+}
+
+@fragment fn mesh_fragment(in:Surface) -> @location(0) vec4<f32> {
+    if surface_visible(in.opacity,in.p)<1.0 { discard; }
+    return shade(in.p,in.normal,in.color);
+}
+
+@fragment fn mesh_transparent(in:Surface) -> TransparentPixel {
+    let alpha=surface_visible(in.opacity,in.p);
     if alpha<=0.0 || alpha>=1.0 { discard; }
     return transparent(shade(in.p,in.normal,in.color).rgb,alpha,in.p);
 }
@@ -323,6 +389,7 @@ fn sphere_hit(in:Sphere) -> SphereHit {
 @fragment fn sphere_fragment(in:Sphere) -> SpherePixel {
     if opacity(in.opacity)<1.0 { discard; }
     let hit=sphere_hit(in);
+    if visible(in.opacity,hit.p)<1.0 { discard; }
     var out:SpherePixel;
     out.depth=hit.depth;
     out.color=shade(hit.p,(hit.p-in.center)/in.radius,in.color);
@@ -335,9 +402,9 @@ struct TransparentSphere {
     @builtin(frag_depth) depth:f32,
 };
 @fragment fn sphere_transparent(in:Sphere) -> TransparentSphere {
-    let alpha=opacity(in.opacity);
-    if alpha<=0.0 || alpha>=1.0 { discard; }
     let hit=sphere_hit(in);
+    let alpha=visible(in.opacity,hit.p);
+    if alpha<=0.0 || alpha>=1.0 { discard; }
     let color=shade(hit.p,(hit.p-in.center)/in.radius,in.color).rgb;
     let blended=transparent(color,alpha,hit.p);
     var out:TransparentSphere;
@@ -391,11 +458,78 @@ fn density_color(in:Surface) -> vec3f {
     return shade(in.p,in.normal,in.color).rgb;
 }
 @fragment fn density_fragment(in:Surface) -> @location(0) vec4f {
-    if opacity(in.opacity)<1.0 { discard; }
+    if visible(in.opacity,in.p)<1.0 { discard; }
     return vec4f(density_color(in),1.0);
 }
 @fragment fn density_transparent(in:Surface) -> TransparentPixel {
-    let alpha=opacity(in.opacity);
+    let alpha=visible(in.opacity,in.p);
     if alpha<=0.0 || alpha>=1.0 { discard; }
     return transparent(density_color(in),alpha,in.p);
+}
+
+// Tunnel wall: a procedural open cylinder from the target to the outer surface of the
+// molecule, with a ring every `spacing` Å measured inward from that surface.
+struct TunnelWall {
+    @builtin(position) clip:vec4f,
+    @location(0) p:vec3f,
+    @location(1) normal:vec3f,
+    @location(2) below:f32,   // Å below the outer surface
+};
+const TUNNEL_SIDES:u32=72u;
+const TUNNEL_SEGMENTS:u32=64u;
+@vertex fn tunnel_vertex(@builtin(vertex_index) vertex:u32) -> TunnelWall {
+    let quad=vertex/6u;
+    let corner=vertex%6u;
+    let cx=array<f32,6>(0.,1.,0.,0.,1.,1.);
+    let cy=array<f32,6>(0.,0.,1.,1.,0.,1.);
+    let segment=f32(quad/TUNNEL_SIDES)+cy[corner];
+    let side=f32(quad%TUNNEL_SIDES)+cx[corner];
+    let axis=tunnel_axis();
+    var reference=vec3f(0.,1.,0.);
+    if abs(axis.y)>0.9 { reference=vec3f(1.,0.,0.); }
+    let u=safe_normal(cross(axis,reference));
+    let v=cross(axis,u);
+    // The wall reaches down to where cartoons and surfaces stop being carved.
+    let keep=camera.cutaway_surface.x;
+    let outer=camera.cutaway_tunnel.y;
+    let height=mix(keep,outer,segment/f32(TUNNEL_SEGMENTS));
+    let angle=side/f32(TUNNEL_SIDES)*6.28318530718;
+    let radial=u*cos(angle)+v*sin(angle);
+    let radius=camera.cutaway_shape.x*camera.cutaway_shape.y;
+    var out:TunnelWall;
+    out.p=camera.cutaway.xyz+axis*height+radial*radius;
+    out.clip=camera.vp*vec4f(out.p,1.0);
+    out.normal=-radial;
+    out.below=outer-height;
+    return out;
+}
+@fragment fn tunnel_transparent(in:TunnelWall) -> TransparentPixel {
+    let spacing=camera.cutaway_tunnel.w;
+    let f=in.below/spacing;
+    // Antialiased rings, a fixed width in pixels at any distance.
+    let minor=1.0-clamp(abs(fract(f+0.5)-0.5)/max(fwidth(f),1e-4)-0.6,0.0,1.0);
+    // Every second ring is a major tick, drawn wider and brighter.
+    let g=f*0.5;
+    let major=1.0-clamp(abs(fract(g+0.5)-0.5)/max(fwidth(g),1e-4)-1.2,0.0,1.0);
+    let line=max(minor*0.55,major);
+    let length_total=max(camera.cutaway_tunnel.y-camera.cutaway_surface.x,1e-3);
+    let deep=clamp(in.below/length_total,0.0,1.0);
+    let base=mix(vec3f(0.42,0.62,0.78),vec3f(0.95,0.73,0.40),deep);
+    let v=safe_normal(camera.eye_fog_start.xyz-in.p);
+    let facing=abs(dot(safe_normal(in.normal),v));
+    let key=safe_normal(vec3f(-0.45,0.8,0.85));
+    let light=0.45+0.4*abs(dot(safe_normal(in.normal),key))+0.15*facing;
+    var color=mix(base*light,mix(base,vec3f(1.0),0.55),line*0.8);
+    let d=distance(camera.eye_fog_start.xyz,in.p);
+    let fog=smoothstep(camera.eye_fog_start.w,camera.background_fog_end.w,d)*camera.lighting.x;
+    color=mix(color,camera.background_fog_end.xyz,fog);
+    // The wall fades in at its ends so it does not end in a hard edge.
+    let ends=smoothstep(0.0,2.0,in.below)*smoothstep(0.0,2.0,length_total-in.below);
+    // Like glass, the wall is most visible where it is seen at a grazing angle.
+    let wall=camera.cutaway_tunnel.z*(0.35+0.65*(1.0-facing));
+    // Fade the wall near the camera so flying down the tunnel does not veil the view.
+    let near=smoothstep(4.0,22.0,distance(camera.eye_fog_start.xyz,in.p));
+    let alpha=clamp((wall+line*0.45)*ends*near,0.0,0.9);
+    if alpha<=0.001 { discard; }
+    return transparent(color,alpha,in.p);
 }

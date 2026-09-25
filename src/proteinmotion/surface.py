@@ -158,7 +158,11 @@ class SurfaceGPU:
             ]
             renderer.surface_pipelines = {
                 False: renderer._pipeline(
-                    "mesh_vertex", vertex_buffers=buffers, layout_override=layout, cull_mode="back"
+                    "mesh_vertex",
+                    "mesh_fragment",
+                    vertex_buffers=buffers,
+                    layout_override=layout,
+                    cull_mode="back",
                 )
             }
             renderer._surface_pipeline_args = (layout, buffers)
@@ -211,17 +215,20 @@ class SurfaceGPU:
 
     def draw(self, render_pass, binding, transparent):
         r = self.renderer
-        if transparent not in r.surface_pipelines:
+        # A cutaway exposes the inner walls of the closed surface, so keep back faces.
+        cull = "none" if getattr(r, "cutaway_open", False) else "back"
+        key = transparent if cull == "back" else (transparent, cull)
+        if key not in r.surface_pipelines:
             layout, buffers = r._surface_pipeline_args
-            r.surface_pipelines[True] = r._pipeline(
+            r.surface_pipelines[key] = r._pipeline(
                 "mesh_vertex",
-                "surface_transparent",
+                "mesh_transparent" if transparent else "mesh_fragment",
                 vertex_buffers=buffers,
-                transparent=True,
+                transparent=transparent,
                 layout_override=layout,
-                cull_mode="back",
+                cull_mode=cull,
             )
-        render_pass.set_pipeline(r.surface_pipelines[transparent])
+        render_pass.set_pipeline(r.surface_pipelines[key])
         render_pass.set_bind_group(1, binding)
         render_pass.set_bind_group(2, self.binding)
         render_pass.set_vertex_buffer(0, self.vertices)

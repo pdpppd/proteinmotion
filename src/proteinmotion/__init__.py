@@ -2,6 +2,7 @@
 
 from . import rates
 from .animation import (
+    Conceal,
     Deform,
     FadeIn,
     FadeOut,
@@ -10,6 +11,7 @@ from .animation import (
     Morph,
     PlayTrajectory,
     Representation,
+    Reveal,
     Rotate,
 )
 from .annotations import Callout, ResidueLabel, ResidueLabels, Text, Unwrite, Write
@@ -80,6 +82,8 @@ __all__ = [
     "Region",
     "RegionHighlight",
     "Representation",
+    "Reveal",
+    "Conceal",
     "rates",
     "smooth",
     "linear",

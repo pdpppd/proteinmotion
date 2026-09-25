@@ -224,6 +224,100 @@ class FocusPull(Animation):
         )
 
 
+class Reveal(Animation):
+    """Open a view-dependent cutaway onto a region, like an iris in front of it.
+
+    Geometry between the camera and the region fades inside a soft window that stays
+    aimed at the region as the camera or molecule moves. The region and everything
+    behind it stay drawn. Atoms are hidden for visibility only; nothing moves.
+    ``window`` scales the window radius relative to the region's bounding sphere,
+    ``softness`` is the fraction of the window used for its fading edge, and ``band``
+    is the depth in Å over which geometry just in front of the region fades back in.
+    """
+
+    channels = frozenset({"cutaway"})
+    late = True
+    opening = 1.0
+
+    def __init__(
+        self,
+        camera,
+        region=None,
+        *,
+        window=None,
+        softness=None,
+        band=None,
+        shape=None,
+        wall=None,
+        rings=None,
+        **kwargs,
+    ):
+        from .camera import Camera
+
+        if not isinstance(camera, Camera):
+            raise TypeError("Reveal needs a Camera as its first argument")
+        super().__init__(camera, **kwargs)
+        for name, value in (("window", window), ("softness", softness), ("band", band)):
+            if value is not None and (not np.isfinite(value) or value <= 0):
+                raise ValueError(f"{name} must be finite and positive")
+        if softness is not None and softness > 1:
+            raise ValueError("softness must be at most 1")
+        if shape not in (None, "cone", "tunnel"):
+            raise ValueError("shape must be 'cone' or 'tunnel'")
+        self.region, self.window, self.softness, self.band = region, window, softness, band
+        self.tunnel = None if shape is None else shape == "tunnel"
+        self.wall, self.rings = wall, rings
+
+    def bind(self):
+        super().bind()
+        camera = self.target
+        if self.region is None:
+            if camera._cutaway_target is None:
+                raise ValueError("No open cutaway to close; pass a region")
+            self.region = camera._cutaway_target
+        same = camera._cutaway_target is self.region and camera.cutaway_opening > 0
+        self.start = camera.cutaway_opening if same else 0.0
+        # An open window on the same region reshapes smoothly; a new one takes its shape at once.
+        self.shape = {}
+        self.shape_mode = camera.cutaway_tunnel if self.tunnel is None else self.tunnel
+        # A tunnel is drilled along the current view and then stays fixed to the molecule,
+        # so camera motion shows its walls in perspective.
+        self.axis = camera._cutaway_axis if same else None
+        if self.shape_mode and self.axis is None:
+            protein = getattr(self.region, "protein", self.region)
+            m = protein.model_matrix[:3, :3]
+            points = self.region.world_positions
+            direction = camera.eye - (points.min(0) + points.max(0)) / 2
+            local = np.linalg.solve(m, direction)
+            self.axis = local / np.linalg.norm(local)
+        values = (
+            ("window", self.window),
+            ("softness", self.softness),
+            ("band", self.band),
+            ("wall", self.wall),
+            ("rings", self.rings),
+        )
+        for name, value in values:
+            current = getattr(camera, f"cutaway_{name}")
+            end = current if value is None else float(value)
+            self.shape[name] = (current if same else end, end)
+
+    def apply(self, alpha):
+        camera = self.target
+        camera._cutaway_target = self.region
+        camera.cutaway_tunnel = self.shape_mode
+        camera._cutaway_axis = self.axis if self.shape_mode else None
+        for name, (start, end) in self.shape.items():
+            setattr(camera, f"cutaway_{name}", (1 - alpha) * start + alpha * end)
+        camera.cutaway_opening = (1 - alpha) * self.start + alpha * self.opening
+
+
+class Conceal(Reveal):
+    """Close the open cutaway."""
+
+    opening = 0.0
+
+
 class FadeIn(Animation):
     channels = frozenset({"opacity"})
 
@@ -293,7 +387,7 @@ class Animate(Animation):
 
     def _op(self, name, *args):
         camera = hasattr(self.target, "theta")
-        valid = {"orbit", "zoom"} if camera else {"shift", "rotate", "scale", "set_opacity"}
+        valid = {"orbit", "zoom", "depth_cue"} if camera else {"shift", "rotate", "scale", "set_opacity"}
         if name not in valid:
             raise ValueError(f"{name} is not supported for this object")
         channel = "camera" if camera else ("opacity" if name == "set_opacity" else "transform")
@@ -325,6 +419,12 @@ class Animate(Animation):
         if factor <= 0:
             raise ValueError("Zoom must be positive")
         return self._op("zoom", factor)
+
+    def depth_cue(self, strength):
+        """Ease the camera's distance fog to ``strength`` (0 disables it)."""
+        if not np.isfinite(strength) or strength < 0:
+            raise ValueError("depth_cue must be finite and nonnegative")
+        return self._op("depth_cue", float(strength))
 
     def set_color(self, color, **kwargs):
         if self.operations:
@@ -378,3 +478,5 @@ class Animate(Animation):
                 p.orbit(args[0] * alpha, args[1] * alpha)
             elif name == "zoom":
                 p.zoom(args[0] ** alpha)
+            elif name == "depth_cue":
+                p.depth_cue = (1 - alpha) * s["depth_cue"] + alpha * args[0]
