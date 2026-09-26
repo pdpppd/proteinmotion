@@ -2,7 +2,7 @@
 
 [Browse the reference manual](https://pdpppd.github.io/proteinmotion/reference/) for individual class and function pages, parameters, methods, and rendered examples.
 
-This quick reference covers the public Python API in version 0.11.0. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which are in their own modules.
+This quick reference covers the public Python API in version 0.12.0. Import these names from `proteinmotion`, except `Camera` and `Renderer`, which are in their own modules.
 
 ## ProteinScene
 
@@ -143,6 +143,8 @@ self.play(self.camera.animate.orbit(theta=0.5, phi=0.1), run_time=2)
 self.play(self.camera.animate.zoom(1.3), run_time=1)
 ```
 
+`self.camera.animate.depth_cue(0.7)` eases the distance fog and combines with `orbit` and `zoom`. `camera.clearest_view(region)` returns the `(theta, phi)` with the fewest atoms in front of a region. `camera.cutaway_geometry()` reports the open cutaway's center, radii, tunnel depth, and axis.
+
 `frame` and `focus` are immediate setup methods. Use `self.focus(...)`, `Focus(...)`, or `camera.animate.focus(...)` for timeline animation. `theta`, `phi`, and `fov` are radians; `distance` and `target` control camera position. `depth_cue=0` disables distance fog. Region tracking follows the center with fixed zoom.
 
 ## Animations
@@ -157,6 +159,8 @@ self.play(self.camera.animate.zoom(1.3), run_time=1)
 | `SetOpacity(target, opacity, residue_delay=0, reverse=False, easing="smooth")` | Fade selected atoms/residues, with optional N-to-C staggering |
 | `ShowAtoms(target, ...)` / `HideAtoms(target, ...)` | Draw or remove atoms as ball-and-stick over a cartoon, ribbon, or surface |
 | `ShowSideChains(target, ...)` / `HideSideChains(target, ...)` | Grow or remove amino acid side chains, joined to the cartoon at Cα |
+| `Reveal(camera, region, window=1.35, shape="cone")` / `Conceal(camera)` | Open or close a cutaway onto a hidden selection; `shape="tunnel"` marks depth every 5 Å. [Guide](tunnels.md) |
+| `Thread(protein, camera=None, stagger=0.0, glow=12.0, ...)` / `Unthread(...)` | Wires fly in, trace each chain from C to N terminus, and fade into the protein, or the reverse. [Guide](threading.md) |
 | `Morph(protein, target, align=True)` | Morph matching atom topology or ordered coordinate arrays |
 | `Deform(protein, function)` | Transform coordinates through a callable |
 | `Focus(camera, region, margin=1.25, aspect=16/9, follow=True)` | Animate camera focus; evaluate after molecular motion |

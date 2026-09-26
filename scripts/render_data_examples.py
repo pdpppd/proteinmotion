@@ -15,6 +15,24 @@ ROOT = Path(__file__).resolve().parents[1]
 MEDIA = ROOT / "website/public/media/docs"
 EXAMPLES = [
     (
+        "depth-tunnels",
+        "depth_tunnels",
+        "DepthTunnels",
+        38.5,
+        "How deep is it?",
+        "1AON: tunnels with a ring every 5 Å to the ADP pocket and the ring's inner wall.",
+        ["1aon.cif"],
+    ),
+    (
+        "thread-hemoglobin",
+        "thread_hemoglobin",
+        "ThreadHemoglobin",
+        6.2,
+        "Hemoglobin, one chain at a time",
+        "4HHB: four wires thread the α and β subunits from their C termini.",
+        ["4hhb.cif"],
+    ),
+    (
         "ligands-and-side-chains",
         "ligands_and_side_chains",
         "LigandsAndSideChains",
@@ -90,7 +108,14 @@ EXAMPLES = [
 
 
 # Longer gallery films use a lower bitrate to keep the committed previews small.
-BITRATE = {"binding-sites": "4M", "troponin-sites": "4M", "side-chain-ensemble": "4M", "nucleic-ions": "4M"}
+BITRATE = {
+    "depth-tunnels": "4M",
+    "thread-hemoglobin": "4M",
+    "binding-sites": "4M",
+    "troponin-sites": "4M",
+    "side-chain-ensemble": "4M",
+    "nucleic-ions": "4M",
+}
 
 
 def digest(path):

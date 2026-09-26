@@ -28,6 +28,8 @@ for (const filename of [
   "calmodulin_in_focus.py",
   "numerical_properties.py",
   "ligands_and_side_chains.py",
+  "depth_tunnels.py",
+  "thread_hemoglobin.py",
   "binding_sites_film.py",
   "troponin_sites.py",
   "side_chain_ensemble.py",

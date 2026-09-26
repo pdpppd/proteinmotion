@@ -61,6 +61,7 @@ The skill instructs the agent to inspect the input structure, write a scene, ren
 | `SKILL.md` | Setup, scene creation, rendering, and review instructions |
 | `references/animation.md` | Timing, styling, trajectories, and morphs |
 | `references/ligands-and-side-chains.md` | Ligands, ions, side chains, and binding-site storyboards |
+| `references/cutaways-and-threading.md` | Cutaways, depth tunnels, and threading animations |
 | `references/annotations-and-interactions.md` | Labels, selectors, region tools, and measurements |
 | `references/nucleic-acids.md` | DNA and RNA base styles, selections, and surfaces |
 | `references/data-visualization.md` | Residue values, synchronized plots, and density maps |

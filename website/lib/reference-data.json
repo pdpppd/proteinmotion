@@ -1,5 +1,5 @@
 {
-  "version": "0.11.0",
+  "version": "0.12.0",
   "exports": [
     "NucleicAcid",
     "BaseStyle",
@@ -50,6 +50,10 @@
     "Region",
     "RegionHighlight",
     "Representation",
+    "Reveal",
+    "Conceal",
+    "Thread",
+    "Unthread",
     "rates",
     "smooth",
     "linear",
@@ -86,6 +90,12 @@
       "title": "Color and opacity",
       "description": "Animate atom and residue colors and transparency.",
       "guide": "styling"
+    },
+    {
+      "id": "thread",
+      "title": "Threading",
+      "description": "Bring chains into view as wires that trace the backbone from C to N terminus.",
+      "guide": "threading"
     },
     {
       "id": "annotations",
@@ -1259,7 +1269,7 @@
               "annotation": false,
               "default": "0.7",
               "kind": "keyword only",
-              "description": "Surface grid spacing in ångströms; smaller values increase detail and cost."
+              "description": "Spacing in Å between wire points."
             },
             {
               "name": "color",
@@ -1642,7 +1652,7 @@
           "returns": "The camera.",
           "notes": "Selectors apply to a Protein target. Ranges use inclusive PDB author numbers. atoms=\"CA\" focuses on the Cα centroid. A region defines one focus plane, rather than making all selected atoms equally sharp.",
           "source": "src/proteinmotion/camera.py",
-          "line": 21
+          "line": 34
         },
         {
           "name": "focus_point",
@@ -1655,7 +1665,73 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 56
+          "line": 69
+        },
+        {
+          "name": "cutaway_geometry",
+          "kind": "method",
+          "owner": "camera.Camera",
+          "inherited": false,
+          "signature": "Camera.cutaway_geometry()",
+          "parameters": [],
+          "description": "Center, kept radius, window radius and outer-surface distance of the open cutaway.\n\nThe outer distance is measured from the target center along the tunnel axis, to\nwhere the tunnel's centerline first reaches open space: atoms of the target's\nprotein within 6 Å of the axis, up to the first gap longer than 8 Å. None when no\ncutaway is open.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/camera.py",
+          "line": 75
+        },
+        {
+          "name": "clearest_view",
+          "kind": "method",
+          "owner": "camera.Camera",
+          "inherited": false,
+          "signature": "Camera.clearest_view(region, *objects, samples=160, max_elevation=1.1, turn_penalty=0.15)",
+          "parameters": [
+            {
+              "name": "region",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Region selection attached to a protein."
+            },
+            {
+              "name": "objects",
+              "type": "",
+              "default": null,
+              "kind": "variadic positional",
+              "description": "Proteins whose atoms can block the view; defaults to the region's protein."
+            },
+            {
+              "name": "samples",
+              "type": "",
+              "annotation": false,
+              "default": "160",
+              "kind": "keyword only",
+              "description": "Number of view directions to test."
+            },
+            {
+              "name": "max_elevation",
+              "type": "",
+              "annotation": false,
+              "default": "1.1",
+              "kind": "keyword only",
+              "description": "Largest camera elevation to consider, in radians."
+            },
+            {
+              "name": "turn_penalty",
+              "type": "",
+              "annotation": false,
+              "default": "0.15",
+              "kind": "keyword only",
+              "description": "Fractional cost per radian of camera turn, which favors nearby views."
+            }
+          ],
+          "description": "Return (theta, phi) with the fewest atoms between the camera and ``region``.\n\nCounts atoms of ``objects`` (default: the region's protein) that project inside the\nregion's silhouette and lie in front of it, from the current distance. Nearby views\nwin ties through ``turn_penalty``, a fractional cost per radian of camera turn.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/camera.py",
+          "line": 109
         },
         {
           "name": "frame",
@@ -1692,7 +1768,7 @@
           "returns": "The camera.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 62
+          "line": 151
         },
         {
           "name": "focus",
@@ -1738,7 +1814,7 @@
           "returns": "The camera.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 75
+          "line": 164
         },
         {
           "name": "update_tracking",
@@ -1751,7 +1827,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 81
+          "line": 170
         },
         {
           "name": "orbit",
@@ -1781,7 +1857,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 89
+          "line": 178
         },
         {
           "name": "zoom",
@@ -1803,7 +1879,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 94
+          "line": 183
         },
         {
           "name": "eye",
@@ -1816,7 +1892,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 101
+          "line": 190
         },
         {
           "name": "matrix",
@@ -1838,7 +1914,7 @@
           "returns": "4 × 4 array.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 106
+          "line": 195
         },
         {
           "name": "animate",
@@ -1851,7 +1927,7 @@
           "returns": "Animate",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 112
+          "line": 201
         },
         {
           "name": "snapshot",
@@ -1864,7 +1940,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 117
+          "line": 206
         },
         {
           "name": "restore",
@@ -1886,7 +1962,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 120
+          "line": 209
         }
       ],
       "extra_parameters": []
@@ -2005,7 +2081,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 286,
+      "line": 380,
       "bases": [
         "animation.Animation"
       ],
@@ -2034,7 +2110,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 304
+          "line": 398
         },
         {
           "name": "rotate",
@@ -2064,7 +2140,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 307
+          "line": 401
         },
         {
           "name": "scale",
@@ -2086,7 +2162,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 311
+          "line": 405
         },
         {
           "name": "set_opacity",
@@ -2108,7 +2184,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 316
+          "line": 410
         },
         {
           "name": "orbit",
@@ -2138,7 +2214,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 321
+          "line": 415
         },
         {
           "name": "zoom",
@@ -2160,7 +2236,29 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 324
+          "line": 418
+        },
+        {
+          "name": "depth_cue",
+          "kind": "method",
+          "owner": "animation.Animate",
+          "inherited": false,
+          "signature": "Animate.depth_cue(strength)",
+          "parameters": [
+            {
+              "name": "strength",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Target fog strength; 0 disables distance fog."
+            }
+          ],
+          "description": "Ease the camera's distance fog to ``strength`` (0 disables it).",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 423
         },
         {
           "name": "set_color",
@@ -2189,7 +2287,7 @@
           "returns": "The object or a Colorize animation.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 329
+          "line": 429
         },
         {
           "name": "focus",
@@ -2235,7 +2333,7 @@
           "returns": "The camera, scene, or Focus animation.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 336
+          "line": 436
         },
         {
           "name": "set_focus",
@@ -2264,7 +2362,7 @@
           "returns": "FocusPull",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 341
+          "line": 441
         },
         {
           "name": "bind",
@@ -2277,7 +2375,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 347
+          "line": 447
         },
         {
           "name": "apply",
@@ -2299,7 +2397,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 353
+          "line": 453
         },
         {
           "name": "targets",
@@ -2941,7 +3039,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 227,
+      "line": 321,
       "bases": [
         "animation.Animation"
       ],
@@ -2961,7 +3059,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 230
+          "line": 324
         },
         {
           "name": "apply",
@@ -2983,7 +3081,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 234
+          "line": 328
         },
         {
           "name": "targets",
@@ -3031,7 +3129,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 238,
+      "line": 332,
       "bases": [
         "animation.Animation"
       ],
@@ -3051,7 +3149,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 241
+          "line": 335
         },
         {
           "name": "apply",
@@ -3073,7 +3171,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 245
+          "line": 339
         },
         {
           "name": "targets",
@@ -3136,7 +3234,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 249,
+      "line": 343,
       "bases": [
         "animation.Animation"
       ],
@@ -3156,7 +3254,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 265
+          "line": 359
         },
         {
           "name": "apply",
@@ -3178,7 +3276,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 277
+          "line": 371
         },
         {
           "name": "targets",
@@ -3202,6 +3300,353 @@
           "default": "smooth",
           "kind": "keyword only",
           "description": "Callable that maps progress in [0, 1] to a finite value in [0, 1]."
+        }
+      ]
+    },
+    {
+      "id": "animation.Reveal",
+      "name": "Reveal",
+      "module": "animation",
+      "kind": "class",
+      "href": "/reference/animation/Reveal/",
+      "description": "Open a view-dependent cutaway onto a region: geometry in front of it fades inside a window that follows the camera.",
+      "notes": "Native renderer only; EEVEE draws the full molecule. Atoms keep the region's bounding sphere, while cartoons and molecular surfaces are carved closer to its center. With shape='tunnel', a cylinder is drilled along the current view, stays fixed to the molecule, and shows a ring every `rings` Å from where its centerline reaches open space. No atoms move.",
+      "import_path": "proteinmotion",
+      "signature": "Reveal(\n    camera,\n    region=None,\n    *,\n    window=None,\n    softness=None,\n    band=None,\n    shape=None,\n    wall=None,\n    rings=None,\n    **kwargs,\n)",
+      "parameters": [
+        {
+          "name": "camera",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "The scene camera that owns the cutaway."
+        },
+        {
+          "name": "region",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "positional or keyword",
+          "description": "Region or Protein to reveal. A second Reveal on the open region reshapes its window smoothly."
+        },
+        {
+          "name": "window",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Window radius, as a multiple of the region's bounding radius."
+        },
+        {
+          "name": "softness",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Fraction of the window used for its fading edge, in (0, 1]."
+        },
+        {
+          "name": "band",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Depth in Å over which geometry just in front of the region fades back in."
+        },
+        {
+          "name": "shape",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "\"cone\" for a window that faces the camera, or \"tunnel\" for a depth tunnel fixed to the molecule."
+        },
+        {
+          "name": "wall",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Tunnel wall opacity."
+        },
+        {
+          "name": "rings",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Tunnel ring spacing in Å, measured from where the tunnel meets open space."
+        },
+        {
+          "name": "kwargs",
+          "type": "",
+          "default": null,
+          "kind": "variadic keyword",
+          "description": "Additional keyword options described below or in the linked constructor."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/animation.py",
+      "line": 227,
+      "bases": [
+        "animation.Animation"
+      ],
+      "attributes": {},
+      "guide": "tunnels",
+      "example": "gallery-depth-tunnels",
+      "alias": null,
+      "members": [
+        {
+          "name": "bind",
+          "kind": "method",
+          "owner": "animation.Reveal",
+          "inherited": false,
+          "signature": "Reveal.bind()",
+          "parameters": [],
+          "description": "Capture starting values when the scene schedules the animation.",
+          "returns": "None",
+          "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
+          "source": "src/proteinmotion/animation.py",
+          "line": 271
+        },
+        {
+          "name": "apply",
+          "kind": "method",
+          "owner": "animation.Reveal",
+          "inherited": false,
+          "signature": "Reveal.apply(alpha)",
+          "parameters": [
+            {
+              "name": "alpha",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Eased animation progress in [0, 1]."
+            }
+          ],
+          "description": "Evaluate the animation at eased progress alpha. Called by the timeline.",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 305
+        },
+        {
+          "name": "targets",
+          "kind": "property",
+          "owner": "animation.Animation",
+          "inherited": true,
+          "signature": "Reveal.targets",
+          "parameters": [],
+          "description": "Objects whose state this animation changes.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 24
+        }
+      ],
+      "extra_parameters": []
+    },
+    {
+      "id": "animation.Conceal",
+      "name": "Conceal",
+      "module": "animation",
+      "kind": "class",
+      "href": "/reference/animation/Conceal/",
+      "description": "Close the open cutaway.",
+      "notes": "",
+      "import_path": "proteinmotion",
+      "signature": "Conceal(\n    camera,\n    region=None,\n    *,\n    window=None,\n    softness=None,\n    band=None,\n    shape=None,\n    wall=None,\n    rings=None,\n    **kwargs,\n)",
+      "parameters": [
+        {
+          "name": "camera",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "The scene camera that owns the cutaway."
+        },
+        {
+          "name": "region",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "positional or keyword",
+          "description": "Region selection attached to a protein."
+        },
+        {
+          "name": "window",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Window radius, as a multiple of the region's bounding radius."
+        },
+        {
+          "name": "softness",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Fraction of the window used for its fading edge, in (0, 1]."
+        },
+        {
+          "name": "band",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Depth in Å over which geometry just in front of the region fades back in."
+        },
+        {
+          "name": "shape",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "\"cone\" for a window that faces the camera, or \"tunnel\" for a depth tunnel fixed to the molecule."
+        },
+        {
+          "name": "wall",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Tunnel wall opacity."
+        },
+        {
+          "name": "rings",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Tunnel ring spacing in Å, measured from where the tunnel meets open space."
+        },
+        {
+          "name": "kwargs",
+          "type": "",
+          "default": null,
+          "kind": "variadic keyword",
+          "description": "Additional keyword options described below or in the linked constructor."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/animation.py",
+      "line": 315,
+      "bases": [
+        "animation.Reveal"
+      ],
+      "attributes": {},
+      "guide": "tunnels",
+      "example": "gallery-depth-tunnels",
+      "alias": null,
+      "members": [
+        {
+          "name": "bind",
+          "kind": "method",
+          "owner": "animation.Reveal",
+          "inherited": true,
+          "signature": "Conceal.bind()",
+          "parameters": [],
+          "description": "Capture starting values when the scene schedules the animation.",
+          "returns": "None",
+          "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
+          "source": "src/proteinmotion/animation.py",
+          "line": 271
+        },
+        {
+          "name": "apply",
+          "kind": "method",
+          "owner": "animation.Reveal",
+          "inherited": true,
+          "signature": "Conceal.apply(alpha)",
+          "parameters": [
+            {
+              "name": "alpha",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Eased animation progress in [0, 1]."
+            }
+          ],
+          "description": "Evaluate the animation at eased progress alpha. Called by the timeline.",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 305
+        },
+        {
+          "name": "targets",
+          "kind": "property",
+          "owner": "animation.Animation",
+          "inherited": true,
+          "signature": "Conceal.targets",
+          "parameters": [],
+          "description": "Objects whose state this animation changes.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 24
+        }
+      ],
+      "extra_parameters": [
+        {
+          "name": "region",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "positional or keyword",
+          "description": "Region selection attached to a protein."
+        },
+        {
+          "name": "window",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Window radius, as a multiple of the region's bounding radius."
+        },
+        {
+          "name": "softness",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Fraction of the window used for its fading edge, in (0, 1]."
+        },
+        {
+          "name": "band",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Depth in Å over which geometry just in front of the region fades back in."
+        },
+        {
+          "name": "shape",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "\"cone\" for a window that faces the camera, or \"tunnel\" for a depth tunnel fixed to the molecule."
+        },
+        {
+          "name": "wall",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Tunnel wall opacity."
+        },
+        {
+          "name": "rings",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Tunnel ring spacing in Å, measured from where the tunnel meets open space."
         }
       ]
     },
@@ -3321,7 +3766,7 @@
           "annotation": false,
           "default": "'smooth'",
           "kind": "keyword only",
-          "description": "Per-residue interpolation: \"smooth\" or \"linear\"."
+          "description": "Rate function that maps clip time to wire travel, such as ease_in_out_sine or smooth."
         }
       ]
     },
@@ -3441,7 +3886,7 @@
           "annotation": false,
           "default": "'smooth'",
           "kind": "keyword only",
-          "description": "Per-residue interpolation: \"smooth\" or \"linear\"."
+          "description": "Rate function that maps clip time to wire travel, such as ease_in_out_sine or smooth."
         }
       ]
     },
@@ -3553,7 +3998,7 @@
           "annotation": false,
           "default": "'smooth'",
           "kind": "keyword only",
-          "description": "Per-residue interpolation: \"smooth\" or \"linear\"."
+          "description": "Rate function that maps clip time to wire travel, such as ease_in_out_sine or smooth."
         }
       ]
     },
@@ -3667,7 +4112,7 @@
           "annotation": false,
           "default": "'smooth'",
           "kind": "keyword only",
-          "description": "Per-residue interpolation: \"smooth\" or \"linear\"."
+          "description": "Rate function that maps clip time to wire travel, such as ease_in_out_sine or smooth."
         }
       ]
     },
@@ -3781,7 +4226,7 @@
           "annotation": false,
           "default": "'smooth'",
           "kind": "keyword only",
-          "description": "Per-residue interpolation: \"smooth\" or \"linear\"."
+          "description": "Rate function that maps clip time to wire travel, such as ease_in_out_sine or smooth."
         }
       ]
     },
@@ -3895,9 +4340,381 @@
           "annotation": false,
           "default": "'smooth'",
           "kind": "keyword only",
-          "description": "Per-residue interpolation: \"smooth\" or \"linear\"."
+          "description": "Rate function that maps clip time to wire travel, such as ease_in_out_sine or smooth."
         }
       ]
+    },
+    {
+      "id": "thread.Thread",
+      "name": "Thread",
+      "module": "thread",
+      "kind": "class",
+      "href": "/reference/thread/Thread/",
+      "description": "Fly a wire in along a curved path and thread each chain from its C to N terminus, then fade the protein in.",
+      "notes": "Each traced chain segment gets a wire that enters from its own side of the screen and lands on the cartoon's centerline. Flight paths are seeded illustrations, not physical motion. The glow is drawn by the native renderer; EEVEE renders the wires without it.",
+      "import_path": "proteinmotion",
+      "signature": "Thread(\n    protein,\n    camera=None,\n    *,\n    radius=0.45,\n    settle=0.15,\n    swirl=1.0,\n    head=1.8,\n    glow=12.0,\n    glow_color=None,\n    glow_brightness=1.0,\n    easing=ease_in_out_sine,\n    stagger=0.0,\n    resolution=0.8,\n    seed=0,\n    rate_func=None,\n)",
+      "parameters": [
+        {
+          "name": "protein",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Protein with at least one traced chain; hidden while its wires thread."
+        },
+        {
+          "name": "camera",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "positional or keyword",
+          "description": "Scene camera, so each wire starts just outside the frame; None starts wires at a fixed distance."
+        },
+        {
+          "name": "radius",
+          "type": "",
+          "annotation": false,
+          "default": "0.45",
+          "kind": "keyword only",
+          "description": "3D line cylinder radius in ångströms."
+        },
+        {
+          "name": "settle",
+          "type": "",
+          "annotation": false,
+          "default": "0.15",
+          "kind": "keyword only",
+          "description": "Final fraction of the clip in which the protein fades in and the wires fade out."
+        },
+        {
+          "name": "swirl",
+          "type": "",
+          "annotation": false,
+          "default": "1.0",
+          "kind": "keyword only",
+          "description": "Strength of the corkscrew around each flight path; 0 gives smooth arcs."
+        },
+        {
+          "name": "head",
+          "type": "",
+          "annotation": false,
+          "default": "1.8",
+          "kind": "keyword only",
+          "description": "Radius of the wire's tip, as a multiple of the wire radius."
+        },
+        {
+          "name": "glow",
+          "type": "",
+          "annotation": false,
+          "default": "12.0",
+          "kind": "keyword only",
+          "description": "Halo radius around each wire tip, as a multiple of the wire radius; 0 turns the glow off."
+        },
+        {
+          "name": "glow_color",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Halo color; None blends each chain's color with warm white."
+        },
+        {
+          "name": "glow_brightness",
+          "type": "",
+          "annotation": false,
+          "default": "1.0",
+          "kind": "keyword only",
+          "description": "Halo intensity multiplier."
+        },
+        {
+          "name": "easing",
+          "type": "",
+          "annotation": false,
+          "default": "ease_in_out_sine",
+          "kind": "keyword only",
+          "description": "Rate function that maps clip time to wire travel, such as ease_in_out_sine or smooth."
+        },
+        {
+          "name": "stagger",
+          "type": "",
+          "annotation": false,
+          "default": "0.0",
+          "kind": "keyword only",
+          "description": "Delay between chains, as a fraction of the threading time, in chain order."
+        },
+        {
+          "name": "resolution",
+          "type": "",
+          "annotation": false,
+          "default": "0.8",
+          "kind": "keyword only",
+          "description": "Spacing in Å between wire points."
+        },
+        {
+          "name": "seed",
+          "type": "",
+          "annotation": false,
+          "default": "0",
+          "kind": "keyword only",
+          "description": "Integer that varies the flight paths."
+        },
+        {
+          "name": "rate_func",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Callable that maps progress in [0, 1] to a finite value in [0, 1]."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/thread.py",
+      "line": 129,
+      "bases": [
+        "animation.Animation"
+      ],
+      "attributes": {},
+      "guide": "threading",
+      "example": "gallery-thread-hemoglobin",
+      "alias": null,
+      "members": [
+        {
+          "name": "targets",
+          "kind": "property",
+          "owner": "thread.Thread",
+          "inherited": false,
+          "signature": "Thread.targets",
+          "parameters": [],
+          "description": "Objects whose state this animation changes.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/thread.py",
+          "line": 200
+        },
+        {
+          "name": "bind",
+          "kind": "method",
+          "owner": "thread.Thread",
+          "inherited": false,
+          "signature": "Thread.bind()",
+          "parameters": [],
+          "description": "Capture starting values when the scene schedules the animation.",
+          "returns": "None",
+          "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
+          "source": "src/proteinmotion/thread.py",
+          "line": 209
+        },
+        {
+          "name": "apply",
+          "kind": "method",
+          "owner": "thread.Thread",
+          "inherited": false,
+          "signature": "Thread.apply(alpha)",
+          "parameters": [
+            {
+              "name": "alpha",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Eased animation progress in [0, 1]."
+            }
+          ],
+          "description": "Evaluate the animation at eased progress alpha. Called by the timeline.",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/thread.py",
+          "line": 309
+        }
+      ],
+      "extra_parameters": []
+    },
+    {
+      "id": "thread.Unthread",
+      "name": "Unthread",
+      "module": "thread",
+      "kind": "class",
+      "href": "/reference/thread/Unthread/",
+      "description": "Fade the protein into its wires, then pull them out along curved paths off-screen.",
+      "notes": "Takes the same options as Thread; the motion is its exact reverse, so with stagger the last chain leaves first.",
+      "import_path": "proteinmotion",
+      "signature": "Unthread(\n    protein,\n    camera=None,\n    *,\n    radius=0.45,\n    settle=0.15,\n    swirl=1.0,\n    head=1.8,\n    glow=12.0,\n    glow_color=None,\n    glow_brightness=1.0,\n    easing=ease_in_out_sine,\n    stagger=0.0,\n    resolution=0.8,\n    seed=0,\n    rate_func=None,\n)",
+      "parameters": [
+        {
+          "name": "protein",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Protein to take out of view."
+        },
+        {
+          "name": "camera",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "positional or keyword",
+          "description": "Scene camera, so wires leave past the frame edges."
+        },
+        {
+          "name": "radius",
+          "type": "",
+          "annotation": false,
+          "default": "0.45",
+          "kind": "keyword only",
+          "description": "3D line cylinder radius in ångströms."
+        },
+        {
+          "name": "settle",
+          "type": "",
+          "annotation": false,
+          "default": "0.15",
+          "kind": "keyword only",
+          "description": "Final fraction of the clip in which the protein fades in and the wires fade out."
+        },
+        {
+          "name": "swirl",
+          "type": "",
+          "annotation": false,
+          "default": "1.0",
+          "kind": "keyword only",
+          "description": "Strength of the corkscrew around each flight path; 0 gives smooth arcs."
+        },
+        {
+          "name": "head",
+          "type": "",
+          "annotation": false,
+          "default": "1.8",
+          "kind": "keyword only",
+          "description": "Radius of the wire's tip, as a multiple of the wire radius."
+        },
+        {
+          "name": "glow",
+          "type": "",
+          "annotation": false,
+          "default": "12.0",
+          "kind": "keyword only",
+          "description": "Halo radius around each wire tip, as a multiple of the wire radius; 0 turns the glow off."
+        },
+        {
+          "name": "glow_color",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Halo color; None blends each chain's color with warm white."
+        },
+        {
+          "name": "glow_brightness",
+          "type": "",
+          "annotation": false,
+          "default": "1.0",
+          "kind": "keyword only",
+          "description": "Halo intensity multiplier."
+        },
+        {
+          "name": "easing",
+          "type": "",
+          "annotation": false,
+          "default": "ease_in_out_sine",
+          "kind": "keyword only",
+          "description": "Rate function that maps clip time to wire travel, such as ease_in_out_sine or smooth."
+        },
+        {
+          "name": "stagger",
+          "type": "",
+          "annotation": false,
+          "default": "0.0",
+          "kind": "keyword only",
+          "description": "Delay between chains, as a fraction of the threading time, in chain order."
+        },
+        {
+          "name": "resolution",
+          "type": "",
+          "annotation": false,
+          "default": "0.8",
+          "kind": "keyword only",
+          "description": "Spacing in Å between wire points."
+        },
+        {
+          "name": "seed",
+          "type": "",
+          "annotation": false,
+          "default": "0",
+          "kind": "keyword only",
+          "description": "Integer that varies the flight paths."
+        },
+        {
+          "name": "rate_func",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Callable that maps progress in [0, 1] to a finite value in [0, 1]."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/thread.py",
+      "line": 351,
+      "bases": [
+        "thread.Thread"
+      ],
+      "attributes": {},
+      "guide": "threading",
+      "example": "gallery-thread-hemoglobin",
+      "alias": null,
+      "members": [
+        {
+          "name": "targets",
+          "kind": "property",
+          "owner": "thread.Thread",
+          "inherited": true,
+          "signature": "Unthread.targets",
+          "parameters": [],
+          "description": "Objects whose state this animation changes.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/thread.py",
+          "line": 200
+        },
+        {
+          "name": "bind",
+          "kind": "method",
+          "owner": "thread.Thread",
+          "inherited": true,
+          "signature": "Unthread.bind()",
+          "parameters": [],
+          "description": "Capture starting values when the scene schedules the animation.",
+          "returns": "None",
+          "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
+          "source": "src/proteinmotion/thread.py",
+          "line": 209
+        },
+        {
+          "name": "apply",
+          "kind": "method",
+          "owner": "thread.Thread",
+          "inherited": true,
+          "signature": "Unthread.apply(alpha)",
+          "parameters": [
+            {
+              "name": "alpha",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Eased animation progress in [0, 1]."
+            }
+          ],
+          "description": "Evaluate the animation at eased progress alpha. Called by the timeline.",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/thread.py",
+          "line": 309
+        }
+      ],
+      "extra_parameters": []
     },
     {
       "id": "styling.RegionAnimate",
@@ -7003,7 +7820,7 @@
               "annotation": false,
               "default": "0.7",
               "kind": "keyword only",
-              "description": "Surface grid spacing in ångströms; smaller values increase detail and cost."
+              "description": "Spacing in Å between wire points."
             },
             {
               "name": "color",
@@ -7714,7 +8531,7 @@
           "annotation": false,
           "default": "1.5",
           "kind": "keyword only",
-          "description": "Width of the soft contact transition in ångströms."
+          "description": "Fraction of the window used for its fading edge, in (0, 1]."
         },
         {
           "name": "max_contact_error",
@@ -9316,7 +10133,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 557
+          "line": 658
         },
         {
           "name": "enqueue",
@@ -9354,7 +10171,7 @@
           "returns": "Frame array, or None while the readback pipeline fills.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 561
+          "line": 662
         },
         {
           "name": "drain",
@@ -9367,7 +10184,7 @@
           "returns": "Iterator of frame arrays.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 605
+          "line": 706
         },
         {
           "name": "render",
@@ -9405,7 +10222,7 @@
           "returns": "RGBA uint8 array or NV12 array, according to readback_format.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 609
+          "line": 710
         },
         {
           "name": "close",
@@ -9418,7 +10235,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 615
+          "line": 716
         },
         {
           "name": "__enter__",
@@ -9431,7 +10248,7 @@
           "returns": "The renderer.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 642
+          "line": 744
         },
         {
           "name": "__exit__",
@@ -9452,7 +10269,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 645
+          "line": 747
         }
       ],
       "extra_parameters": []
@@ -9482,7 +10299,7 @@
           "annotation": true,
           "default": "64",
           "kind": "positional or keyword",
-          "description": "Positive number of EEVEE samples per pixel; default 64."
+          "description": "Number of view directions to test."
         },
         {
           "name": "supersampling",
@@ -9523,7 +10340,7 @@
       "bases": [],
       "attributes": {
         "blender": "Optional Blender executable path. Otherwise use PROTEINMOTION_BLENDER, PATH or a standard Windows/macOS installation.",
-        "samples": "Positive number of EEVEE samples per pixel; default 64.",
+        "samples": "Number of view directions to test.",
         "supersampling": "Spatial resolution multiplier of at least 1. Output is downsampled to the requested size.",
         "max_blur": "Maximum depth-of-field blur size in output pixels.",
         "max_opacity_layers": "Maximum distinct positive opacity levels per frame. Rendering cost grows with this count.",
@@ -10271,7 +11088,7 @@
           "annotation": false,
           "default": "'smooth'",
           "kind": "keyword only",
-          "description": "Per-residue interpolation: \"smooth\" or \"linear\"."
+          "description": "Rate function that maps clip time to wire travel, such as ease_in_out_sine or smooth."
         }
       ],
       "returns": "",
@@ -13391,18 +14208,18 @@
     }
   ],
   "dependencies": {
-    "docs/reference/catalog.json": "bb8342b31d8e3c0e301eba66a3ea3c765d124cad9ee0f491906bdde39bc867e7",
+    "docs/reference/catalog.json": "d29f9032ca26a30addf1fa1f84e071b5dbf2c55b9230d74140b7f6c1feb92cb3",
     "scripts/build_reference.py": "ecbc89319e1116b96836ce27b0f52a815d8e42311734e7f52ba1ec8828acde81",
-    "src/proteinmotion/__init__.py": "75556dc9fb7deb9dd34f8aed709c8632a5319636987b6743c5fa81cbcb8ebca4",
+    "src/proteinmotion/__init__.py": "922fb8eaeb00447d4dd205ea8d3012af6e63115c8b43a05ee2e729f983a3eaf1",
     "src/proteinmotion/__main__.py": "3129adff95e0f38b87ab34cddfc27082c7892bcaec267ff5d40f160fdf55b44a",
     "src/proteinmotion/_blender_worker.py": "3010c14ed7ddb07d86b8d6163b32591eefb4d9dc3eeba526bde223f6e303ef1e",
     "src/proteinmotion/_eevee_geometry.py": "55935e2515c404d0739e05624f4220a17cdce097946b69cda76fe6a2cf3a7603",
     "src/proteinmotion/_gpu.py": "8247a7f698078769443adc5402c3cbfee4997c2915f4d90278435062e3a9a3c0",
-    "src/proteinmotion/animation.py": "cf89ecfe7a008c04e27cefb20eb572f70502d94728e3c6f1759e4553a5da6c0d",
+    "src/proteinmotion/animation.py": "9a7e9656b2cb5bc090901ae16fd7d36205b8229d0d2fa1103971f313899d8489",
     "src/proteinmotion/annotations.py": "d3cf73a04dddbd885bb71e549c4833aa4a076ac329eccbceb0d8025bd9a24870",
     "src/proteinmotion/authoring.py": "da24509aaef749da2b2dbaf88557a697ec16c13b6e1f3f261e9702adefcb619f",
     "src/proteinmotion/backbone.py": "b9136cc97b24148ec7cd1f36a6839bd54a013fefe6a53df6b3c423e9373ed8b8",
-    "src/proteinmotion/camera.py": "a95ecbca7c056199192fec11273a7273302dd1531016ad9bffe74322d713f210",
+    "src/proteinmotion/camera.py": "7f139a5f86c7037c227446316e92517ec5b79d12c6fd9f594528f51159d2fcd3",
     "src/proteinmotion/cli.py": "e7741ade44b361f508e86a80db661cf3c507b04c52bf84a7a78b0ff132f56bf9",
     "src/proteinmotion/density.py": "c062508e5511848bbc0657da0c04483c79c2dc9070297645db4459d236feab8a",
     "src/proteinmotion/distances.py": "906f8c6f568b91f4b5fd28ebbd6e04cbce554f7f09209e76bfb2fa9dd3a43ea3",
@@ -13420,12 +14237,13 @@
     "src/proteinmotion/protein.py": "9fdccaa8b203ee69be34d5f95bf1f16f8de6f55631693a4cf047c344c65fce3e",
     "src/proteinmotion/rates.py": "f367d8cd0550b494af67a66b90c17dea4b1239efaa9c9f4bd89316defc2a45ce",
     "src/proteinmotion/regions.py": "056a736043bf2e2e4b04f8a26736607507c3f0e5c8395cde619f7097a146471e",
-    "src/proteinmotion/renderer.py": "ed30a20ece30c433657739af1fbf5ab11b87036138c45bf3610a430afd6f8b32",
+    "src/proteinmotion/renderer.py": "7ecd7d5a9336456cdf7650ca511b4b39ef6a340bf1cb389fde8605f9cd7914d3",
     "src/proteinmotion/scene.py": "dfbc26dc824613cd4d5c366e023e6155eb7960bba4571ae8d4bf65d21014c350",
     "src/proteinmotion/structure.py": "a1af601fe24960428bb01af5af96718b7ef27c57f0a251d1fd93be66bafc1cb5",
     "src/proteinmotion/styling.py": "8e47ae2b7784eb9f5202df0bc6d458419ca0c8b617130302cc7152db0c38e4e0",
-    "src/proteinmotion/surface.py": "59d248d116c05d10cdb59650cf4780ef5690bb7596045f2e4f6338d87136ea25",
+    "src/proteinmotion/surface.py": "1f9806332ab81764b664d70f6660fc87f57095b700f5cd80aced3affed4643f1",
     "src/proteinmotion/text_geometry.py": "13e937524def811f9001cfe7aead3cc583b93f2c69a7d6983457910c5fe1a767",
+    "src/proteinmotion/thread.py": "910ac6998817c5facf39570a72005e326a2aad083a4bdf50f332b1a253617f50",
     "src/proteinmotion/trajectory.py": "76fc3f315759fba7518a2243ea02e764933e58283d9205de65a6358c8101e28e",
     "src/proteinmotion/video.py": "4cbda9f39d266d4ecf0d48827c8a80b811b56df5eafd9e58e690d91edd93b99c"
   }

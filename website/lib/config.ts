@@ -88,6 +88,22 @@ export const guides = [
       "Show ligands, ions, and side chains as ball-and-stick over a cartoon.",
   },
   {
+    slug: "tunnels",
+    file: "tunnels.md",
+    title: "Cutaways & tunnels",
+    group: "AUTHORING",
+    description:
+      "Open a window onto a hidden selection and show how deep it lies.",
+  },
+  {
+    slug: "threading",
+    file: "threading.md",
+    title: "Threading",
+    group: "AUTHORING",
+    description:
+      "Bring chains into view as wires that trace the backbone from C to N terminus.",
+  },
+  {
     slug: "numerical-properties",
     file: "numerical-properties.md",
     title: "Numerical properties",
@@ -220,6 +236,36 @@ export const demoCommand = (demo: Demo) =>
   demo.renderCommand ??
   `proteinmotion render ${demo.source} ${demo.scene} \\\n  -o ${demo.file}.mp4 --fps 60`;
 export const demos: Demo[] = [
+  {
+    id: "depth-tunnels",
+    title: "How deep is it?",
+    file: "docs/depth-tunnels",
+    label: "CUTAWAYS · DEPTH TUNNELS",
+    detail:
+      "Tunnels into GroEL–GroES, with a ring every 5 Å, compare the ADP pocket 21 Å beneath the outer surface with residues on the ring's inner wall 44 Å down. A ghosted side view, a fly-down, and a carved surface follow.",
+    source: "examples/depth_tunnels.py",
+    scene: "DepthTunnels",
+    duration: "64.4 s",
+    pdb: "1AON",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/depth_tunnels.py DepthTunnels \\\n  --fps 60 -o tunnels.mp4",
+  },
+  {
+    id: "thread-hemoglobin",
+    title: "Hemoglobin, one chain at a time",
+    file: "docs/thread-hemoglobin",
+    label: "THREADING · GLOWING WIRES",
+    detail:
+      "Four wires fly in from four sides and thread the α and β subunits of human deoxyhemoglobin from their C termini, one after another. The cartoon and the four hemes then fade in, and the wires pull back out.",
+    source: "examples/thread_hemoglobin.py",
+    scene: "ThreadHemoglobin",
+    duration: "23.1 s",
+    pdb: "4HHB",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/thread_hemoglobin.py ThreadHemoglobin \\\n  --fps 60 -o hemoglobin.mp4",
+  },
   {
     id: "binding-sites",
     title: "Calcium sites and a nucleotide pocket",

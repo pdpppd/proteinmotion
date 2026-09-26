@@ -25,6 +25,11 @@
       "description": "Animate atom and residue colors and transparency.",
       "guide": "styling"
     },
+    "thread": {
+      "title": "Threading",
+      "description": "Bring chains into view as wires that trace the backbone from C to N terminus.",
+      "guide": "threading"
+    },
     "annotations": {
       "title": "Text and labels",
       "description": "Write text, label amino acids and nucleotides, and connect labels to regions.",
@@ -132,7 +137,7 @@
     "color": "Hex color or RGB values. For tint setters, None restores the representation’s base palette.",
     "kind": "Surface type: \"vdw\", \"sas\", or \"ses\".",
     "probe_radius": "Solvent probe radius in ångströms.",
-    "resolution": "Surface grid spacing in ångströms; smaller values increase detail and cost.",
+    "resolution": "Spacing in Å between wire points.",
     "update": "\"rebuild\" recalculates the surface as coordinates change; \"deform\" moves the reference mesh.",
     "max_voxels": "Maximum surface grid cells; increase this limit for large structures or finer grids.",
     "atom_scale": "Multiplier applied to element van der Waals radii for ball-and-stick atoms.",
@@ -156,7 +161,7 @@
     "representation": "\"cartoon\", \"ribbon\", \"ball_and_stick\", or \"surface\".",
     "residue_delay": "Delay in seconds between successive residue starts.",
     "reverse": "Reverse residue or glyph order.",
-    "easing": "Per-residue interpolation: \"smooth\" or \"linear\".",
+    "easing": "Rate function that maps clip time to wire travel, such as ease_in_out_sine or smooth.",
     "value": "Value to assign; the supported range depends on the property.",
     "text": "Text to display.",
     "font_size": "Font size in pixels at a 1080-pixel image height.",
@@ -204,7 +209,7 @@
     "source_chain": "Source chain ID; select one chain with protein Cα or nucleotide C1′ anchors.",
     "target_chain": "Target chain ID; select one chain with protein Cα or nucleotide C1′ anchors.",
     "cutoff": "Distance cutoff in ångströms.",
-    "softness": "Width of the soft contact transition in ångströms.",
+    "softness": "Fraction of the window used for its fading edge, in (0, 1].",
     "max_contact_error": "Maximum discrepancy between matched soft contacts, in [0, 1].",
     "search_seconds": "Branch-and-bound time budget in seconds; preparation is additional.",
     "max_candidates": "Candidate correspondence limit; None searches all candidates up to the safety limit.",
@@ -265,7 +270,7 @@
     "args": "Exception information supplied by the context manager.",
     "fstop": "Lens f-number. Lower values produce a shallower depth of field. Must be positive.",
     "blender": "Optional Blender executable path. Otherwise use PROTEINMOTION_BLENDER, PATH or a standard Windows/macOS installation.",
-    "samples": "Positive number of EEVEE samples per pixel; default 64.",
+    "samples": "Number of view directions to test.",
     "supersampling": "Spatial resolution multiplier of at least 1. Output is downsampled to the requested size.",
     "max_blur": "Maximum depth-of-field blur size in output pixels.",
     "max_opacity_layers": "Maximum distinct positive opacity levels per frame. Rendering cost grows with this count.",
@@ -314,7 +319,24 @@
     "ions": "Select single-atom, non-carbon residues outside the traced chains, such as Ca²⁺ or Zn²⁺.",
     "water": "Select water residues (HOH, WAT, SOL, and common MD names); load them with include_water=True.",
     "within": "Distance in ångströms; keeps whole residues with any atom this close to of.",
-    "of": "Region or Protein used as the reference for within; its own residues are excluded when it belongs to the same protein."
+    "of": "Region or Protein used as the reference for within; its own residues are excluded when it belongs to the same protein.",
+    "window": "Window radius, as a multiple of the region's bounding radius.",
+    "band": "Depth in Å over which geometry just in front of the region fades back in.",
+    "shape": "\"cone\" for a window that faces the camera, or \"tunnel\" for a depth tunnel fixed to the molecule.",
+    "wall": "Tunnel wall opacity.",
+    "rings": "Tunnel ring spacing in Å, measured from where the tunnel meets open space.",
+    "settle": "Final fraction of the clip in which the protein fades in and the wires fade out.",
+    "swirl": "Strength of the corkscrew around each flight path; 0 gives smooth arcs.",
+    "head": "Radius of the wire's tip, as a multiple of the wire radius.",
+    "glow": "Halo radius around each wire tip, as a multiple of the wire radius; 0 turns the glow off.",
+    "glow_color": "Halo color; None blends each chain's color with warm white.",
+    "glow_brightness": "Halo intensity multiplier.",
+    "stagger": "Delay between chains, as a fraction of the threading time, in chain order.",
+    "seed": "Integer that varies the flight paths.",
+    "objects": "Proteins whose atoms can block the view; defaults to the region's protein.",
+    "max_elevation": "Largest camera elevation to consider, in radians.",
+    "turn_penalty": "Fractional cost per radian of camera turn, which favors nearby views.",
+    "strength": "Target fog strength; 0 disables distance fog."
   },
   "members": {
     "construct": {
@@ -823,6 +845,36 @@
         ]
       ]
     },
+    "animation.Reveal": {
+      "description": "Open a view-dependent cutaway onto a region: geometry in front of it fades inside a window that follows the camera.",
+      "example": "gallery-depth-tunnels",
+      "parameters": {
+        "camera": "The scene camera that owns the cutaway.",
+        "region": "Region or Protein to reveal. A second Reveal on the open region reshapes its window smoothly."
+      },
+      "notes": "Native renderer only; EEVEE draws the full molecule. Atoms keep the region's bounding sphere, while cartoons and molecular surfaces are carved closer to its center. With shape='tunnel', a cylinder is drilled along the current view, stays fixed to the molecule, and shows a ring every `rings` Å from where its centerline reaches open space. No atoms move.",
+      "guide": "tunnels"
+    },
+    "animation.Conceal": {
+      "description": "Close the open cutaway.",
+      "example": "gallery-depth-tunnels",
+      "forward_parameters": [
+        "animation.Reveal",
+        [
+          "region",
+          "window",
+          "softness",
+          "band",
+          "shape",
+          "wall",
+          "rings"
+        ]
+      ],
+      "parameters": {
+        "camera": "The scene camera that owns the cutaway."
+      },
+      "guide": "tunnels"
+    },
     "styling.Colorize": {
       "description": "Animate a tint on a whole protein or a selected region.",
       "example": "color-change",
@@ -917,6 +969,24 @@
           "easing"
         ]
       ]
+    },
+    "thread.Thread": {
+      "description": "Fly a wire in along a curved path and thread each chain from its C to N terminus, then fade the protein in.",
+      "example": "gallery-thread-hemoglobin",
+      "parameters": {
+        "protein": "Protein with at least one traced chain; hidden while its wires thread.",
+        "camera": "Scene camera, so each wire starts just outside the frame; None starts wires at a fixed distance."
+      },
+      "notes": "Each traced chain segment gets a wire that enters from its own side of the screen and lands on the cartoon's centerline. Flight paths are seeded illustrations, not physical motion. The glow is drawn by the native renderer; EEVEE renders the wires without it."
+    },
+    "thread.Unthread": {
+      "description": "Fade the protein into its wires, then pull them out along curved paths off-screen.",
+      "example": "gallery-thread-hemoglobin",
+      "parameters": {
+        "protein": "Protein to take out of view.",
+        "camera": "Scene camera, so wires leave past the frame edges."
+      },
+      "notes": "Takes the same options as Thread; the motion is its exact reverse, so with stagger the last chain leaves first."
     },
     "styling.RegionAnimate": {
       "description": "Create styling animations through region.animate.",

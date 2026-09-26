@@ -533,3 +533,41 @@ const TUNNEL_SEGMENTS:u32=64u;
     if alpha<=0.001 { discard; }
     return transparent(color,alpha,in.p);
 }
+
+// Additive glow: camera-facing halos drawn after the molecules, depth-tested but not
+// depth-writing. Each instance is a world center, color, and (radius, intensity).
+struct GlowOut {
+    @builtin(position) clip:vec4f,
+    @location(0) uv:vec2f,
+    @location(1) color:vec3f,
+    @location(2) intensity:f32,
+};
+@vertex fn glow_vertex(@builtin(vertex_index) vertex:u32, @location(0) center:vec3f,
+                       @location(1) color:vec3f, @location(2) shape:vec2f) -> GlowOut {
+    let corners=array<vec2f,6>(vec2f(-1.,-1.),vec2f(1.,-1.),vec2f(-1.,1.),
+                              vec2f(-1.,1.),vec2f(1.,-1.),vec2f(1.,1.));
+    let to_eye=camera.eye_fog_start.xyz-center;
+    let distance_to_eye=max(length(to_eye),1e-4);
+    let facing=to_eye/distance_to_eye;
+    var basis_ref=vec3f(0.,1.,0.);
+    if abs(facing.y)>0.95 { basis_ref=vec3f(1.,0.,0.); }
+    let u=safe_normal(cross(basis_ref,facing));
+    let v=cross(facing,u);
+    // Lift the halo toward the camera so the glowing tip itself does not hide it.
+    let lifted=center+facing*min(shape.x*0.5,distance_to_eye*0.5);
+    let corner=corners[vertex];
+    var out:GlowOut;
+    out.clip=camera.vp*vec4f(lifted+(u*corner.x+v*corner.y)*shape.x,1.0);
+    out.uv=corner;
+    out.color=color;
+    out.intensity=shape.y;
+    return out;
+}
+@fragment fn glow_fragment(in:GlowOut) -> @location(0) vec4f {
+    let r2=dot(in.uv,in.uv);
+    if r2>=1.0 { discard; }
+    // A wide soft halo plus a tight hot core, fading to zero at the quad edge.
+    let halo=(exp(-4.0*r2)-exp(-4.0))/(1.0-exp(-4.0));
+    let core=exp(-38.0*r2);
+    return vec4f(in.color*in.intensity*(0.6*halo+1.3*core),0.0);
+}

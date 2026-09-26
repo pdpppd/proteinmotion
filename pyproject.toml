@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "proteinmotion"
-version = "0.11.0"
+version = "0.12.0"
 description = "Animate proteins, DNA, and RNA with a Manim-inspired Python API and native GPU or Blender EEVEE rendering"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -63,6 +63,7 @@ packages = ["src/proteinmotion"]
 "skills/proteinmotion-movies/references/animation.md" = "proteinmotion/_skill/references/animation.md"
 "skills/proteinmotion-movies/references/annotations-and-interactions.md" = "proteinmotion/_skill/references/annotations-and-interactions.md"
 "skills/proteinmotion-movies/references/ligands-and-side-chains.md" = "proteinmotion/_skill/references/ligands-and-side-chains.md"
+"skills/proteinmotion-movies/references/cutaways-and-threading.md" = "proteinmotion/_skill/references/cutaways-and-threading.md"
 "skills/proteinmotion-movies/assets/film.py" = "proteinmotion/_skill/assets/film.py"
 "skills/proteinmotion-movies/assets/1ubq.cif" = "proteinmotion/_skill/assets/1ubq.cif"
 

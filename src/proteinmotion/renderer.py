@@ -227,6 +227,8 @@ class Renderer:
         shader = d.create_shader_module(
             code=files("proteinmotion").joinpath("shaders/molecule.wgsl").read_text()
         )
+        self._shader = shader
+        self._glow_pipeline = self._glow_buffer = None
 
         def pipeline(
             vertex,
@@ -504,13 +506,17 @@ class Renderer:
             )
         ]
         has_transparency = bool(transparent_draws) or any(0 < g.obj.opacity < 1 for g in mesh_draws)
+        glows = [
+            g for obj in expanded if hasattr(obj, "_glow") for g in [obj._glow()] if g is not None and len(g)
+        ]
+        glow = np.ascontiguousarray(np.concatenate(glows), np.float32) if glows else None
         if has_transparency and self.transparency_pipelines is None:
             self._create_transparency()
         encoder = d.create_command_encoder()
         attachment = {
             "view": self.ms_view,
             "resolve_target": self.view
-            if self.msaa > 1 and not has_transparency and not annotations
+            if self.msaa > 1 and not has_transparency and not annotations and glow is None
             else None,
             "clear_value": (*map(float, background), 1.0),
             "load_op": "clear",
@@ -522,7 +528,7 @@ class Renderer:
                 "view": self.depth_view,
                 "depth_clear_value": 1.0,
                 "depth_load_op": "clear",
-                "depth_store_op": "store" if has_transparency else "discard",
+                "depth_store_op": "store" if has_transparency or glow is not None else "discard",
             },
         )
         self._draw_molecules(
@@ -566,7 +572,9 @@ class Renderer:
                 color_attachments=[
                     {
                         "view": self.ms_view,
-                        "resolve_target": self.view if self.msaa > 1 and not annotations else None,
+                        "resolve_target": self.view
+                        if self.msaa > 1 and not annotations and glow is None
+                        else None,
                         "load_op": "load",
                         "store_op": "store",
                     }
@@ -576,6 +584,8 @@ class Renderer:
             composite.set_bind_group(0, self.composite_group)
             composite.draw(3)
             composite.end()
+        if glow is not None:
+            self._draw_glow(encoder, glow, resolve=self.msaa > 1 and not annotations)
         if annotations:
             if self._overlay is None:
                 from .overlay import OverlayRenderer
@@ -583,6 +593,67 @@ class Renderer:
                 self._overlay = OverlayRenderer(self)
             self._overlay.draw(encoder, annotations, camera)
         return encoder
+
+    def _draw_glow(self, encoder, glow, *, resolve):
+        """Additive halos after molecules and transparency; depth-tested, never depth-writing."""
+        d = self.device
+        if self._glow_pipeline is None:
+            layout = d.create_pipeline_layout(bind_group_layouts=[self.camera_layout])
+            additive = {"src_factor": "one", "dst_factor": "one", "operation": "add"}
+            keep = {"src_factor": "zero", "dst_factor": "one", "operation": "add"}
+            self._glow_pipeline = d.create_render_pipeline(
+                layout=layout,
+                vertex={
+                    "module": self._shader,
+                    "entry_point": "glow_vertex",
+                    "buffers": [
+                        {
+                            "array_stride": 32,
+                            "step_mode": "instance",
+                            "attributes": [
+                                {"format": "float32x3", "offset": 0, "shader_location": 0},
+                                {"format": "float32x3", "offset": 12, "shader_location": 1},
+                                {"format": "float32x2", "offset": 24, "shader_location": 2},
+                            ],
+                        }
+                    ],
+                },
+                fragment={
+                    "module": self._shader,
+                    "entry_point": "glow_fragment",
+                    "targets": [{"format": "rgba8unorm", "blend": {"color": additive, "alpha": keep}}],
+                },
+                primitive={"topology": "triangle-list", "cull_mode": "none"},
+                depth_stencil={
+                    "format": "depth32float",
+                    "depth_write_enabled": False,
+                    "depth_compare": "less-equal",
+                },
+                multisample={"count": self.msaa},
+            )
+        if self._glow_buffer is None or self._glow_buffer.size < glow.nbytes:
+            if self._glow_buffer is not None:
+                self._glow_buffer.destroy()
+            self._glow_buffer = d.create_buffer(
+                size=max(glow.nbytes, 1024), usage=wgpu.BufferUsage.VERTEX | wgpu.BufferUsage.COPY_DST
+            )
+        d.queue.write_buffer(self._glow_buffer, 0, glow)
+        glow_pass = encoder.begin_render_pass(
+            color_attachments=[
+                {
+                    "view": self.ms_view,
+                    "resolve_target": self.view if resolve else None,
+                    "load_op": "load",
+                    "store_op": "store",
+                }
+            ],
+            depth_stencil_attachment={"view": self.depth_view, "depth_read_only": True},
+        )
+        glow_pass.set_pipeline(self._glow_pipeline)
+        glow_pass.set_bind_group(0, self.camera_group)
+        glow_pass.set_vertex_buffer(0, self._glow_buffer)
+        glow_pass.draw(6, len(glow))
+        glow_pass.end()
 
     def draw(self, proteins, camera, background):
         """GPU-only draw; no pixel readback (used by interactive preview)."""
@@ -661,6 +732,7 @@ class Renderer:
             self.depth,
             self.ms_texture,
             self.nv12_buffer,
+            self._glow_buffer,
             *self._oit_textures,
             *self._staging,
         ]:

@@ -106,6 +106,8 @@ The selected atoms define the focus point and follow the protein during motion. 
 - **Density:** MRC/CCP4 maps, animated contours, and moving slices, with map coordinates preserved.
 - **Labels:** text writing and erasing, amino acid and nucleotide names, and callout lines that connect labels to selected regions.
 - **Rendering:** native GPU rendering or Blender EEVEE with depth of field.
+- **Cutaways and depth tunnels:** open a window onto a hidden selection that follows the camera, or drill a tunnel with a ring every 5 Å to show how deep it lies.
+- **Threading:** wires fly in, trace each chain from C to N terminus with glowing tips, and fade into the protein.
 - **Region tools:** camera focus, 3D sphere, box, or atom highlights, and selection by ligand, ion, residue name, or distance.
 - **Measurements:** distance labels, hydrogen-bond detection, and screened Coulomb estimates with imported charges.
 - **States and trajectories:** multi-model PDB/mmCIF, NumPy arrays, and MDAnalysis readers for XTC, DCD, TRR, and other formats.
@@ -140,6 +142,8 @@ These scripts and their input structures are in the repository:
 | DNA morphs with C1′ matching and delayed nucleotide motion | [dna_morph.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/dna_morph.py) |
 | DNA base styles, strand transparency, and surfaces | [dna_styles.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/dna_styles.py) |
 | tRNA regions, modified bases, and B-factor surfaces | [rna_styles.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/rna_styles.py) |
+| Depth tunnels into GroEL–GroES | [depth_tunnels.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/depth_tunnels.py) |
+| Hemoglobin threaded one chain at a time | [thread_hemoglobin.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/thread_hemoglobin.py) |
 | Ca²⁺ ions and their coordinating side chains | [ligands_and_side_chains.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/ligands_and_side_chains.py) |
 | Calcium sites and a nucleotide pocket: 41-second film | [binding_sites_film.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/binding_sites_film.py) |
 | Troponin C Cd²⁺ sites, a bound sulfate, and representation changes | [troponin_sites.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/troponin_sites.py) |

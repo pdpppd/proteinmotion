@@ -1,5 +1,13 @@
 # Validation and performance
 
+## Cutaways, depth tunnels, and threading: 26 September 2026
+
+Version 0.12.0 passed **205 tests, with five NVIDIA-only cases skipped**, on the Apple M3 Max with Python 3.12.8 and `PROTEINMOTION_TEST_EEVEE=1`. New tests check cutaway state and seeking, the tunnel axis staying fixed to the molecule while the camera moves, the tunnel ending before the first gap in the atoms along its centerline, the animated depth cue, and the view search. Threading tests check that each wire ends on its chain's trace atoms from N to C terminus with its backbone length, that `Unthread` mirrors `Thread` exactly, that `stagger` orders the chains, and that wire and glow colors follow tints and options. On the GPU, an open cutaway changes the frame, closing it restores the original pixels exactly, a tunnel differs from a cone window, and the glow pass only adds light.
+
+Cutaways, tunnels, and the glow are drawn by the native renderer; EEVEE renders the full molecule and plain wires. The tunnel film (`examples/depth_tunnels.py`, 1AON) and the hemoglobin threading film (`examples/thread_hemoglobin.py`, 4HHB) were rendered at 1280 × 720 and 60 fps at 4 Mbit/s; all 3,865 and 1,386 frames decoded, and review stills were inspected. At 1080p, the 21-chain GroEL–GroES threading test rendered at 86–92 fps. The depth labels are computed from the structures: the ADP pocket of subunit A is 21 Å and the ring's inner wall 44 Å beneath the outer surface, measured straight in from outside the ring.
+
+The wheel built from the source archive passed `twine check --strict`. A fresh Python 3.12 installation outside the checkout passed `pip check` and the installed-package check, including a rendered and decoded movie. The website build, TypeScript checks, and all 119 exported pages passed verification.
+
 ## Ligands, ions, and side chains: 22 September 2026
 
 Version 0.11.0 passed **198 tests, with five NVIDIA-only cases skipped**, on the Apple M3 Max with Python 3.12.8 and `PROTEINMOTION_TEST_EEVEE=1`. New tests use PDB 1CLL. They check residue categories, the ligand, ion, residue-name, and distance selectors against a direct distance calculation, side-chain atoms, staggered `ShowSideChains` timing, and seeking. Native renders of a finished animation and of the same static atom state are pixel-identical. Real Blender EEVEE frames change when ions and side chains are shown.
