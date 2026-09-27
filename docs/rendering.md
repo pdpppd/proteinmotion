@@ -18,7 +18,7 @@ The scene timeline evaluates positions, representations, colors, and selections.
 
 `camera.set_focus()` sets lens focus. `FocusPull` animates it. The native renderer's `camera.focus()` and `scene.focus()` continue to frame or zoom to a selection. See [EEVEE and lens focus](eevee.md) for code and output.
 
-EEVEE uses 64 samples and 1.5× image dimensions by default. It renders each frame independently with fixed sampling settings. Shadows, camera jitter, and screen-space ray tracing are disabled. Output is downsampled with a Lanczos filter. Native `camera.depth_cue` and `msaa` settings apply to the native renderer; EEVEE uses its own lighting and sampling settings.
+EEVEE uses 64 samples and 1.5× image dimensions by default. It renders each frame independently with fixed sampling settings. Shadows, camera jitter, and screen-space ray tracing are disabled. Output is downsampled with a Lanczos filter. `camera.depth_cue` distance fog, the background color, cutaways, depth tunnels, and wire glow match the native renderer. `msaa` applies only to the native renderer, and EEVEE uses its own lighting, so materials look brighter and more saturated. EEVEE rounds opacities to 1/48, so a frame never needs more than 48 opacity layers.
 
 ### EEVEE transparency
 
@@ -26,7 +26,7 @@ EEVEE opacity uses a weighted combination of opaque render layers. Each layer in
 
 This produces smooth group fades and reveals a selected region through faded foreground geometry. Geometry with the same opacity retains its opaque visibility ordering. It is useful for region highlights and representation transitions; it approximates translucent overlap. [Blender's post-process DOF has limitations with blended materials](https://docs.blender.org/manual/en/latest/render/eevee/limitations/limitations.html).
 
-Render cost grows with the number of distinct opacity levels. Opacities are rounded to six decimal places; backbone strips use the nearest residue's opacity. The default limit is 64 levels. Scenes exceeding it raise an error with instructions to increase `EEVEEOptions(max_opacity_layers=...)` or simplify the fade. Native rendering is a faster option for long trajectories with many independently fading residues.
+Render cost grows with the number of distinct opacity levels. Opacities are rounded to 1/48; backbone strips use the nearest residue's opacity. A frame therefore needs at most 48 layers, within the default `EEVEEOptions(max_opacity_layers=64)`; a lower limit raises an error when a frame exceeds it. Native rendering is a faster option for long trajectories with many independently fading residues.
 
 ## Native transparency
 

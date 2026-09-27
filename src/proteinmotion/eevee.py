@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from ._eevee_geometry import MeshExporter
+from ._eevee_geometry import MeshExporter, tunnel_meshes
 from .annotations import Annotation
 
 
@@ -138,16 +138,28 @@ class EEVEE:
         """Render current objects to an RGBA uint8 image; annotations stay sharp."""
         if self.closed:
             raise RuntimeError("EEVEE renderer is closed")
+        camera.update_tracking()
         arrays, index = {}, 0
-        annotations = []
+        annotations, geometry = [], []
         for obj in objects:
             if isinstance(obj, Annotation):
                 annotations.append(obj)
+                # 3D parts of annotations (distance rulers, interaction lines) render in the
+                # scene, where molecules can hide them; the overlay keeps only the 2D parts.
+                if hasattr(obj, "_geometry_objects"):
+                    geometry.extend(
+                        g
+                        for g in obj._geometry_objects(camera, self.width, self.height)
+                        if not isinstance(g, Annotation)
+                    )
                 continue
-            for mesh in self.exporter.meshes(obj):
-                for key, data in mesh.items():
-                    arrays[f"{index}_{key}"] = data
-                index += 1
+            geometry.append(obj)
+        meshes = [mesh for obj in geometry for mesh in self.exporter.meshes(obj, camera)]
+        meshes += tunnel_meshes(camera, self.height)
+        for mesh in meshes:
+            for key, data in mesh.items():
+                arrays[f"{index}_{key}"] = data
+            index += 1
         np.savez(self.folder / "frame.npz", **arrays)
         request = dict(
             width=self.width,
@@ -161,6 +173,12 @@ class EEVEE:
             focus=camera.focus_point.tolist(),
             fstop=camera.fstop,
             background=np.asarray(background).tolist(),
+            # Native distance fog: smoothstep over this range of camera distance, times depth_cue.
+            fog=[
+                float(camera.distance - camera.radius * 1.05),
+                float(camera.distance + camera.radius * 1.5),
+                float(camera.depth_cue),
+            ],
         )
         self.process.stdin.write(json.dumps(request) + "\n")
         self.process.stdin.flush()
@@ -169,6 +187,11 @@ class EEVEE:
             if im.size != (self.width, self.height):
                 im = im.resize((self.width, self.height), Image.Resampling.LANCZOS)
             pixels = np.array(im.convert("RGBA"))
+        # The film is transparent: composite over the exact background color, as native does.
+        alpha = pixels[:, :, 3:4].astype(np.float32) / 255
+        backdrop = np.round(np.clip(np.asarray(background, np.float32), 0, 1) * 255)
+        pixels[:, :, :3] = np.round(pixels[:, :, :3] * alpha + backdrop * (1 - alpha)).astype(np.uint8)
+        pixels[:, :, 3] = 255
         if annotations:
             # Reuse the existing vector text/Write/leader renderer. Black/white
             # passes recover exact per-pixel transmittance, including MSAA edges.
@@ -176,6 +199,7 @@ class EEVEE:
                 from .renderer import Renderer
 
                 self.overlay = Renderer(self.width, self.height, msaa=4)
+                self.overlay.draw_geometry_objects = False
             black = self.overlay.render(annotations, camera, np.zeros(3)).astype(np.float32)
             white = self.overlay.render(annotations, camera, np.ones(3)).astype(np.float32)
             pixels[:, :, :3] = (

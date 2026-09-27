@@ -2,7 +2,9 @@
 
 import json
 import math
+import os
 import sys
+import tempfile
 import traceback
 from pathlib import Path
 
@@ -11,6 +13,7 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 SCALE = 0.0012  # Display meters per ångström, for convenient macroscopic lens settings.
+OPACITY_STEPS = 48  # Opacities are rounded to 1/48, so a frame never needs more than 48 layers.
 
 
 def linear(rgb):
@@ -78,12 +81,45 @@ class Worker:
         unlit.node_tree.links.new(emission.outputs[0], output.inputs["Surface"])
         self.material = mat = bpy.data.materials.new("Protein")
         mat.use_nodes = True
-        shader = mat.node_tree.nodes.get("Principled BSDF")
+        tree = mat.node_tree
+        shader = tree.nodes.get("Principled BSDF")
         shader.inputs["Roughness"].default_value = 0.45
         shader.inputs["Specular IOR Level"].default_value = 0.25
-        attr = mat.node_tree.nodes.new("ShaderNodeVertexColor")
+        attr = tree.nodes.new("ShaderNodeVertexColor")
         attr.layer_name = "color"
-        mat.node_tree.links.new(attr.outputs["Color"], shader.inputs["Base Color"])
+        tree.links.new(attr.outputs["Color"], shader.inputs["Base Color"])
+        # Distance fog, as in the native renderer: blend toward the background color by
+        # smoothstep(start, end, camera distance) * depth_cue.
+        camera_data = tree.nodes.new("ShaderNodeCameraData")
+        self.fog_range = tree.nodes.new("ShaderNodeMapRange")
+        self.fog_range.interpolation_type = "SMOOTHSTEP"
+        self.fog_range.clamp = True
+        tree.links.new(camera_data.outputs["View Distance"], self.fog_range.inputs["Value"])
+        self.fog_strength = tree.nodes.new("ShaderNodeMath")
+        self.fog_strength.operation = "MULTIPLY"
+        tree.links.new(self.fog_range.outputs["Result"], self.fog_strength.inputs[0])
+        # The native renderer fogs display colors; the equivalent scene-linear blend is
+        # 1 - (1 - f)^2.2, so the same depth_cue dims distant geometry equally.
+        keep = tree.nodes.new("ShaderNodeMath")
+        keep.operation = "SUBTRACT"
+        keep.inputs[0].default_value = 1.0
+        tree.links.new(self.fog_strength.outputs[0], keep.inputs[1])
+        power = tree.nodes.new("ShaderNodeMath")
+        power.operation = "POWER"
+        tree.links.new(keep.outputs[0], power.inputs[0])
+        power.inputs[1].default_value = 2.2
+        fog = tree.nodes.new("ShaderNodeMath")
+        fog.operation = "SUBTRACT"
+        fog.inputs[0].default_value = 1.0
+        tree.links.new(power.outputs[0], fog.inputs[1])
+        self.fog_color = tree.nodes.new("ShaderNodeEmission")
+        mix = tree.nodes.new("ShaderNodeMixShader")
+        tree.links.new(fog.outputs[0], mix.inputs["Fac"])
+        tree.links.new(shader.outputs[0], mix.inputs[1])
+        tree.links.new(self.fog_color.outputs[0], mix.inputs[2])
+        tree.links.new(mix.outputs[0], tree.nodes.get("Material Output").inputs["Surface"])
+        self.glow_material = self._glow_material()
+        self.backgrounds = {}
         self.lights = []
         for name, energy, location, size, color in (
             ("Key", 2.0, (-0.055, -0.065, 0.10), 0.075, (1, 0.91, 0.82)),
@@ -96,10 +132,97 @@ class Worker:
             scene.collection.objects.link(obj)
             self.lights.append((obj, np.array(location), energy, size))
         scene.world.use_nodes = True
-        self.world = scene.world.node_tree.nodes.get("Background")
+        world = scene.world.node_tree
+        self.world = world.nodes.get("Background")
         self.world.inputs["Strength"].default_value = 0.15
+        # Camera rays see the requested background exactly; lighting keeps a dim ambient.
+        self.backdrop = world.nodes.new("ShaderNodeBackground")
+        path = world.nodes.new("ShaderNodeLightPath")
+        mix = world.nodes.new("ShaderNodeMixShader")
+        world.links.new(path.outputs["Is Camera Ray"], mix.inputs["Fac"])
+        world.links.new(self.world.outputs[0], mix.inputs[1])
+        world.links.new(self.backdrop.outputs[0], mix.inputs[2])
+        world.links.new(mix.outputs[0], world.nodes.get("World Output").inputs["Surface"])
         self.groups, self.objects = [], {}
         self.layer_count = 0
+
+    def _glow_material(self):
+        """Additive halo: emission over a transparent surface, brightest at the center."""
+        mat = bpy.data.materials.new("Glow")
+        mat.use_nodes = True
+        mat.use_backface_culling = True
+        if hasattr(mat, "surface_render_method"):
+            mat.surface_render_method = "BLENDED"
+        if hasattr(mat, "blend_method"):
+            mat.blend_method = "BLEND"
+        tree = mat.node_tree
+        nodes, links = tree.nodes, tree.links
+        nodes.clear()
+
+        def math(op, a=None, b=None):
+            node = nodes.new("ShaderNodeMath")
+            node.operation = op
+            for socket, value in ((0, a), (1, b)):
+                if value is None:
+                    continue
+                if isinstance(value, (int, float)):
+                    node.inputs[socket].default_value = value
+                else:
+                    links.new(value, node.inputs[socket])
+            return node.outputs[0]
+
+        geometry = nodes.new("ShaderNodeNewGeometry")
+        dot = nodes.new("ShaderNodeVectorMath")
+        dot.operation = "DOT_PRODUCT"
+        links.new(geometry.outputs["Normal"], dot.inputs[0])
+        links.new(geometry.outputs["Incoming"], dot.inputs[1])
+        facing = math("ABSOLUTE", dot.outputs["Value"])
+        # Projected radius squared across the halo disc, then the native halo and core.
+        r2 = math("SUBTRACT", 1.0, math("MULTIPLY", facing, facing))
+        # Tight soft halo plus a hot core; AgX compresses highlights, hence the larger weights.
+        halo = math("EXPONENT", math("MULTIPLY", r2, -6.0))
+        core = math("EXPONENT", math("MULTIPLY", r2, -38.0))
+        strength = math("ADD", math("MULTIPLY", halo, 0.9), math("MULTIPLY", core, 9.0))
+        attr = nodes.new("ShaderNodeVertexColor")
+        attr.layer_name = "color"
+        emission = nodes.new("ShaderNodeEmission")
+        links.new(attr.outputs["Color"], emission.inputs["Color"])
+        links.new(strength, emission.inputs["Strength"])
+        transparent = nodes.new("ShaderNodeBsdfTransparent")
+        add = nodes.new("ShaderNodeAddShader")
+        links.new(transparent.outputs[0], add.inputs[0])
+        links.new(emission.outputs[0], add.inputs[1])
+        output = nodes.new("ShaderNodeOutputMaterial")
+        links.new(add.outputs[0], output.inputs["Surface"])
+        return mat
+
+    def _display(self, colors):
+        """Scene-linear colors as the view transform and look display them, in [0, 1]."""
+        count = len(colors)
+        image = bpy.data.images.new("Color probe", count, 1, alpha=True, float_buffer=True)
+        pixels = np.ones((count, 4), np.float32)
+        pixels[:, :3] = colors
+        image.pixels.foreach_set(pixels.ravel())
+        path = os.path.join(tempfile.gettempdir(), f"proteinmotion-probe-{os.getpid()}.png")
+        image.save_render(path, scene=self.scene)
+        loaded = bpy.data.images.load(path)
+        result = np.array(loaded.pixels[:]).reshape(count, 4)[:, :3]
+        bpy.data.images.remove(image)
+        bpy.data.images.remove(loaded)
+        os.remove(path)
+        return result
+
+    def background_radiance(self, background):
+        """Scene-linear color that the view transform displays as the requested background."""
+        key = tuple(np.round(background, 6))
+        if key not in self.backgrounds:
+            target = linear(np.asarray(background, float))
+            value = target.copy()
+            for _ in range(16):
+                shown = linear(self._display(np.array([value]))[0])
+                value = np.clip(value * np.clip(target / np.maximum(shown, 1e-6), 0.2, 5.0), 0.0, 20.0)
+            self.backgrounds[key] = value
+        return self.backgrounds[key]
 
     def compositor(self, count):
         scene = self.scene
@@ -170,10 +293,20 @@ class Worker:
             point(light, target)
             light.data.energy = energy
         bg = linear(request["background"])
-        # Match the requested background while retaining dim environment illumination.
+        # Dim environment illumination in the background color.
         self.world.inputs["Color"].default_value = (*bg / 0.15, 1)
+        radiance = self.background_radiance(request["background"])
+        self.backdrop.inputs["Color"].default_value = (*radiance, 1)
+        start, end, strength = request.get("fog", (0.0, 1.0, 0.0))
+        self.fog_range.inputs["From Min"].default_value = start * SCALE
+        self.fog_range.inputs["From Max"].default_value = max(end, start + 1e-3) * SCALE
+        self.fog_strength.inputs[1].default_value = strength
+        self.fog_color.inputs["Color"].default_value = (*radiance, 1)
         with np.load(folder / "frame.npz") as data:
-            alphas = [np.clip(np.round(data[f"{i}_opacity"], 6), 0, 1) for i in range(request["meshes"])]
+            alphas = [
+                np.clip(np.round(data[f"{i}_opacity"] * OPACITY_STEPS) / OPACITY_STEPS, 0, 1)
+                for i in range(request["meshes"])
+            ]
             levels = np.unique(np.concatenate(alphas)) if alphas else np.array([])
             levels = levels[levels > 0]
             if len(levels) > opts["max_opacity_layers"]:
@@ -190,7 +323,14 @@ class Worker:
             for i, alpha in enumerate(alphas):
                 vertices = data[f"{i}_vertices"] * SCALE
                 faces = data[f"{i}_faces"]
-                colors = np.c_[linear(data[f"{i}_colors"]), np.ones(len(vertices))].astype(np.float32)
+                colors = linear(data[f"{i}_colors"])
+                if f"{i}_strength" in data:
+                    colors = colors * data[f"{i}_strength"][:, None]
+                colors = np.c_[colors, np.ones(len(vertices))].astype(np.float32)
+                kind = str(data[f"{i}_kind"]) if f"{i}_kind" in data else "lit"
+                if bool(data.get(f"{i}_unlit", False)):
+                    kind = "unlit"
+                material = {"unlit": self.unlit_material, "glow": self.glow_material}.get(kind, self.material)
                 normals = data[f"{i}_normals"]
                 for value in np.unique(alpha[alpha > 0]):
                     group = int(np.searchsorted(levels, value))
@@ -199,7 +339,10 @@ class Worker:
                     subset = faces[alpha == value]
                     cached = self.objects.get(key)
                     rebuild = (
-                        cached is None or cached[1] != len(vertices) or not np.array_equal(cached[2], subset)
+                        cached is None
+                        or cached[1] != len(vertices)
+                        or not np.array_equal(cached[2], subset)
+                        or cached[0].data.materials[0].name != material.name
                     )
                     if rebuild:
                         if cached:
@@ -211,9 +354,7 @@ class Worker:
                         mesh.update()
                         mesh.polygons.foreach_set("use_smooth", np.ones(len(subset), bool))
                         mesh.color_attributes.new(name="color", type="FLOAT_COLOR", domain="POINT")
-                        mesh.materials.append(
-                            self.unlit_material if bool(data.get(f"{i}_unlit", False)) else self.material
-                        )
+                        mesh.materials.append(material)
                         obj = bpy.data.objects.new(mesh.name, mesh)
                         self.groups[group].objects.link(obj)
                     else:
@@ -245,7 +386,7 @@ class Worker:
                 layer.layer_collection.children[group.name].exclude = j < i or j >= len(levels)
         # Integral of opaque renders above each opacity threshold. With two levels,
         # this is exactly the prototype's isolated-helix / complete-protein crossfade.
-        self.rgb.outputs[0].default_value = (*bg, 1)
+        self.rgb.outputs[0].default_value = (*radiance, 1)
         weights = np.diff(np.r_[0, levels]) if len(levels) else np.array([0])
         total = 1 - float(levels[-1]) if len(levels) else 1
         for mix, weight in zip(self.mixes, weights):

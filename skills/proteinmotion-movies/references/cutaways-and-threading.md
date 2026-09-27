@@ -1,6 +1,6 @@
 # Cutaways, depth tunnels, and threading
 
-Requires ProteinMotion 0.12.0 or later. Cutaways, tunnels, and wire glow are drawn by the native renderer; EEVEE renders the full molecule and plain wires.
+Requires ProteinMotion 0.12.0 or later. Cutaways, tunnels, fog, and wire glow render in both the native renderer and EEVEE.
 
 ## Reveal a hidden selection
 

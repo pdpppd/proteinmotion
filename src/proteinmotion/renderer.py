@@ -201,6 +201,7 @@ class Renderer:
             size=192, usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST
         )
         self.cutaway_open = False
+        self.draw_geometry_objects = True  # EEVEE's overlay pass draws only 2D annotation parts.
         self.camera_layout = d.create_bind_group_layout(
             entries=[
                 {
@@ -468,7 +469,7 @@ class Renderer:
         annotations = []
         expanded = []
         for obj in proteins:
-            if hasattr(obj, "_geometry_objects"):
+            if hasattr(obj, "_geometry_objects") and self.draw_geometry_objects:
                 expanded.extend(obj._geometry_objects(camera, self.width, self.height))
             expanded.append(obj)
         for protein in expanded:

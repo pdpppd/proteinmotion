@@ -3310,7 +3310,7 @@
       "kind": "class",
       "href": "/reference/animation/Reveal/",
       "description": "Open a view-dependent cutaway onto a region: geometry in front of it fades inside a window that follows the camera.",
-      "notes": "Native renderer only; EEVEE draws the full molecule. Atoms keep the region's bounding sphere, while cartoons and molecular surfaces are carved closer to its center. With shape='tunnel', a cylinder is drilled along the current view, stays fixed to the molecule, and shows a ring every `rings` Å from where its centerline reaches open space. No atoms move.",
+      "notes": "Works in the native renderer and in EEVEE. Atoms keep the region's bounding sphere, while cartoons and molecular surfaces are carved closer to its center. With shape='tunnel', a cylinder is drilled along the current view, stays fixed to the molecule, and shows a ring every `rings` Å from where its centerline reaches open space. No atoms move.",
       "import_path": "proteinmotion",
       "signature": "Reveal(\n    camera,\n    region=None,\n    *,\n    window=None,\n    softness=None,\n    band=None,\n    shape=None,\n    wall=None,\n    rings=None,\n    **kwargs,\n)",
       "parameters": [
@@ -4351,7 +4351,7 @@
       "kind": "class",
       "href": "/reference/thread/Thread/",
       "description": "Fly a wire in along a curved path and thread each chain from its C to N terminus, then fade the protein in.",
-      "notes": "Each traced chain segment gets a wire that enters from its own side of the screen and lands on the cartoon's centerline. Flight paths are seeded illustrations, not physical motion. The glow is drawn by the native renderer; EEVEE renders the wires without it.",
+      "notes": "Each traced chain segment gets a wire that enters from its own side of the screen and lands on the cartoon's centerline. Flight paths are seeded illustrations, not physical motion. The glow renders in both the native renderer and EEVEE.",
       "import_path": "proteinmotion",
       "signature": "Thread(\n    protein,\n    camera=None,\n    *,\n    radius=0.45,\n    settle=0.15,\n    swirl=1.0,\n    head=1.8,\n    glow=12.0,\n    glow_color=None,\n    glow_brightness=1.0,\n    easing=ease_in_out_sine,\n    stagger=0.0,\n    resolution=0.8,\n    seed=0,\n    rate_func=None,\n)",
       "parameters": [
@@ -10133,7 +10133,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 658
+          "line": 659
         },
         {
           "name": "enqueue",
@@ -10171,7 +10171,7 @@
           "returns": "Frame array, or None while the readback pipeline fills.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 662
+          "line": 663
         },
         {
           "name": "drain",
@@ -10184,7 +10184,7 @@
           "returns": "Iterator of frame arrays.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 706
+          "line": 707
         },
         {
           "name": "render",
@@ -10222,7 +10222,7 @@
           "returns": "RGBA uint8 array or NV12 array, according to readback_format.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 710
+          "line": 711
         },
         {
           "name": "close",
@@ -10235,7 +10235,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 716
+          "line": 717
         },
         {
           "name": "__enter__",
@@ -10248,7 +10248,7 @@
           "returns": "The renderer.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 744
+          "line": 745
         },
         {
           "name": "__exit__",
@@ -10269,7 +10269,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 747
+          "line": 748
         }
       ],
       "extra_parameters": []
@@ -10446,7 +10446,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/eevee.py",
-          "line": 193
+          "line": 217
         },
         {
           "name": "__enter__",
@@ -10459,7 +10459,7 @@
           "returns": "The renderer.",
           "notes": "",
           "source": "src/proteinmotion/eevee.py",
-          "line": 218
+          "line": 242
         },
         {
           "name": "__exit__",
@@ -10497,7 +10497,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/eevee.py",
-          "line": 221
+          "line": 245
         }
       ],
       "extra_parameters": []
@@ -14208,12 +14208,12 @@
     }
   ],
   "dependencies": {
-    "docs/reference/catalog.json": "d29f9032ca26a30addf1fa1f84e071b5dbf2c55b9230d74140b7f6c1feb92cb3",
+    "docs/reference/catalog.json": "92f69d60eac6f7bf260cc28bedba521393c3cc0b7d3d2f94453337445b7b67aa",
     "scripts/build_reference.py": "ecbc89319e1116b96836ce27b0f52a815d8e42311734e7f52ba1ec8828acde81",
     "src/proteinmotion/__init__.py": "922fb8eaeb00447d4dd205ea8d3012af6e63115c8b43a05ee2e729f983a3eaf1",
     "src/proteinmotion/__main__.py": "3129adff95e0f38b87ab34cddfc27082c7892bcaec267ff5d40f160fdf55b44a",
-    "src/proteinmotion/_blender_worker.py": "3010c14ed7ddb07d86b8d6163b32591eefb4d9dc3eeba526bde223f6e303ef1e",
-    "src/proteinmotion/_eevee_geometry.py": "55935e2515c404d0739e05624f4220a17cdce097946b69cda76fe6a2cf3a7603",
+    "src/proteinmotion/_blender_worker.py": "63ea710606c088f293d7d4ed28e39f6b275ece5e87cc9d7785677af6dc7f17e5",
+    "src/proteinmotion/_eevee_geometry.py": "79d1e2b8255529e2e0cd484ba837f50d8838de9f3f71c09c8b318fa350922779",
     "src/proteinmotion/_gpu.py": "8247a7f698078769443adc5402c3cbfee4997c2915f4d90278435062e3a9a3c0",
     "src/proteinmotion/animation.py": "9a7e9656b2cb5bc090901ae16fd7d36205b8229d0d2fa1103971f313899d8489",
     "src/proteinmotion/annotations.py": "d3cf73a04dddbd885bb71e549c4833aa4a076ac329eccbceb0d8025bd9a24870",
@@ -14223,7 +14223,7 @@
     "src/proteinmotion/cli.py": "e7741ade44b361f508e86a80db661cf3c507b04c52bf84a7a78b0ff132f56bf9",
     "src/proteinmotion/density.py": "c062508e5511848bbc0657da0c04483c79c2dc9070297645db4459d236feab8a",
     "src/proteinmotion/distances.py": "906f8c6f568b91f4b5fd28ebbd6e04cbce554f7f09209e76bfb2fa9dd3a43ea3",
-    "src/proteinmotion/eevee.py": "b65ba003c3675ac97ec3f9d67f96d3410964fcd384d28d86094884aae74dbcc4",
+    "src/proteinmotion/eevee.py": "8baa4a8e1e7c0e82f6c69418e0d9c986f13d1304897cf8a90de90e56557aa3eb",
     "src/proteinmotion/geometry.py": "e01036d6c82e15ebf75e32ecce848711822256cc28cab03c9847fd7d857427db",
     "src/proteinmotion/interactions.py": "92d23e15f6b14853fa985ba2121c8a7ec60c2f915d03fec33d98af2c7344d32c",
     "src/proteinmotion/matching.py": "07362dbf610bae60e3b21506e83cffabe1a518b998f930d1c53bde5cb7d8b4fd",
@@ -14237,7 +14237,7 @@
     "src/proteinmotion/protein.py": "9fdccaa8b203ee69be34d5f95bf1f16f8de6f55631693a4cf047c344c65fce3e",
     "src/proteinmotion/rates.py": "f367d8cd0550b494af67a66b90c17dea4b1239efaa9c9f4bd89316defc2a45ce",
     "src/proteinmotion/regions.py": "056a736043bf2e2e4b04f8a26736607507c3f0e5c8395cde619f7097a146471e",
-    "src/proteinmotion/renderer.py": "7ecd7d5a9336456cdf7650ca511b4b39ef6a340bf1cb389fde8605f9cd7914d3",
+    "src/proteinmotion/renderer.py": "aeb86b82722e94798d75a72250cad5eec1b988f50678362467cbbda60913f582",
     "src/proteinmotion/scene.py": "dfbc26dc824613cd4d5c366e023e6155eb7960bba4571ae8d4bf65d21014c350",
     "src/proteinmotion/structure.py": "a1af601fe24960428bb01af5af96718b7ef27c57f0a251d1fd93be66bafc1cb5",
     "src/proteinmotion/styling.py": "8e47ae2b7784eb9f5202df0bc6d458419ca0c8b617130302cc7152db0c38e4e0",

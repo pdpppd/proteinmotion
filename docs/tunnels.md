@@ -2,7 +2,7 @@
 
 A cutaway shows a selection that other parts of the molecule hide. `Reveal` opens a window onto the selection; `Conceal` closes it. No atoms move: geometry in front of the selection fades for display only. A tunnel also shows how deep the selection lies, with a ring every 5 Å.
 
-Cutaways, tunnels, and the depth-cue animation are drawn by the native renderer. EEVEE renders the full molecule without the cutaway.
+Cutaways, tunnels, and the depth-cue animation work in the native renderer and in EEVEE. EEVEE fades cut faces in eighths of their opacity, so the edge of a window is slightly stepped.
 
 ## Example and output
 

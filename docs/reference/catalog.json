@@ -852,7 +852,7 @@
         "camera": "The scene camera that owns the cutaway.",
         "region": "Region or Protein to reveal. A second Reveal on the open region reshapes its window smoothly."
       },
-      "notes": "Native renderer only; EEVEE draws the full molecule. Atoms keep the region's bounding sphere, while cartoons and molecular surfaces are carved closer to its center. With shape='tunnel', a cylinder is drilled along the current view, stays fixed to the molecule, and shows a ring every `rings` Å from where its centerline reaches open space. No atoms move.",
+      "notes": "Works in the native renderer and in EEVEE. Atoms keep the region's bounding sphere, while cartoons and molecular surfaces are carved closer to its center. With shape='tunnel', a cylinder is drilled along the current view, stays fixed to the molecule, and shows a ring every `rings` Å from where its centerline reaches open space. No atoms move.",
       "guide": "tunnels"
     },
     "animation.Conceal": {
@@ -977,7 +977,7 @@
         "protein": "Protein with at least one traced chain; hidden while its wires thread.",
         "camera": "Scene camera, so each wire starts just outside the frame; None starts wires at a fixed distance."
       },
-      "notes": "Each traced chain segment gets a wire that enters from its own side of the screen and lands on the cartoon's centerline. Flight paths are seeded illustrations, not physical motion. The glow is drawn by the native renderer; EEVEE renders the wires without it."
+      "notes": "Each traced chain segment gets a wire that enters from its own side of the screen and lands on the cartoon's centerline. Flight paths are seeded illustrations, not physical motion. The glow renders in both the native renderer and EEVEE."
     },
     "thread.Unthread": {
       "description": "Fade the protein into its wires, then pull them out along curved paths off-screen.",

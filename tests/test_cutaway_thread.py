@@ -207,3 +207,87 @@ def test_gpu_cutaway_glow_and_tunnel(hemoglobin):
         b = dark.render_frame(1.4, renderer=renderer).astype(int)
     assert (a[:, :, :3] - b[:, :, :3]).min() >= 0
     assert (a[:, :, :3] - b[:, :, :3]).sum() > 5000
+
+
+def test_eevee_export_applies_cutaway_tunnel_glow_and_rulers(hemoglobin):
+    from proteinmotion import Distance
+    from proteinmotion._eevee_geometry import MeshExporter, cutaway_amount, tunnel_meshes
+
+    p = hemoglobin
+    heme = p.select(chain="B", resname="HEM")
+    scene = framed(p)
+    scene.camera.focus(heme, margin=2.5, aspect=1.5, follow=False)
+    scene.add(p)
+    scene.play(Reveal(scene.camera, heme, window=1.4, shape="tunnel"), run_time=1)
+    scene.seek(1.0)
+    camera = scene.camera
+    geometry = camera.cutaway_geometry()
+    exporter = MeshExporter()
+    closed = exporter.meshes(p)
+    cut = exporter.meshes(p, camera)
+    cartoon, cartoon_cut = closed[0], cut[0]
+    assert (cartoon_cut["opacity"] <= cartoon["opacity"]).all()
+    removed = cartoon_cut["opacity"] == 0
+    assert removed.sum() > 100
+    # Removed faces lie inside the tunnel in front of the target, as in the native shader.
+    amount = cutaway_amount(cartoon_cut["vertices"].astype(float), camera, geometry, tight=True)
+    assert amount[cartoon_cut["faces"][removed]].mean() > 0.9
+    # Atoms keep the whole target sphere: no heme atom is cut.
+    heme_atoms = heme.world_positions
+    assert not cutaway_amount(heme_atoms, camera, geometry, tight=False).any()
+    walls = tunnel_meshes(camera, 256)
+    assert walls and len(walls[0]["faces"]) == 72 * 64 * 2
+    assert len(walls) - 1 == int(
+        (geometry[3] - geometry[1] * camera.cutaway_surface_keep) // camera.cutaway_rings
+    )
+    # Wire tips export glow halos, with the configured brightness.
+    thread_scene = framed(p)
+    thread = Thread(p, thread_scene.camera, glow_brightness=1.5, seed=1)
+    thread_scene.play(thread, run_time=2)
+    thread_scene.seek(0.8)
+    meshes = MeshExporter().meshes(thread.wire)
+    glow = [m for m in meshes if str(m.get("kind", "")) == "glow"]
+    assert len(glow) == 1 and glow[0]["strength"].max() == pytest.approx(1.5 * (1 - 0.6 * 0.5**6), rel=0.1)
+    # 3D distance rulers are real geometry, so molecules in front can hide them.
+    ruler = Distance(
+        p.select(chain="A", residues=10, atoms="CA"), p.select(chain="A", residues=40, atoms="CA")
+    )
+    objects = ruler._geometry_objects(camera, 384, 256)
+    assert objects and all(len(MeshExporter().meshes(o)) for o in objects)
+
+
+@pytest.mark.gpu
+@pytest.mark.skipif(
+    not __import__("os").environ.get("PROTEINMOTION_TEST_EEVEE"), reason="Set PROTEINMOTION_TEST_EEVEE=1"
+)
+def test_eevee_real_cutaway_glow_fog_and_background(hemoglobin):
+    from proteinmotion.eevee import EEVEE, EEVEEOptions
+
+    p = hemoglobin
+    heme = p.select(chain="B", resname="HEM")
+    scene = framed(p)
+    scene.camera.focus(heme, margin=2.5, aspect=1.5, follow=False)
+    scene.add(p)
+    scene.play(Reveal(scene.camera, heme, window=1.4, shape="tunnel"), run_time=1)
+    with EEVEE(192, 128, options=EEVEEOptions(samples=8, supersampling=1)) as renderer:
+        closed = scene.render_frame(0, renderer=renderer).astype(int)
+        cut = scene.render_frame(1, renderer=renderer).astype(int)
+        assert np.abs(cut - closed).sum() > 20000
+        # The corner shows the requested background color, as in the native renderer.
+        expected = np.round(scene.background * 255)
+        assert np.abs(closed[1, 1, :3] - expected).max() <= 2
+        # Stronger distance fog darkens the frame.
+        scene.camera.depth_cue = 0.0
+        clear = renderer.render([p], scene.camera, scene.background).astype(int)
+        scene.camera.depth_cue = 1.0
+        fogged = renderer.render([p], scene.camera, scene.background).astype(int)
+        assert fogged[:, :, :3].sum() < clear[:, :, :3].sum()
+        # Wire tips add light around them.
+        lit, dark = (ProteinScene(width=192, height=128) for _ in range(2))
+        for s, glow in ((lit, 14.0), (dark, 0.0)):
+            protein = Protein.from_file(DATA / "4hhb.cif").cartoon().center()
+            s.camera.frame(protein, aspect=1.5)
+            s.play(Thread(protein, s.camera, glow=glow, glow_brightness=2.0, seed=1), run_time=2)
+        a = lit.render_frame(1.4, renderer=renderer).astype(int)
+        b = dark.render_frame(1.4, renderer=renderer).astype(int)
+        assert (a[:, :, :3] - b[:, :, :3]).sum() > 3000

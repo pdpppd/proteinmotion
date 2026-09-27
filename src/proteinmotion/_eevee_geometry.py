@@ -13,6 +13,123 @@ def _tint(base, tint):
     return base * (1 - tint[..., 3:4]) + tint[..., :3]
 
 
+def _smoothstep(edge0, edge1, x):
+    t = np.clip((x - edge0) / np.maximum(edge1 - edge0, 1e-9), 0, 1)
+    return t * t * (3 - 2 * t)
+
+
+def cutaway_amount(points, camera, geometry, tight):
+    """Per-point fade of the open cutaway, matching the native shader's cut_to()."""
+    center, keep, window, _, axis = geometry
+    keep = keep * camera.cutaway_surface_keep if tight else keep
+    opening, softness, band = camera.cutaway_opening, camera.cutaway_softness, camera.cutaway_band
+    if camera.cutaway_tunnel:
+        d = points - center
+        height = d @ axis
+        r = np.linalg.norm(d - height[:, None] * axis, axis=1)
+        radius = opening * window
+        radial = 1 - _smoothstep(radius * (1 - softness), radius, r)
+        return radial * _smoothstep(keep, keep + band, height)
+    eye = camera.eye
+    to_target = center - eye
+    dist = max(float(np.linalg.norm(to_target)), 1e-4)
+    view = to_target / dist
+    d = points - eye
+    t = d @ view
+    front = dist - keep
+    aperture = opening * window * np.maximum(t, 0) / dist
+    r = np.linalg.norm(d - t[:, None] * view, axis=1)
+    radial = 1 - _smoothstep(aperture * (1 - softness), aperture, r)
+    return radial * (1 - _smoothstep(front - band, front, t))
+
+
+def apply_cutaway(mesh, camera, geometry, tight):
+    """Fade faces inside the cutaway (in eighths, to limit EEVEE opacity layers) and tint the rim."""
+    amount = cutaway_amount(mesh["vertices"].astype(float), camera, geometry, tight)
+    if not np.any(amount > 0):
+        return mesh
+    face = amount[mesh["faces"]].mean(1)
+    mesh["opacity"] = (mesh["opacity"] * (1 - np.round(face * 8) / 8)).astype(np.float32)
+    rim = np.clip(amount * (1 - amount) * 1.6, 0, 0.4)[:, None]
+    mesh["colors"] = (mesh["colors"] * (1 - rim) + np.asarray(camera.cutaway_rim) * rim).astype(np.float32)
+    return mesh
+
+
+def tunnel_meshes(camera, height_px):
+    """The tunnel wall and its depth rings, as the native tunnel pass draws them."""
+    geometry = camera.cutaway_geometry()
+    if geometry is None or not camera.cutaway_tunnel:
+        return []
+    center, keep, window, outer, axis = geometry
+    floor = keep * camera.cutaway_surface_keep
+    length = outer - floor
+    if length <= 1:
+        return []
+    radius = camera.cutaway_opening * window
+    u, v = _perpendiculars(axis)
+    sides, steps = 72, 64
+    angle = np.arange(sides) * 2 * np.pi / sides
+    ring = np.cos(angle)[:, None] * u + np.sin(angle)[:, None] * v
+
+    def band(h0, h1, scale, count):
+        heights = np.linspace(h0, h1, count + 1)
+        verts = (center + heights[:, None, None] * axis + scale * radius * ring[None]).reshape(-1, 3)
+        return verts, _triangles(count + 1, sides), heights
+
+    verts, faces, heights = band(floor, outer, 1.0, steps)
+    below = np.repeat(outer - heights, sides)
+    deep = np.clip(below / length, 0, 1)[:, None]
+    base = (1 - deep) * np.array([0.42, 0.62, 0.78]) + deep * np.array([0.95, 0.73, 0.40])
+    normals = np.tile(-ring, (steps + 1, 1))
+    eye = camera.eye
+    view = eye - verts
+    view /= np.maximum(np.linalg.norm(view, axis=1, keepdims=True), 1e-9)
+    facing = np.abs(np.sum(normals * view, axis=1))
+    ends = _smoothstep(0, 2, below) * _smoothstep(0, 2, length - below)
+    near = _smoothstep(4, 22, np.linalg.norm(eye - verts, axis=1))
+    alpha = camera.cutaway_wall * (0.35 + 0.65 * (1 - facing)) * ends * near
+    pieces = [
+        dict(
+            vertices=verts.astype(np.float32),
+            faces=faces.astype(np.int32),
+            colors=base.astype(np.float32),
+            opacity=np.round(alpha[faces].mean(1) * 20) / 20,
+            normals=normals.astype(np.float32),
+        )
+    ]
+    # Rings every `rings` Å from the outer surface; every second ring is brighter and wider.
+    pixel = 2 * np.linalg.norm(eye - center) * np.tan(camera.fov / 2) / height_px
+    spacing = camera.cutaway_rings
+    for k in range(1, int(length // spacing) + 1):
+        h = outer - k * spacing
+        major = k % 2 == 0
+        width = pixel * (4.0 if major else 2.4)
+        rverts, rfaces, _ = band(h - width / 2, h + width / 2, 0.985, 1)
+        rbelow = np.full(len(rverts), outer - h)
+        rdeep = np.clip(rbelow / length, 0, 1)[:, None]
+        rbase = (1 - rdeep) * np.array([0.42, 0.62, 0.78]) + rdeep * np.array([0.95, 0.73, 0.40])
+        color = rbase * 0.45 + (0.55 if major else 0.4)
+        ralpha = camera.cutaway_wall * 0.6 + (0.6 if major else 0.4)
+        pieces.append(
+            dict(
+                vertices=rverts.astype(np.float32),
+                faces=rfaces.astype(np.int32),
+                colors=color.astype(np.float32),
+                opacity=np.full(len(rfaces), round(min(ralpha, 0.9) * 20) / 20, np.float32),
+                normals=np.tile(-ring, (2, 1)).astype(np.float32),
+                unlit=np.asarray(True),
+            )
+        )
+    return pieces
+
+
+def _perpendiculars(direction):
+    ref = np.array([0.0, 1.0, 0.0]) if abs(direction[1]) < 0.9 else np.array([1.0, 0.0, 0.0])
+    u = np.cross(direction, ref)
+    u /= np.linalg.norm(u)
+    return u, np.cross(direction, u)
+
+
 def _triangles(rings, sides):
     a = (np.arange(rings - 1)[:, None] * sides + np.arange(sides)).ravel()
     b = a + sides
@@ -161,17 +278,27 @@ class MeshExporter:
         self.surfaces = {}
         self.bases = {}
 
-    def meshes(self, p):
+    def meshes(self, p, camera=None):
+        """World-space meshes for one object, with the camera's cutaway and glow applied."""
+        geometry = None if camera is None else camera.cutaway_geometry()
         if hasattr(p, "_export_mesh"):
-            return p._export_mesh()
+            result = p._export_mesh()
+            if geometry is not None:
+                result = [apply_cutaway(mesh, camera, geometry, tight=False) for mesh in result]
+            return result
+        return self._molecule(p, camera, geometry)
+
+    def _molecule(self, p, camera, geometry):
         from .surface import build_surface
 
         xyz, tint = p.positions, current_tints(p)
         pieces = []
+        tight = []  # Cartoons, bases and surfaces are carved closer to a cutaway's target.
         if sum(p.representation[:2]) > 0:
             part = _cartoon(p, xyz, tint)
             if part is not None:
                 pieces.append(part)
+                tight.append(True)
             if any(r.is_nucleic for r in p.topology.residues) and np.any(p.base_style > 0):
                 from .nucleic import BaseGeometry
 
@@ -180,9 +307,12 @@ class MeshExporter:
                 for i, weight in enumerate(p.base_style):
                     if weight > 0 and len(self.bases[p].parts[i][1]):
                         pieces.append(self.bases[p].evaluate(p, i))
+                        tight.append(True)
         weights = atom_weights(p)
         if np.any(weights > 0):
-            pieces.extend(_atoms(p, xyz, tint, weights))
+            atoms = _atoms(p, xyz, tint, weights)
+            pieces.extend(atoms)
+            tight.extend([False] * len(atoms))
         if p.surface_opacity > 0:
             options = p._surface_options
             cached = self.surfaces.get(p)
@@ -213,16 +343,37 @@ class MeshExporter:
             for i in range(3):
                 np.add.at(normals, mesh.faces[:, i], face_normals)
             pieces.append((vertices, mesh.faces, col, alpha, normalize(normals)))
+            tight.append(True)
         m = p.model_matrix
         result = []
-        for vertices, faces, colors, alpha, normals in pieces:
-            result.append(
-                dict(
-                    vertices=np.asarray(vertices @ m[:3, :3].T + m[:3, 3], np.float32),
-                    faces=np.asarray(faces, np.int32),
-                    colors=np.asarray(colors, np.float32),
-                    opacity=np.clip(alpha, 0, 1).astype(np.float32),
-                    normals=np.asarray(normalize(normals @ m[:3, :3].T), np.float32),
-                )
+        for (vertices, faces, colors, alpha, normals), carve in zip(pieces, tight):
+            mesh = dict(
+                vertices=np.asarray(vertices @ m[:3, :3].T + m[:3, 3], np.float32),
+                faces=np.asarray(faces, np.int32),
+                colors=np.asarray(colors, np.float32),
+                opacity=np.clip(alpha, 0, 1).astype(np.float32),
+                normals=np.asarray(normalize(normals @ m[:3, :3].T), np.float32),
             )
+            if geometry is not None:
+                mesh = apply_cutaway(mesh, camera, geometry, carve)
+            result.append(mesh)
+        glow = p._glow() if hasattr(p, "_glow") else None
+        if glow is not None and len(glow):
+            result.append(glow_mesh(glow))
         return result
+
+
+def glow_mesh(rows):
+    """Halo spheres for glow rows (world center, color, radius, intensity)."""
+    verts, faces = _sphere()
+    n = len(verts)
+    centers, colors, radii, strength = rows[:, :3], rows[:, 3:6], rows[:, 6], rows[:, 7]
+    return dict(
+        vertices=(centers[:, None] + radii[:, None, None] * verts).reshape(-1, 3).astype(np.float32),
+        faces=(faces[None] + np.arange(len(rows))[:, None, None] * n).reshape(-1, 3).astype(np.int32),
+        colors=np.repeat(np.clip(colors, 0, 1), n, axis=0).astype(np.float32),
+        strength=np.repeat(strength, n).astype(np.float32),
+        opacity=np.ones(len(rows) * len(faces), np.float32),
+        normals=np.tile(verts, (len(rows), 1)).astype(np.float32),
+        kind=np.asarray("glow"),
+    )

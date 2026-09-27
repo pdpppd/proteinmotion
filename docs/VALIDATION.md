@@ -1,5 +1,18 @@
 # Validation and performance
 
+## EEVEE parity audit: 26 September 2026
+
+Every scene in the examples, 36 scenes at 75 moments, was rendered with the native renderer and with EEVEE at 480 × 270 and compared side by side. Representations, nucleotide base styles, residue colors and opacity, ligands and side chains, highlights, morphs, trajectories, density maps, plots, and text matched before the audit. The audit found six differences, all now fixed in EEVEE:
+
+- Cutaways and depth tunnels were ignored. EEVEE now applies the native cone and tunnel formulas to exported geometry, fading cut faces in eighths of their opacity, and exports the tunnel wall and its depth rings as meshes.
+- Wire tips had no glow. Glow halos now export as additive emission spheres with the native halo and core profile.
+- `camera.depth_cue` fog was missing. Materials now blend toward the background over the native distance range, with the factor converted from display to scene-linear blending.
+- The background was darker. Camera rays now see the scene-linear color that the view transform displays as the requested background; a test checks the corner pixel to within 2 levels.
+- The backbone-morph demo stopped with 136 opacity layers. Opacities are now rounded to 1/48.
+- 3D distance and interaction lines were drawn as a flat overlay over atoms. They now render as geometry, so atoms in front hide them; only their 2D parts stay in the overlay.
+
+EEVEE's lighting remains its own: materials are brighter and more saturated, so very faint ghosted atoms are slightly more visible than in the native renderer. 203 tests pass, and with `PROTEINMOTION_TEST_EEVEE=1` the EEVEE export and real-frame tests cover cutaways, tunnels, glow, fog, background color, and 3D rulers.
+
 ## Cutaways, depth tunnels, and threading: 26 September 2026
 
 Version 0.12.0 passed **205 tests, with five NVIDIA-only cases skipped**, on the Apple M3 Max with Python 3.12.8 and `PROTEINMOTION_TEST_EEVEE=1`. New tests check cutaway state and seeking, the tunnel axis staying fixed to the molecule while the camera moves, the tunnel ending before the first gap in the atoms along its centerline, the animated depth cue, and the view search. Threading tests check that each wire ends on its chain's trace atoms from N to C terminus with its backbone length, that `Unthread` mirrors `Thread` exactly, that `stagger` orders the chains, and that wire and glow colors follow tints and options. On the GPU, an open cutaway changes the frame, closing it restores the original pixels exactly, a tunnel differs from a cone window, and the glow pass only adds light.

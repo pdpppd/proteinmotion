@@ -46,7 +46,7 @@ The tip of each wire glows while it moves and dims as it comes to rest.
 | `glow_color=None` | Halo color; the default blends each chain's color with warm white |
 | `glow_brightness=1.0` | Halo intensity |
 
-The glow is drawn by the native renderer and is hidden behind geometry in front of it. EEVEE renders the wires without the glow.
+The glow works in the native renderer and in EEVEE, and is hidden behind geometry in front of it.
 
 ## Colors
 
