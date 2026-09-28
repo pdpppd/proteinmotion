@@ -4,7 +4,7 @@ import numpy as np
 
 from .animation import Animation
 from .math3d import color as parse_color
-from .rates import linear
+from .rates import evaluate, linear, resolve, smooth
 
 
 def initial_appearance(count, detail=None):
@@ -112,14 +112,35 @@ _TRACKS = {
 class _AppearanceAnimation(Animation):
     requires_linear_timeline = True
 
-    def __init__(self, target, value, *, residue_delay=0, reverse=False, easing="smooth"):
+    def _set_easing(self, easing):
+        self.easing = resolve(easing)
+
+    def __init__(
+        self,
+        target,
+        value,
+        *,
+        residue_delay=0,
+        delay_seconds=None,
+        stagger=None,
+        reverse=False,
+        easing="smooth",
+    ):
+        if delay_seconds is not None:
+            if residue_delay:
+                raise ValueError("Use delay_seconds or its legacy alias residue_delay, not both")
+            residue_delay = delay_seconds
         self.protein, self.ids = selection(target)
         super().__init__(self.protein, rate_func=linear)
         self.channels = frozenset((self.kind, int(i)) for i in self.ids)
         if not np.isfinite(residue_delay) or residue_delay < 0:
             raise ValueError("residue_delay must be finite and nonnegative")
-        if easing not in ("smooth", "linear"):
-            raise ValueError("easing must be smooth or linear")
+        if stagger is not None and (not np.isfinite(stagger) or not 0 <= stagger < 1):
+            raise ValueError("stagger must be the fraction of the clip reserved for staggering, in [0, 1)")
+        if stagger is not None and residue_delay:
+            raise ValueError("Choose stagger (fraction) or residue_delay (seconds), not both")
+        self.stagger = stagger
+        easing = resolve(easing)
         self.value, self.residue_delay, self.reverse, self.easing = (
             value,
             float(residue_delay),
@@ -136,19 +157,27 @@ class _AppearanceAnimation(Animation):
         if self.reverse:
             ranks = len(order) - 1 - ranks
         duration = getattr(self, "run_time", 1.0)
-        span = duration - (len(order) - 1) * self.residue_delay
+        delay = (
+            duration * self.stagger / max(1, len(order) - 1)
+            if self.stagger is not None
+            else self.residue_delay
+        )
+        span = duration - (len(order) - 1) * delay
         if span <= 0:
-            raise ValueError("run_time must exceed total residue delay")
+            raise ValueError(
+                f"run_time must exceed total residue delay: {len(order)} residues need more "
+                f"than {(len(order) - 1) * delay:g}s; use stagger=0.5 to fit the clip"
+            )
         self.start_time = getattr(self, "start_time", 0.0)
         self.duration = duration
-        self.begin, self.span = self.start_time + ranks * self.residue_delay, span
+        self.begin, self.span = self.start_time + ranks * delay, span
         self.track = p._appearance.copy()
         (before, after, begin, width, eased), written, current, _ = _TRACKS[self.kind]
         self.track[self.ids, before] = current(p)[self.ids]
         self.track[self.ids, after] = self.value
         self.track[self.ids, begin] = self.begin
         self.track[self.ids, width] = self.span
-        self.track[self.ids, eased] = self.easing == "smooth"
+        self.track[self.ids, eased] = self.easing is smooth
         self.track.flags.writeable = False
         self._write_indices = np.ix_(self.ids, np.arange(*written))
         self._other_mask = np.ones(self.track.shape, bool)
@@ -159,11 +188,22 @@ class _AppearanceAnimation(Animation):
         # Separate tracks can run together without replacing one another's fields.
         p = self.protein
         other = p._appearance
+        track = self.track
+        if self.easing not in (smooth, linear):
+            track = self.track.copy()
+            (before, after, begin, width, eased), _, _, _ = _TRACKS[self.kind]
+            local = np.clip((self.start_time + float(alpha) * self.duration - self.begin) / self.span, 0, 1)
+            progress = np.array([evaluate(self.easing, t) for t in local])
+            if isinstance(before, slice):
+                progress = progress[:, None]
+            values = (1 - progress) * track[self.ids, before] + progress * track[self.ids, after]
+            track[self.ids, before] = track[self.ids, after] = values
+            self._combined = None
         if self._combined is None or not np.array_equal(
             self._combined[self._other_mask], other[self._other_mask]
         ):
             data = other.copy()
-            data[self._write_indices] = self.track[self._write_indices]
+            data[self._write_indices] = track[self._write_indices]
             data.flags.writeable = False
             self._combined = data
         p._appearance = self._combined
@@ -182,15 +222,54 @@ class Colorize(_AppearanceAnimation):
 
 
 class SetOpacity(_AppearanceAnimation):
-    """Animate atom/residue opacity, optionally staggered in N-to-C order."""
+    """Set object opacity for a Protein, or atom opacity for a Region.
+
+    Use scope='residues' to change all of a protein's per-residue opacities.
+    """
 
     kind = "opacity"
     channels = frozenset({"residue_opacity"})
 
-    def __init__(self, target, opacity, **kwargs):
+    def _set_easing(self, easing):
+        if self._global:
+            self.rate_func = resolve(easing)
+        else:
+            super()._set_easing(easing)
+
+    def __init__(self, target, opacity, *, scope=None, **kwargs):
         if not np.isfinite(opacity) or not 0 <= opacity <= 1:
             raise ValueError("Opacity must be finite and in [0, 1]")
-        super().__init__(target, float(opacity), **kwargs)
+        from .protein import Protein
+
+        if scope not in (None, "object", "residues"):
+            raise ValueError("scope must be 'object' or 'residues'")
+        self._global = isinstance(target, Protein) and scope != "residues"
+        if scope == "object" and not isinstance(target, Protein):
+            raise ValueError("Object opacity requires a Protein; regions have residue opacity")
+        if self._global:
+            if set(kwargs) - {"easing"}:
+                raise ValueError("Use scope='residues' for staggered protein opacity")
+            Animation.__init__(self, target, easing=kwargs.get("easing", "smooth"))
+            self.value, self.channels, self.requires_linear_timeline = (
+                float(opacity),
+                frozenset({"opacity"}),
+                False,
+            )
+        else:
+            super().__init__(target, float(opacity), **kwargs)
+
+    def bind(self):
+        if self._global:
+            Animation.bind(self)
+            self.start = self.target.opacity
+        else:
+            super().bind()
+
+    def apply(self, alpha):
+        if self._global:
+            self.target.opacity = (1 - alpha) * self.start + alpha * self.value
+        else:
+            super().apply(alpha)
 
 
 class ShowAtoms(_AppearanceAnimation):
@@ -266,6 +345,13 @@ def side_chains(target):
 
 
 class RegionAnimate:
+    """Compatibility factory for the shared fluent animation builder."""
+
+    def __new__(cls, region):
+        from .animation import Animate
+
+        return Animate(region)
+
     def __init__(self, region):
         self.region = region
 

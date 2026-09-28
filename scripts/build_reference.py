@@ -41,6 +41,7 @@ def generate():
         and any(isinstance(t, ast.Name) and t.id == "__version__" for t in n.targets)
     )
     entries = catalog["entries"]
+    used_modules = {"__init__"}
     documented = {key.split(".")[-1] for key in entries} | {"rates"}
     if missing := set(exports) - documented:
         raise ValueError(f"Undocumented package exports: {sorted(missing)}")
@@ -54,6 +55,7 @@ def generate():
         return [imports[module].get(name, f"{module}.{name}") for name in names]
 
     def lineage(key):
+        used_modules.add(key.split(".")[0])
         yield key
         for base in bases(key):
             if base in definitions:
@@ -171,6 +173,7 @@ def generate():
     for key, metadata in entries.items():
         module, name = key.split(".")
         alias = metadata.get("alias")
+        used_modules.add((alias or key).split(".")[0])
         node = definitions[alias or key]
         is_class = isinstance(node, ast.ClassDef)
         all_members = members(alias or key) if is_class else {}
@@ -205,13 +208,16 @@ def generate():
         )
         if forwarded := metadata.get("forward_parameters"):
             target, names = forwarded
+            used_modules.add(target.split(".")[0])
             target_node = definitions[target]
             if isinstance(target_node, ast.ClassDef):
                 target_node = members(target)["__init__"][1]
             extra = [p for p in parameters(target_node) if p["name"] in names]
             if {p["name"] for p in extra} != set(names):
                 raise ValueError(f"Forwarded parameters changed: {key}")
-            symbol["extra_parameters"] = describe_params(extra, metadata, key)
+            symbol["extra_parameters"] = describe_params(
+                [p for p in extra if p["name"] not in {item["name"] for item in params}], metadata, key
+            )
         for member_name, (owner, m) in all_members.items():
             if member_name == "__init__" or alias:
                 continue
@@ -241,7 +247,9 @@ def generate():
                 )
             )
         symbols.append(symbol)
-    dependencies = [CATALOG, Path(__file__).resolve(), *sorted(SOURCE.glob("*.py"))]
+    # Only documented definitions and inherited/forwarded signatures affect this
+    # index. Unrelated local scratch modules must not change a published reference.
+    dependencies = [CATALOG, Path(__file__).resolve(), *[SOURCE / f"{m}.py" for m in sorted(used_modules)]]
     return {
         "version": version,
         "exports": exports,

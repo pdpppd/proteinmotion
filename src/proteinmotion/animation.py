@@ -3,7 +3,7 @@
 import numpy as np
 
 from .math3d import align_coordinates, rotation
-from .rates import linear, smooth
+from .rates import evaluate, linear, resolve, smooth
 from .structure import coordinates
 from .trajectory import FrameCache
 
@@ -11,9 +11,18 @@ from .trajectory import FrameCache
 class Animation:
     channels = frozenset()
 
-    def __init__(self, target, *, rate_func=smooth):
-        self.target, self.rate_func = target, rate_func
+    def __init__(self, target, *, rate_func=smooth, easing=None):
+        self.target, self.rate_func = target, resolve(rate_func if easing is None else easing)
         self._bound = False
+
+    def during(self, seconds, *, delay=0):
+        """Give this animation a duration and start delay, both in seconds."""
+        from .timeline import AnimationGroup
+
+        return AnimationGroup(self, durations=[seconds], offsets=[delay])
+
+    def _set_easing(self, easing):
+        self.rate_func = resolve(easing)
 
     def bind(self):
         if self._bound:
@@ -111,8 +120,18 @@ class Deform(Morph):
 class PlayTrajectory(Animation):
     channels = frozenset({"geometry"})
 
-    def __init__(self, protein, trajectory=None, *, start=0, end=None, rate_func=linear, state_easing=linear):
-        super().__init__(protein, rate_func=rate_func)
+    def __init__(
+        self,
+        protein,
+        trajectory=None,
+        *,
+        start=0,
+        end=None,
+        rate_func=linear,
+        state_easing=linear,
+        easing=None,
+    ):
+        super().__init__(protein, rate_func=rate_func, easing=easing)
         self.trajectory = trajectory if trajectory is not None else protein.trajectory
         self.start = start
         self.end = len(self.trajectory) - 1 if end is None else end
@@ -123,9 +142,7 @@ class PlayTrajectory(Animation):
         if self.trajectory.topology is not None and self.trajectory.topology.keys != protein.topology.keys:
             raise ValueError("Trajectory atom identities/order do not match protein")
         self.cache = FrameCache(self.trajectory)
-        if not callable(state_easing):
-            raise TypeError("state_easing must be a function such as linear or smooth")
-        self.state_easing = state_easing
+        self.state_easing = resolve(state_easing)
 
     def apply(self, alpha):
         f = self.start + (self.end - self.start) * alpha
@@ -146,9 +163,17 @@ class Focus(Animation):
     channels = frozenset({"camera"})
     late = True  # Evaluate after coordinate/transform writers in the same play() call.
 
-    def __init__(self, camera, region, *, margin=1.25, aspect=16 / 9, follow=True, **kwargs):
+    def __init__(
+        self, camera, region, *, margin=1.25, aspect=None, follow=True, screen_position=(0.5, 0.5), **kwargs
+    ):
         super().__init__(camera, **kwargs)
-        self.region, self.margin, self.aspect, self.follow = region, margin, aspect, follow
+        self.region, self.margin, self.aspect, self.follow = (
+            region,
+            margin,
+            camera.aspect if aspect is None else aspect,
+            follow,
+        )
+        self.screen_position = screen_position
 
     def bind(self):
         from .camera import Camera
@@ -160,7 +185,10 @@ class Focus(Animation):
         self.start = self.target.snapshot()
         fitted = Camera()
         fitted.fov = self.target.fov
-        fitted.frame(self.region, margin=self.margin, aspect=self.aspect)
+        fitted.theta, fitted.phi = self.target.theta, self.target.phi
+        fitted.frame(
+            self.region, margin=self.margin, aspect=self.aspect, screen_position=self.screen_position
+        )
         self.end = fitted.snapshot()
 
     def apply(self, alpha):
@@ -169,11 +197,14 @@ class Focus(Animation):
         if self.follow:
             m = self.region.model_matrix
             points = self.region.positions @ m[:3, :3].T + m[:3, 3]
-            endpoint = (points.min(0) + points.max(0)) / 2
+            endpoint = (points.min(0) + points.max(0)) / 2 + camera.composition_offset(
+                self.screen_position, distance=self.end["distance"], aspect=self.aspect
+            )
         camera.target = (1 - alpha) * self.start["target"] + alpha * endpoint
         camera.distance = self.start["distance"] * (self.end["distance"] / self.start["distance"]) ** alpha
         camera.radius = (1 - alpha) * self.start["radius"] + alpha * self.end["radius"]
         camera._tracking = self.region if self.follow and alpha >= 1 else None
+        camera._screen_position, camera.aspect = tuple(self.screen_position), self.aspect
 
 
 class FocusPull(Animation):
@@ -250,6 +281,9 @@ class Reveal(Animation):
         shape=None,
         wall=None,
         rings=None,
+        padding=None,
+        surface_keep=None,
+        rim=None,
         **kwargs,
     ):
         from .camera import Camera
@@ -267,6 +301,20 @@ class Reveal(Animation):
         self.region, self.window, self.softness, self.band = region, window, softness, band
         self.tunnel = None if shape is None else shape == "tunnel"
         self.wall, self.rings = wall, rings
+        for name, value in (
+            ("padding", padding),
+            ("surface_keep", surface_keep),
+            ("wall", wall),
+            ("rings", rings),
+        ):
+            if value is not None and (not np.isfinite(value) or value < 0):
+                raise ValueError(f"{name} must be finite and nonnegative")
+        if surface_keep is not None and surface_keep > 1:
+            raise ValueError("surface_keep must be in [0, 1]")
+        from .math3d import color
+
+        self.padding, self.surface_keep = padding, surface_keep
+        self.rim = None if rim is None else np.asarray(color(rim))
 
     def bind(self):
         super().bind()
@@ -296,10 +344,13 @@ class Reveal(Animation):
             ("band", self.band),
             ("wall", self.wall),
             ("rings", self.rings),
+            ("padding", self.padding),
+            ("surface_keep", self.surface_keep),
+            ("rim", self.rim),
         )
         for name, value in values:
             current = getattr(camera, f"cutaway_{name}")
-            end = current if value is None else float(value)
+            end = current if value is None else value
             self.shape[name] = (current if same else end, end)
 
     def apply(self, alpha):
@@ -323,7 +374,7 @@ class FadeIn(Animation):
 
     def bind(self):
         super().bind()
-        self.end = self.target.opacity
+        self.end = self.target.opacity or getattr(self.target, "_visible_opacity", 1.0)
 
     def apply(self, alpha):
         self.target.opacity = self.end * alpha
@@ -335,16 +386,26 @@ class FadeOut(Animation):
     def bind(self):
         super().bind()
         self.start = self.target.opacity
+        if self.start > 0:
+            self.target._visible_opacity = self.start
 
     def apply(self, alpha):
+        if self.start > 0:
+            self.target._visible_opacity = self.start
         self.target.opacity = self.start * (1 - alpha)
 
 
 class Representation(Animation):
     channels = frozenset({"representation"})
 
-    def __init__(self, protein, representation, *, bases=None, **kwargs):
-        super().__init__(protein, **kwargs)
+    def __init__(self, protein, representation, *, bases=None, rate_func=smooth, easing=None, **options):
+        from .styles import MolecularStyle
+
+        if isinstance(representation, MolecularStyle):
+            options = {**representation.options, **options}
+            representation = representation.representation
+        super().__init__(protein, rate_func=rate_func, easing=easing)
+        self.options, self.name = options, representation
         names = {"cartoon": 0, "ribbon": 1, "ball_and_stick": 2, "surface": 3}
         if representation not in names:
             raise ValueError(f"Choose a representation from {list(names)}")
@@ -361,6 +422,29 @@ class Representation(Animation):
         self.start = self.target.representation.copy()
         self.surface_start = self.target.surface_opacity
         self.base_start = self.target.base_style.copy()
+        self.settings = {}
+        if self.options:
+            before = self.target.snapshot()
+            try:
+                getattr(self.target, self.name)(**self.options)
+                after = self.target.snapshot()
+                keys = (
+                    "color_scheme",
+                    "atom_scale",
+                    "bond_radius",
+                    "ribbon_width",
+                    "surface_options",
+                    "backbone_radius",
+                    "base_thickness",
+                    "base_radius",
+                )
+                self.settings = {k: after[k] for k in keys}
+                if self.base_end is None:
+                    self.base_end = after["base_style"]
+            finally:
+                self.target.restore(before)
+            if self.surface_end:
+                self.target._surface_options = self.settings["surface_options"]
         if self.surface_end and self.target._surface_options is None:
             from .surface import surface_options
 
@@ -369,6 +453,8 @@ class Representation(Animation):
         self.surface_options = self.target._surface_options
 
     def apply(self, alpha):
+        for key, value in self.settings.items():
+            setattr(self.target, "_surface_options" if key == "surface_options" else key, value)
         self.target.representation = (1 - alpha) * self.start + alpha * self.end
         self.target.surface_opacity = (1 - alpha) * self.surface_start + alpha * self.surface_end
         if self.base_end is not None:
@@ -381,16 +467,44 @@ class Animate(Animation):
     """Fluent .animate.shift(...).rotate(...).scale(...) or camera.animate.orbit(...)."""
 
     def __init__(self, target):
-        super().__init__(target)
+        self.subject = target
+        super().__init__(getattr(target, "protein", target), rate_func=linear)
         self.operations = []
+        self.extras = []
+        self.transform_easing = smooth
         self.channels = frozenset()
+
+    def _set_easing(self, easing):
+        self.transform_easing = resolve(easing)
+        for extra in self.extras:
+            extra._set_easing(easing)
+
+    @property
+    def requires_linear_timeline(self):
+        return any(getattr(extra, "requires_linear_timeline", False) for extra in self.extras)
+
+    def _extra(self, animation):
+        conflict = self.channels & animation.channels
+        if isinstance(animation, Focus) and not any("camera" in a.channels for a in self.extras):
+            conflict -= {"camera"}
+        if conflict:
+            raise ValueError("Chained animations write the same property; use separate clips")
+        self.channels |= animation.channels
+        self.extras.append(animation)
+        return self
 
     def _op(self, name, *args):
         camera = hasattr(self.target, "theta")
         valid = {"orbit", "zoom", "depth_cue"} if camera else {"shift", "rotate", "scale", "set_opacity"}
         if name not in valid:
             raise ValueError(f"{name} is not supported for this object")
+        if self.subject is not self.target and name != "set_opacity":
+            raise ValueError("Transform the parent protein, not a Region")
         channel = "camera" if camera else ("opacity" if name == "set_opacity" else "transform")
+        if any(
+            channel in a.channels and not (channel == "camera" and isinstance(a, Focus)) for a in self.extras
+        ):
+            raise ValueError(f"Chained animations both write {channel}; use separate clips")
         self.channels = self.channels | {channel}
         self.operations.append((name, args))
         return self
@@ -407,7 +521,11 @@ class Animate(Animation):
             raise ValueError("Scale must be positive")
         return self._op("scale", factor)
 
-    def set_opacity(self, opacity):
+    def set_opacity(self, opacity, **kwargs):
+        if self.subject is not self.target or kwargs:
+            from .styling import SetOpacity
+
+            return self._extra(SetOpacity(self.subject, opacity, **kwargs))
         if not 0 <= opacity <= 1:
             raise ValueError("Opacity must be in [0, 1]")
         return self._op("set_opacity", opacity)
@@ -427,30 +545,59 @@ class Animate(Animation):
         return self._op("depth_cue", float(strength))
 
     def set_color(self, color, **kwargs):
-        if self.operations:
-            raise ValueError("Play color and transforms as separate concurrent animations")
         from .styling import Colorize
 
-        return Colorize(self.target, color, **kwargs)
+        return self._extra(Colorize(self.subject, color, **kwargs))
 
-    def focus(self, region, *, margin=1.25, aspect=16 / 9, follow=True):
-        if self.operations:
-            raise ValueError("Play focus and camera orbit/zoom in separate clips")
-        return Focus(self.target, region, margin=margin, aspect=aspect, follow=follow)
+    def show_atoms(self, **kwargs):
+        from .styling import ShowAtoms
+
+        return self._extra(ShowAtoms(self.subject, **kwargs))
+
+    def hide_atoms(self, **kwargs):
+        from .styling import HideAtoms
+
+        return self._extra(HideAtoms(self.subject, **kwargs))
+
+    def representation(self, style, **options):
+        return self._extra(Representation(self.target, style, **options))
+
+    def focus(self, region, *, margin=1.25, aspect=None, follow=True, screen_position=(0.5, 0.5)):
+        return self._extra(
+            Focus(
+                self.target,
+                region,
+                margin=margin,
+                aspect=aspect,
+                follow=follow,
+                screen_position=screen_position,
+            )
+        )
+
+    def frame(self, region, **kwargs):
+        """Animate camera framing; use lens_focus for depth of field."""
+        return self.focus(region, **kwargs)
 
     def set_focus(self, target, **kwargs):
         """Create a lens focus pull; play it alongside orbit or zoom animations."""
-        if self.operations:
-            raise ValueError("Play lens focus and camera movement as separate concurrent animations")
-        return FocusPull(self.target, target, **kwargs)
+        return self._extra(FocusPull(self.target, target, **kwargs))
+
+    def lens_focus(self, target, **kwargs):
+        return self.set_focus(target, **kwargs)
 
     def bind(self):
         super().bind()
         self.start = self.target.snapshot()
         if hasattr(self.target, "positions"):
             self.center = self.target.positions.mean(0)
+        for extra in self.extras:
+            extra.run_time = getattr(self, "run_time", 1.0)
+            extra.start_time = getattr(self, "start_time", 0.0)
+            extra.bind()
 
     def apply(self, alpha):
+        clock = alpha
+        alpha = evaluate(self.transform_easing, alpha)
         p, s = self.target, self.start
         if "camera" in self.channels:
             # A camera movement owns framing, while FocusPull owns the lens.
@@ -461,6 +608,9 @@ class Animate(Animation):
             p.position, p.orientation, p.size = s["position"].copy(), s["orientation"].copy(), s["size"]
         if "opacity" in self.channels:
             p.opacity = s["opacity"]
+        for extra in self.extras:
+            if isinstance(extra, Focus):
+                extra.apply(evaluate(extra.rate_func, clock))
         for name, args in self.operations:
             if name == "rotate":
                 old = p.orientation.copy()
@@ -480,3 +630,6 @@ class Animate(Animation):
                 p.zoom(args[0] ** alpha)
             elif name == "depth_cue":
                 p.depth_cue = (1 - alpha) * s["depth_cue"] + alpha * args[0]
+        for extra in self.extras:
+            if not isinstance(extra, Focus):
+                extra.apply(evaluate(extra.rate_func, clock))

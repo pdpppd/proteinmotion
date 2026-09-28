@@ -141,6 +141,16 @@ class Distance(Annotation):
         self.active = True
         self.set_opacity(opacity)
 
+    def plot(self, *, trajectory=None, times=None, **options):
+        """Create a trace with exactly this ruler's endpoints (model distances in Å)."""
+        from .plots import TimeSeriesPlot
+
+        if self.space != "model":
+            raise ValueError("Trajectory plots use model-space distances; set space='model'")
+        return TimeSeriesPlot.distance(
+            self.start, self.end, trajectory=trajectory, times=times, anchor="centroid", **options
+        )
+
     @property
     def distance(self):
         if self.space == "model":

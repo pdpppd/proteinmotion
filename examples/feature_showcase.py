@@ -196,7 +196,7 @@ class FeatureShowcase(ProteinScene):
             run_time=2.0,
         )
         self.play(Representation(p, "cartoon"), self.camera.animate.orbit(0.10), run_time=1.8)
-        self.play(SetOpacity(p, 1), self.camera.animate.orbit(0.08), run_time=1.5)
+        self.play(SetOpacity(p, 1, scope="residues"), self.camera.animate.orbit(0.08), run_time=1.5)
 
         self.heading(
             "Focus + annotation",
@@ -236,7 +236,7 @@ class FeatureShowcase(ProteinScene):
         )
         self.play(self.camera.animate.orbit(0.22), run_time=2.6)
         self.play(Unwrite(labels), Unwrite(note), FadeOut(halos), run_time=1.0)
-        self.play(self.fit(p, 1.45), SetOpacity(p, 1), Colorize(p, None), run_time=2.5)
+        self.play(self.fit(p, 1.45), SetOpacity(p, 1, scope="residues"), Colorize(p, None), run_time=2.5)
 
         self.heading(
             "States + deformation",
@@ -420,7 +420,7 @@ class FeatureShowcase(ProteinScene):
         self.play(
             Unwrite(note),
             FadeOut(contacts),
-            SetOpacity(p, 1),
+            SetOpacity(p, 1, scope="residues"),
             Colorize(p, None),
             self.fit(p, 1.40),
             run_time=3.0,

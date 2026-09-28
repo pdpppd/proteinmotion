@@ -123,15 +123,27 @@ class Text(Annotation):
         self,
         text,
         *,
-        font_size=36,
-        font="regular",
-        color="#edf3fc",
+        font_size=None,
+        font=None,
+        color=None,
         position=(0.06, 0.08),
         align="left",
-        line_spacing=1.3,
+        line_spacing=None,
         ligatures=True,
         opacity=1.0,
+        style=None,
+        max_width=None,
     ):
+        from .styles import TextStyle
+
+        style = TextStyle() if style is None else style
+        if not isinstance(style, TextStyle):
+            raise TypeError("style must be a TextStyle")
+        font_size = style.font_size if font_size is None else font_size
+        font = style.font if font is None else font
+        color = style.color if color is None else color
+        line_spacing = style.line_spacing if line_spacing is None else line_spacing
+        self.max_width = None if max_width is None else _positive(max_width, "max_width")
         super().__init__()
         if not isinstance(text, str):
             raise TypeError("Text content must be a string")
@@ -145,14 +157,40 @@ class Text(Annotation):
         self.set_opacity(opacity)
         self.line_spacing = _positive(line_spacing, "line_spacing")
         self.ligatures = bool(ligatures)
-        self.geometry = layout_text(text, self.font_size, font, self.line_spacing, self.ligatures)
+        self.geometry = self._layout_text(text)
+
+    def _layout_text(self, text):
+        def measure(value):
+            return layout_text(value, self.font_size, self.font, self.line_spacing, self.ligatures)
+
+        if self.max_width is None:
+            return measure(text)
+        lines = []
+        for paragraph in text.split("\n"):
+            current = ""
+            for word in paragraph.split():
+                trial = f"{current} {word}" if current else word
+                if current and measure(trial).width > self.max_width:
+                    lines.append(current)
+                    current = word
+                else:
+                    current = trial
+                # Break oversized words so max_width remains a real constraint.
+                while len(current) > 1 and measure(current).width > self.max_width:
+                    end = 1
+                    while end < len(current) and measure(current[: end + 1]).width <= self.max_width:
+                        end += 1
+                    lines.append(current[:end])
+                    current = current[end:]
+            lines.append(current)
+        return measure("\n".join(lines))
 
     def set_text(self, text):
         if not isinstance(text, str):
             raise TypeError("Text content must be a string")
         if text != self.text:
             self.text = text
-            self.geometry = layout_text(text, self.font_size, self.font, self.line_spacing, self.ligatures)
+            self.geometry = self._layout_text(text)
         return self
 
     @property
@@ -366,18 +404,23 @@ class ResidueLabels(Annotation):
         self.labels, self.fixed = [], []
         for index in region.residue_indices:
             residue = region.protein.topology.residues[index]
-            if residue.trace_atom < 0:
-                continue
             options = dict(kwargs)
             explicit = (offsets or {}).get(
                 (residue.chain, residue.resid, residue.icode), (offsets or {}).get(residue.resid)
             )
             if explicit is not None:
                 options["offset"] = explicit
-            self.labels.append(ResidueLabel(Region(region.protein, [residue.trace_atom]), **options))
+            ids = (
+                [residue.trace_atom]
+                if residue.trace_atom >= 0
+                else [
+                    i for i in region.atom_indices if region.protein.topology.atoms[i].residue_index == index
+                ]
+            )
+            self.labels.append(ResidueLabel(Region(region.protein, ids), **options))
             self.fixed.append(explicit is not None)
         if not self.labels:
-            raise ValueError("Selection has no amino-acid or nucleotide backbone anchors to label")
+            raise ValueError("Selection has no residues to label")
         self.labels, self.fixed = tuple(self.labels), tuple(self.fixed)
         self.avoid_overlap = bool(avoid_overlap)
 
@@ -454,16 +497,40 @@ class Write(Animation):
 
     channels = frozenset({"write"})
 
-    def __init__(self, target, *, lag_ratio=None, stroke_width=1.5, reverse=False, rate_func=linear):
+    def __init__(
+        self,
+        target,
+        *,
+        lag_ratio=None,
+        stroke_width=1.5,
+        reverse=False,
+        rate_func=linear,
+        easing=None,
+        delay_seconds=None,
+    ):
         if not isinstance(target, Annotation):
             raise TypeError("Write needs Text, Callout, or ResidueLabels")
-        super().__init__(target, rate_func=rate_func)
+        super().__init__(target, rate_func=rate_func, easing=easing)
+        if delay_seconds is not None and (
+            lag_ratio is not None or not np.isfinite(delay_seconds) or delay_seconds < 0
+        ):
+            raise ValueError("Use a nonnegative delay_seconds or lag_ratio, not both")
+        self.delay_seconds = delay_seconds
         count = target.glyph_count
         self.lag_ratio = min(4.0 / max(1, count), 0.2) if lag_ratio is None else float(lag_ratio)
         if not np.isfinite(self.lag_ratio) or self.lag_ratio < 0:
             raise ValueError("lag_ratio must be finite and nonnegative")
         self.stroke_width = _positive(stroke_width, "stroke_width")
         self.reverse = bool(reverse)
+
+    def bind(self):
+        super().bind()
+        if self.delay_seconds is not None:
+            duration = getattr(self, "run_time", 1.0)
+            span = duration - max(0, self.target.glyph_count - 1) * self.delay_seconds
+            if span <= 0:
+                raise ValueError("Glyph delays exceed run_time; reduce delay_seconds or increase run_time")
+            self.lag_ratio = self.delay_seconds / span
 
     def apply(self, alpha):
         self.target._write = float(alpha)
@@ -513,10 +580,66 @@ class AnnotationAnimate(Animation):
         self.channels |= {"opacity"}
         return self
 
+    def set_text(self, text):
+        """Replace caption text at this animation's midpoint, reproducibly when seeking."""
+        if not isinstance(self.target, Text) or not isinstance(text, str):
+            raise TypeError("set_text needs a Text target and a string")
+        self.operations.append(("text", text))
+        self.channels |= {"text"}
+        return self
+
     def bind(self):
         super().bind()
         self.start = self.target.snapshot()
 
     def apply(self, alpha):
         for name, end in self.operations:
-            setattr(self.target, name, (1 - alpha) * self.start[name] + alpha * end)
+            if name == "text":
+                self.target.set_text(self.start["text"] if alpha < 0.5 else end)
+            else:
+                setattr(self.target, name, (1 - alpha) * self.start[name] + alpha * end)
+
+
+class TextGroup(Annotation):
+    """Stack Text objects vertically and animate their layout, writing, or opacity together.
+
+    position is normalized screen space; gap is in 1080p design pixels.
+    Child positions are ignored; child fonts, colors and alignments are retained.
+    """
+
+    def __init__(self, *texts, position=(0.06, 0.08), gap=16):
+        super().__init__()
+        if not texts or any(not isinstance(t, Text) for t in texts):
+            raise TypeError("TextGroup needs one or more Text objects")
+        if not np.isfinite(gap) or gap < 0:
+            raise ValueError("gap must be finite and nonnegative design pixels")
+        self.texts, self.position, self.gap = tuple(texts), _point2(position, "position"), float(gap)
+
+    @property
+    def glyph_count(self):
+        return sum(t.glyph_count for t in self.texts)
+
+    def snapshot(self):
+        state = super().snapshot()
+        state["children"] = tuple(t.snapshot() for t in self.texts)
+        return state
+
+    def restore(self, state):
+        super().restore({k: v for k, v in state.items() if k != "children"})
+        for text, saved in zip(self.texts, state["children"]):
+            text.restore(saved)
+
+    def layout(self, camera, width, height):
+        origin = self.position * [width, height]
+        scale, cursor, offset = height / 1080, float(origin[1]), 0
+        placements, boxes = [], []
+        for text in self.texts:
+            size = np.array([text.geometry.width, text.geometry.height]) * scale
+            x = origin[0] - size[0] * {"left": 0, "center": 0.5, "right": 1}[text.align]
+            point = np.array([x, cursor])
+            placements.append(Placement(text, point, glyph_offset=offset, opacity=text.opacity))
+            boxes.append(np.r_[point, point + size])
+            cursor += size[1] + self.gap * scale
+            offset += text.glyph_count
+        boxes = np.asarray(boxes)
+        return AnnotationLayout(placements, [], np.r_[boxes[:, :2].min(0), boxes[:, 2:].max(0)])

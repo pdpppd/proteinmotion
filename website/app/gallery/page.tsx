@@ -23,6 +23,13 @@ export default function Gallery() {
         DNA, and RNA examples use 720p/60 fps. Each render command lists the
         settings used for its preview.
       </p>
+      <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
+        The Studio examples use the current development version. Follow the{" "}
+        <Link href="/docs/studio/" className="text-accent underline">
+          Studio setup guide
+        </Link>{" "}
+        before running them.
+      </p>
       <div className="mt-14 grid gap-x-10 gap-y-16 md:grid-cols-2">
         {demos.map((demo) => (
           <section id={demo.id} key={demo.id} className="min-w-0 scroll-mt-24">

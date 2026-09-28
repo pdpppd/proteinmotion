@@ -32,12 +32,21 @@ def main():
         "_gpu.py",
         "_blender_worker.py",
         "_eevee_geometry.py",
+        "_thread_geometry.py",
+        "studio.py",
+        "looks.py",
+        "styles.py",
+        "timeline.py",
         "nucleic.py",
         "shaders/molecule.wgsl",
         "shaders/text.wgsl",
         "shaders/panel.wgsl",
         "shaders/nv12.wgsl",
         "shaders/transparency.wgsl",
+        "shaders/studio_cartoon.wgsl",
+        "shaders/studio_post.wgsl",
+        "shaders/studio_splat.wgsl",
+        "shaders/studio_surface.wgsl",
         "fonts/SourceSans3-Regular.otf",
         "fonts/SourceSans3-Semibold.otf",
         "fonts/OFL.txt",
@@ -76,7 +85,59 @@ def main():
             assert len(frames) == 60 and frames[-1].width == 640
             assert frames[-1].to_ndarray(format="rgb24").std() > 5
             print(json.dumps(report, indent=2))
+            check_studio(movie / "1ubq.cif", work)
     print(f"Verified installed ProteinMotion {distribution.version}: {package}")
+
+
+def check_studio(structure, work):
+    """Exercise the installed authoring API, geometry, film effects and video encoder."""
+    import av
+    import numpy as np
+
+    from proteinmotion import (
+        FadeIn,
+        FadeOut,
+        Protein,
+        ProteinScene,
+        Representation,
+        Reveal,
+        StudioLook,
+        Text,
+        Thread,
+        Write,
+    )
+    from proteinmotion.studio import StudioRenderer
+
+    class InstalledStudio(ProteinScene):
+        renderer = "studio"
+        look = StudioLook(lighting="soft", material="medium", effects="film")
+
+        def construct(self):
+            protein = Protein.from_file(structure, chains="A").cartoon().center()
+            helix = protein.select(residue_range=(23, 34))
+            self.camera.frame(protein)
+            self.play(Thread(protein, glow=0).during(1), Write(Text("Installed Studio")).during(0.5))
+            self.play(Representation(protein, "surface", kind="vdw", grid_spacing=0.8), run_time=0.5)
+            self.play(Reveal(self.camera, helix, padding=2), run_time=0.5)
+            self.play(Representation(protein, "ball_and_stick"), run_time=0.5)
+            self.play(FadeOut(protein), run_time=0.25)
+            self.play(FadeIn(protein), run_time=0.25)
+
+    scene = InstalledStudio(width=640, height=360, fps=30).build()
+    with StudioRenderer(scene.width, scene.height, msaa=scene.msaa, look=scene.look) as renderer:
+        times = (0.7, 1.5, 2, 2.5, 3)
+        images = [scene.render_frame(time, renderer=renderer) for time in times]
+        for time, expected in reversed(list(zip(times, images))):
+            np.testing.assert_array_equal(scene.render_frame(time, renderer=renderer), expected)
+        assert all(image[:, :, :3].std() > 5 for image in images)
+        assert all(np.any(a != b) for a, b in zip(images, images[1:]))
+    output = work / "installed-studio.mp4"
+    report = scene.render(output, progress=False)
+    with av.open(output) as video:
+        frames = list(video.decode(video=0))
+    assert len(frames) == 90 and (frames[-1].width, frames[-1].height) == (640, 360)
+    assert frames[-1].to_ndarray(format="rgb24").std() > 5
+    print(json.dumps(report, indent=2))
 
 
 if __name__ == "__main__":

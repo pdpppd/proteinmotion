@@ -61,7 +61,14 @@ class PreviewControls:
             self.time = (self.time + delta) % self.duration
 
 
-def preview(scene, *, close_after=None):
+def preview(scene, *, close_after=None, renderer=None, look=None):
+    backend, look, _ = scene._render_settings(renderer, look, None)
+    if backend not in ("native", "studio"):
+        raise ValueError(
+            "Interactive preview supports renderer='native' or 'studio'; use render_frame for EEVEE"
+        )
+    if look is not None and backend != "studio":
+        raise ValueError("StudioLook settings require renderer='studio'")
     try:
         from rendercanvas.glfw import RenderCanvas, loop
     except ImportError as exc:
@@ -75,7 +82,12 @@ def preview(scene, *, close_after=None):
         update_mode="continuous",
         max_fps=60,
     )
-    renderer = Renderer(scene.width, scene.height, msaa=scene.msaa)
+    options = {}
+    if backend == "studio":
+        from .studio import StudioRenderer as Renderer
+
+        options["look"] = look
+    renderer = Renderer(scene.width, scene.height, msaa=scene.msaa, **options)
     context = canvas.get_wgpu_context()
     fmt = context.get_preferred_format(renderer.adapter)
     # The offscreen texture contains display-referred colors, so avoid a second sRGB encoding.
@@ -113,6 +125,8 @@ def preview(scene, *, close_after=None):
                 return
             proteins = scene.seek(controls.time)
             scene.camera.orbit(controls.theta, controls.phi).zoom(controls.zoom)
+            if hasattr(renderer, "set_time"):
+                renderer.set_time(controls.time)
             renderer.draw(proteins, scene.camera, scene.background)
             encoder = renderer.device.create_command_encoder()
             rp = encoder.begin_render_pass(

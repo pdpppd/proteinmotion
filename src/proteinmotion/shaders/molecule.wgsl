@@ -8,6 +8,8 @@ struct Camera {
     cutaway_surface: vec4<f32>,  // kept radius for cartoons, ribbons, bases and surfaces
     cutaway_tunnel: vec4<f32>,   // tunnel mode, outer-surface distance from the target, wall opacity, ring spacing
     cutaway_axis: vec4<f32>,     // tunnel direction from the target, fixed to the molecule
+    view_right: vec4<f32>,       // camera basis, for lights that follow the view
+    view_up: vec4<f32>,
 };
 struct Object {
     model: mat4x4<f32>,

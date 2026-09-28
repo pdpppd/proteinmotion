@@ -100,7 +100,7 @@ def test_depth_cue_animation_and_clearest_view(protein):
 def test_thread_wires_land_on_the_backbone(hemoglobin):
     p = hemoglobin
     scene = framed(p)
-    thread = Thread(p, scene.camera, settle=0.2, seed=2)
+    thread = Thread(p, scene.camera, mode="wire", settle=0.2, seed=2)
     scene.play(thread, run_time=4)
     wire = thread.wire
     assert len(wire.counts) == len(p.topology.chains) == 4
@@ -131,7 +131,7 @@ def test_thread_wires_land_on_the_backbone(hemoglobin):
 def test_unthread_mirrors_thread_and_stagger_orders_chains(hemoglobin):
     p = hemoglobin
     camera = framed(p).camera
-    forward, backward = Thread(p, camera, seed=5), Unthread(p, camera, seed=5)
+    forward, backward = Thread(p, camera, mode="wire", seed=5), Unthread(p, camera, mode="wire", seed=5)
     for anim in (forward, backward):
         anim.run_time, anim.start_time = 1.0, 0.0
         anim.bind()
@@ -140,7 +140,7 @@ def test_unthread_mirrors_thread_and_stagger_orders_chains(hemoglobin):
         a = forward.wire.positions.copy()
         backward.apply(1 - alpha)
         np.testing.assert_allclose(backward.wire.positions, a)
-    staggered = Thread(p, camera, stagger=0.2, seed=5)
+    staggered = Thread(p, camera, mode="wire", stagger=0.2, seed=5)
     staggered.run_time, staggered.start_time = 1.0, 0.0
     staggered.bind()
     staggered.apply(0.15)
@@ -161,7 +161,7 @@ def test_unthread_mirrors_thread_and_stagger_orders_chains(hemoglobin):
 def test_thread_wire_colors_follow_residue_tints(hemoglobin):
     p = hemoglobin
     p.select(chain="A").set_color("#ff0000")
-    thread = Thread(p, framed(p).camera, settle=0.0, glow_color="#00ff00", glow_brightness=2.0)
+    thread = Thread(p, framed(p).camera, mode="wire", settle=0.0, glow_color="#00ff00", glow_brightness=2.0)
     thread.run_time, thread.start_time = 1.0, 0.0
     thread.bind()
     thread.apply(1.0)
@@ -201,7 +201,7 @@ def test_gpu_cutaway_glow_and_tunnel(hemoglobin):
     for s, glow in ((lit, 14.0), (dark, 0.0)):
         protein = Protein.from_file(DATA / "4hhb.cif").cartoon().center()
         s.camera.frame(protein, aspect=1.5)
-        s.play(Thread(protein, s.camera, glow=glow, glow_brightness=2.0, seed=1), run_time=2)
+        s.play(Thread(protein, s.camera, mode="wire", glow=glow, glow_brightness=2.0, seed=1), run_time=2)
     with Renderer(384, 256, msaa=1) as renderer:
         a = lit.render_frame(1.4, renderer=renderer).astype(int)
         b = dark.render_frame(1.4, renderer=renderer).astype(int)
@@ -242,7 +242,7 @@ def test_eevee_export_applies_cutaway_tunnel_glow_and_rulers(hemoglobin):
     )
     # Wire tips export glow halos, with the configured brightness.
     thread_scene = framed(p)
-    thread = Thread(p, thread_scene.camera, glow_brightness=1.5, seed=1)
+    thread = Thread(p, thread_scene.camera, mode="wire", glow_brightness=1.5, seed=1)
     thread_scene.play(thread, run_time=2)
     thread_scene.seek(0.8)
     meshes = MeshExporter().meshes(thread.wire)
@@ -287,7 +287,7 @@ def test_eevee_real_cutaway_glow_fog_and_background(hemoglobin):
         for s, glow in ((lit, 14.0), (dark, 0.0)):
             protein = Protein.from_file(DATA / "4hhb.cif").cartoon().center()
             s.camera.frame(protein, aspect=1.5)
-            s.play(Thread(protein, s.camera, glow=glow, glow_brightness=2.0, seed=1), run_time=2)
+            s.play(Thread(protein, s.camera, mode="wire", glow=glow, glow_brightness=2.0, seed=1), run_time=2)
         a = lit.render_frame(1.4, renderer=renderer).astype(int)
         b = dark.render_frame(1.4, renderer=renderer).astype(int)
         assert (a[:, :, :3] - b[:, :, :3]).sum() > 3000

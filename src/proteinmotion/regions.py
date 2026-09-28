@@ -12,19 +12,59 @@ from .structure import Atom, Residue, Topology
 class Region:
     """An atom-index selection that reads its parent's current coordinates."""
 
-    def __init__(self, protein, atom_indices):
+    def __init__(self, protein, atom_indices, *, allow_empty=False):
         ids = np.asarray(atom_indices)
-        if ids.ndim != 1 or ids.dtype.kind not in "iu" or not len(ids):
+        if ids.size == 0 and allow_empty:
+            ids = np.array([], dtype=int)
+        if ids.ndim != 1 or ids.dtype.kind not in "iu" or (not len(ids) and not allow_empty):
             raise ValueError("A region needs a nonempty list of integer atom indices")
-        if ids.min() < 0 or ids.max() >= len(protein.topology.atoms):
+        if len(ids) and (ids.min() < 0 or ids.max() >= len(protein.topology.atoms)):
             raise ValueError("Region atom index is out of bounds")
         self.protein = protein
-        self.atom_indices = np.unique(ids)
-        self.atom_indices.flags.writeable = False
-        self.residue_indices = np.unique([protein.topology.atoms[i].residue_index for i in self.atom_indices])
-        self.residue_indices.flags.writeable = False
+        self._atom_indices = np.unique(ids)
+        self._atom_indices.flags.writeable = False
+        self._query = None
         self._topology = protein.topology
         self._keys = protein.topology.keys
+
+    @property
+    def atom_indices(self):
+        if self._query is not None:
+            selected = Region.select(self.protein, **self._query, required=False)
+            return selected.atom_indices if selected is not None else np.array([], dtype=int)
+        return self._atom_indices
+
+    @property
+    def residue_indices(self):
+        return np.unique([self.protein.topology.atoms[i].residue_index for i in self.atom_indices]).astype(
+            int
+        )
+
+    @property
+    def residue_ids(self):
+        """Author identities (chain, residue number, insertion code)."""
+        return tuple(
+            (r.chain, r.resid, r.icode)
+            for r in (self.protein.topology.residues[i] for i in self.residue_indices)
+        )
+
+    def __len__(self):
+        return len(self.atom_indices)
+
+    def __bool__(self):
+        return len(self) > 0
+
+    def __repr__(self):
+        return f"Region({len(self)} atoms, {len(self.residue_indices)} residues, {'updating' if self._query else 'static'})"
+
+    def freeze(self):
+        """Capture the current membership of an updating region."""
+        return Region(self.protein, self.atom_indices, allow_empty=True)
+
+    def filter(self, **criteria):
+        """Filter within this region using the protein selection vocabulary."""
+        selected = Region.select(self.protein, **criteria, required=False)
+        return self & selected if selected is not None else Region(self.protein, [], allow_empty=True)
 
     @classmethod
     def select(
@@ -40,12 +80,50 @@ class Region:
         water=False,
         within=None,
         of=None,
+        residue_range=None,
+        element=None,
+        secondary=None,
+        polymer=None,
+        icode=None,
+        required=True,
+        updating=False,
     ):
         """Residue numbers are PDB/auth numbers. A two-item tuple is an inclusive range.
 
         Criteria combine with AND, except the ligands/ions/water categories, which
         combine with each other. ``within`` measures the current coordinates once.
         """
+        if updating:
+            options = dict(
+                chain=chain,
+                residues=residues,
+                atoms=atoms,
+                resname=resname,
+                ligands=ligands,
+                ions=ions,
+                water=water,
+                within=within,
+                of=of,
+                residue_range=residue_range,
+                element=element,
+                secondary=secondary,
+                polymer=polymer,
+                icode=icode,
+            )
+            initial = cls.select(protein, **options, required=False)
+            result = cls(protein, [] if initial is None else initial.atom_indices, allow_empty=True)
+            result._query = options
+            return result
+        if residue_range is not None:
+            if residues is not None:
+                raise ValueError("Choose residues (individual IDs) or residue_range (inclusive bounds)")
+            residues = tuple(residue_range)
+
+        def choices(value, upper=False):
+            values = None if value is None else {value} if isinstance(value, str) else set(value)
+            return {v.upper() for v in values} if values is not None and upper else values
+
+        elements, structures, codes = choices(element, True), choices(secondary, True), choices(icode)
         chains = None if chain is None else {chain} if isinstance(chain, str) else set(chain)
         names = None if atoms is None else {atoms} if isinstance(atoms, str) else set(atoms)
         if names is not None:
@@ -54,7 +132,7 @@ class Region:
         if resnames is not None:
             resnames = {n.upper() for n in resnames}
         categories = {c for c, on in (("ligand", ligands), ("ion", ions), ("water", water)) if on}
-        residue_categories = protein.topology.residue_categories if categories else None
+        residue_categories = protein.topology.residue_categories
         near = None
         if (within is None) != (of is None):
             raise ValueError("Use within and of together, e.g. within=5.0, of=ligand")
@@ -81,12 +159,20 @@ class Region:
             and (numbers is None or atom.resid in numbers)
             and (names is None or atom.name.replace("*", "'") in names)
             and (resnames is None or atom.resname.upper() in resnames)
-            and (residue_categories is None or residue_categories[atom.residue_index] in categories)
+            and (not categories or residue_categories[atom.residue_index] in categories)
+            and (polymer is None or (residue_categories[atom.residue_index] == "polymer") == polymer)
+            and (elements is None or atom.element.upper() in elements)
+            and (structures is None or protein.topology.residues[atom.residue_index].secondary in structures)
+            and (codes is None or atom.icode in codes)
             and (near is None or near[atom.residue_index])
         ]
         if not ids:
+            if not required:
+                return None
+            chains_available = sorted({a.chain for a in protein.topology.atoms})
             raise ValueError(
-                "Selection contains no atoms; check chain, residue numbers, names, categories and distance"
+                f"Selection contains no atoms; available chains: {chains_available}. "
+                "Inspect protein.summary() or use required=False for optional selections"
             )
         return cls(protein, np.array(ids, dtype=int))
 
@@ -114,10 +200,26 @@ class Region:
         m = self.model_matrix
         return self.positions @ m[:3, :3].T + m[:3, 3]
 
-    def __or__(self, other):
+    def _combine(self, other, operation):
         if not isinstance(other, Region) or other.protein is not self.protein:
             raise ValueError("Combine regions from the same Protein object")
-        return Region(self.protein, np.union1d(self.atom_indices, other.atom_indices))
+        return Region(self.protein, operation(self.atom_indices, other.atom_indices), allow_empty=True)
+
+    def __or__(self, other):
+        return self._combine(other, np.union1d)
+
+    def __and__(self, other):
+        return self._combine(other, np.intersect1d)
+
+    def __sub__(self, other):
+        return self._combine(other, np.setdiff1d)
+
+    def __invert__(self):
+        return Region(
+            self.protein,
+            np.setdiff1d(np.arange(len(self.protein.topology.atoms)), self.atom_indices),
+            allow_empty=True,
+        )
 
     def highlight(self, *, style="sphere", color="#f2ba67", opacity=None, padding=None, line_width=0.12):
         return RegionHighlight(

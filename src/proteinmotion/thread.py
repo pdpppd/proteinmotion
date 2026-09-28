@@ -1,4 +1,4 @@
-"""Thread a protein into view: a wire flies in and traces each chain from C to N terminus."""
+"""Thread molecular geometry (or optional wires) into view along seeded flight paths."""
 
 import numpy as np
 
@@ -6,7 +6,7 @@ from .animation import Animation
 from .geometry import residue_colors
 from .math3d import color as parse_color
 from .protein import Protein
-from .rates import ease_in_out_sine, linear
+from .rates import ease_in_out_sine, linear, smooth
 from .structure import Atom, Residue, Topology
 from .styling import current_tints
 
@@ -69,6 +69,7 @@ class _Strand:
         self.path = np.vstack((flight, backbone[1:]))
         self.s = _arc_length(self.path)
         self.flight_length = float(_arc_length(flight)[-1])
+        self.backbone_s = _arc_length(backbone)
         self.length = float(_arc_length(backbone)[-1])  # The wire is as long as the backbone.
         self.total = float(self.s[-1])
         # Colors belong to the route: the flight takes the C-terminal color.
@@ -127,19 +128,24 @@ class _Wire(Protein):
 
 
 class Thread(Animation):
-    """Fly a wire in along a curved path and thread each chain from its C to N terminus.
+    """Thread the actual cartoon, ribbon, or ball-and-stick geometry into view.
 
-    Every traced chain gets its own wire, entering from a different side of the screen.
-    Each wire joins the backbone at the C terminus and follows it to the N terminus, until
-    it lies along the cartoon's centerline; the protein then fades in as the wire fades out
-    over the last ``settle`` fraction of the clip. Wires are illustrations; the flight
-    paths are seeded curves, not physical motion. Pass the scene camera so wires start
+    Every traced chain gets its own route, entering from a different side of the screen.
+    Geometry follows a route through the C terminus toward the N terminus. Residues
+    and bound ligands move as rigid groups. The default easing is quintic ``smooth``
+    over the full clip; pass a bounded rate function to customize travel.
+    Surface representations are unsupported. Motion is illustrative, not dynamics.
+
+    ``mode="wire"`` retains the original wire-to-protein crossfade and defaults to
+    sine easing; ``settle`` controls the final crossfade in wire mode only.
+    Pass the scene camera so geometry starts
     just off-screen; ``swirl`` scales the corkscrew of the flight and ``seed`` varies the
     paths. ``easing`` maps clip time to head travel (any rate function, such as ``smooth``).
-    ``stagger`` delays each chain's start by that fraction of the threading time, in chain
-    order, so the wires arrive one after another.
+    ``stagger`` delays each chain's start by that fraction of the clip, in chain
+    order, so the chains arrive one after another. Set ``aspect`` to the scene's
+    width/height for a non-16:9 frame.
 
-    Each head glows: ``glow`` sets the halo radius as a multiple of the wire radius (0
+    Each head glows: ``glow`` sets the halo radius as a multiple of ``radius`` (0
     disables it), ``glow_color`` its color (default: the chain color blended with warm
     white), and ``glow_brightness`` its intensity.
     """
@@ -152,30 +158,79 @@ class Thread(Animation):
         protein,
         camera=None,
         *,
+        mode="geometry",
+        aspect=None,
         radius=0.45,
-        settle=0.15,
+        settle=None,
         swirl=1.0,
-        head=1.8,
+        head=None,
         glow=12.0,
         glow_color=None,
         glow_brightness=1.0,
-        easing=ease_in_out_sine,
+        easing=None,
         stagger=0.0,
-        resolution=0.8,
+        resolution=None,
         seed=0,
         rate_func=None,
+        delay_seconds=None,
+        stagger_fraction=None,
+        wire_options=None,
     ):
+        self._implicit_aspect = aspect is None
+        aspect = getattr(camera, "aspect", 16 / 9) if aspect is None else aspect
+        if wire_options is not None:
+            if mode != "wire":
+                raise ValueError("wire_options requires mode='wire'")
+            if set(wire_options) - {"settle", "head", "resolution"}:
+                raise ValueError("wire_options supports settle, head, and resolution")
+            settle = wire_options.get("settle", settle)
+            head = wire_options.get("head", head)
+            resolution = wire_options.get("resolution", resolution)
+        if mode == "geometry" and any(v is not None for v in (settle, head, resolution)):
+            import warnings
+
+            warnings.warn(
+                "settle, head and resolution affect wire mode only; omit them for geometry threading",
+                UserWarning,
+                stacklevel=2,
+            )
+        settle, head, resolution = (
+            0.15 if settle is None else settle,
+            1.8 if head is None else head,
+            0.8 if resolution is None else resolution,
+        )
+        if delay_seconds is not None and (not np.isfinite(delay_seconds) or delay_seconds < 0):
+            raise ValueError("delay_seconds must be finite and nonnegative")
+        if stagger_fraction is not None:
+            if not np.isfinite(stagger_fraction) or not 0 <= stagger_fraction < 1:
+                raise ValueError("stagger_fraction must be in [0, 1)")
+            if stagger or delay_seconds is not None:
+                raise ValueError("Choose stagger_fraction, delay_seconds, or legacy stagger")
+            stagger = stagger_fraction / max(1, len(protein.topology.chains) - 1)
+        if delay_seconds is not None and stagger:
+            raise ValueError("Choose delay_seconds or legacy stagger")
+        self.delay_seconds = delay_seconds
         if not isinstance(protein, Protein):
             raise TypeError("Thread needs a Protein")
         if not protein.topology.chains:
             raise ValueError("Thread needs at least one traced chain")
+        if mode not in ("geometry", "wire"):
+            raise ValueError("Thread mode must be 'geometry' or 'wire'")
+        if protein.surface_opacity > 0:
+            raise ValueError(
+                "Thread does not support surface representation; use cartoon, ribbon or ball_and_stick"
+            )
+        if not np.isfinite(aspect) or aspect <= 0:
+            raise ValueError("aspect must be finite and positive")
+        easing = (smooth if mode == "geometry" else ease_in_out_sine) if easing is None else easing
         for name, value in (("glow", glow), ("glow_brightness", glow_brightness)):
             if not np.isfinite(value) or value < 0:
                 raise ValueError(f"{name} must be finite and nonnegative")
         if not np.isfinite(stagger) or stagger < 0:
             raise ValueError("stagger must be finite and nonnegative")
-        if not callable(easing):
-            raise TypeError("easing must be a function such as ease_in_out_sine or smooth")
+        from .rates import resolve
+
+        easing = resolve(easing)
         for name, value in (("radius", radius), ("head", head), ("resolution", resolution)):
             if not np.isfinite(value) or value <= 0:
                 raise ValueError(f"{name} must be finite and positive")
@@ -184,6 +239,9 @@ class Thread(Animation):
         if not np.isfinite(swirl) or swirl < 0:
             raise ValueError("swirl must be finite and nonnegative")
         super().__init__(protein, rate_func=rate_func or linear)
+        self.mode, self.aspect = mode, float(aspect)
+        if mode == "geometry":
+            self.channels = self.channels | {"geometry", "representation"}
         self.camera, self.settle, self.swirl, self.seed = camera, float(settle), float(swirl), int(seed)
         self.head_scale, self.resolution = float(head), float(resolution)
         self.easing, self.glow_brightness, self.stagger = easing, float(glow_brightness), float(stagger)
@@ -193,8 +251,14 @@ class Thread(Animation):
         # The number of wire points is fixed now; routes follow the coordinates at bind time.
         routes = [self._backbone(protein, chain)[0] for chain in protein.topology.chains]
         counts = [max(8, int(np.ceil(_arc_length(r)[-1] / self.resolution)) + 1) for r in routes]
+        if mode == "geometry":
+            counts = [1] * len(routes)  # Only head halos; no dense wire mesh.
         self.wire = _Wire(protein, counts, radius)
         self.wire.glow_size = float(glow)
+        if mode == "geometry":
+            # Reuse the head-halo helper, with no wire geometry drawn.
+            self.wire.representation = np.zeros(3)
+            self.wire.hide_atoms()
 
     @property
     def targets(self):
@@ -206,9 +270,32 @@ class Thread(Animation):
         # The wire enters at the C terminus, so the route runs from the last residue back.
         return _catmull(protein.positions[trace][::-1], 8), np.asarray(chain)[::-1]
 
+    def _prepare(self, scene):
+        if self.camera is None:
+            self.camera = scene.camera
+        if self._implicit_aspect:
+            self.aspect = scene.width / scene.height
+
+    def _set_easing(self, easing):
+        from .rates import resolve
+
+        self.easing = resolve(easing)
+
     def bind(self):
-        super().bind()
         p = self.target
+        if p.surface_opacity > 0:
+            raise ValueError(
+                "Thread does not support surface representation; use cartoon, ribbon or ball_and_stick"
+            )
+        super().bind()
+        if self.delay_seconds is not None:
+            self.stagger = self.delay_seconds / getattr(self, "run_time", 1.0)
+            if (len(self.target.topology.chains) - 1) * self.stagger >= 1:
+                raise ValueError(
+                    "delay_seconds leaves no time for chain motion; reduce it or increase run_time"
+                )
+
+        self.original = p.snapshot()
         self.end_opacity = p.opacity
         m = p.model_matrix
         world = p.positions @ m[:3, :3].T + m[:3, 3]
@@ -225,7 +312,7 @@ class Thread(Animation):
             up = np.cross(right, forward)
             depth = float(np.dot(center - self.camera.eye, forward))
             half_height = depth * np.tan(self.camera.fov / 2)
-            half_width = half_height * 16 / 9
+            half_width = half_height * self.aspect
         else:
             forward, right, up = np.array([0, 0, -1.0]), np.array([1.0, 0, 0]), np.array([0, 1.0, 0])
             half_width = half_height = 2.0 * radius
@@ -281,6 +368,20 @@ class Thread(Animation):
             colors = self._route_colors(palette, route, residues)
             self.strands.append(_Strand(route, flight_local, colors))
         self._combined = None
+        if self.mode == "geometry":
+            from ._thread_geometry import ThreadGeometry
+
+            self.geometry = ThreadGeometry(p, self.strands)
+            # Coordinate interpolation and its visibility clock may be mid-morph
+            # at bind time. Freeze that visibility while transporting coordinates.
+            controls = p._controls.copy()
+            clock = np.clip((p._mix - controls[:, 6]) / np.maximum(controls[:, 7], 1e-8), 0, 1)
+            clock = clock * clock * clock * (10 + clock * (-15 + 6 * clock))
+            alpha = (1 - clock) * controls[:, 4] + clock * controls[:, 5]
+            controls[:, 2] = 0
+            controls[:, 4:6] = alpha[:, None]
+            controls.flags.writeable = False
+            self.geometry_controls = controls
 
     def _corkscrew(self, flight, rng, radius):
         """Coil around the flight curve on a twist-free frame, fading out before the approach."""
@@ -310,6 +411,8 @@ class Thread(Animation):
         alpha = float(alpha)
         if self.reverse_time:
             alpha = 1 - alpha
+        if self.mode == "geometry":
+            return self._apply_geometry(alpha)
         thread_end = 1 - self.settle
         t = min(alpha / thread_end, 1.0) if thread_end > 0 else 1.0
         fade = 0.0 if alpha <= thread_end else (alpha - thread_end) / max(self.settle, 1e-9)
@@ -347,8 +450,32 @@ class Thread(Animation):
         wire.glow_heads = (np.array(heads), np.array(head_colors), np.array(strengths))
         self.target.opacity = self.end_opacity * fade
 
+    def _apply_geometry(self, alpha):
+        p = self.target
+        if p.surface_opacity > 0:
+            raise ValueError(
+                "Thread does not support surface representation; use cartoon, ribbon or ball_and_stick"
+            )
+        span = 1 - (len(self.strands) - 1) * self.stagger
+        clocks = np.clip((alpha - np.arange(len(self.strands)) * self.stagger) / span, 0, 1)
+        xyz, heads, strengths = self.geometry.evaluate(clocks, self.easing)
+        if alpha >= 1:
+            s = self.original
+            p._pair(s["a"], s["b"], s["mix"], s["key_a"], s["key_b"])
+            p._controls = s["controls"]
+        else:
+            p.set_positions(xyz)
+            p._controls = self.geometry_controls
+        p.opacity = self.end_opacity if alpha > 0 else 0.0
+        colors = np.array([strand.colors[-1] for strand in self.strands])
+        colors = 0.45 * colors + 0.55 * np.array([1.0, 0.95, 0.85])
+        if self.glow_color is not None:
+            colors[:] = self.glow_color
+        self.wire.glow_heads = (heads, colors, strengths * self.glow_brightness)
+        self.wire.opacity = float(0 < alpha < 1)
+
 
 class Unthread(Thread):
-    """Fade the protein into its wires, then pull them out along curved paths off-screen."""
+    """Reverse Thread: pull molecular geometry (or optional wires) out of view."""
 
     reverse_time = True

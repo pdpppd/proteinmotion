@@ -13,6 +13,8 @@ class Camera:
         self.depth_cue = 0.65
         self.radius = 20.0
         self._tracking = None
+        self.aspect = 16 / 9
+        self._screen_position = (0.5, 0.5)
         self.dof = False
         self.fstop = 5.6
         self._focus_target = None
@@ -53,6 +55,23 @@ class Camera:
         self._focus_point = point
         self._focus_target = target if follow and hasattr(target, "positions") else None
         return self
+
+    def lens_focus(self, target, *, fstop=5.6, follow=True):
+        """Set depth of field without changing framing (EEVEE)."""
+        return self.set_focus(target, fstop=fstop, follow=follow)
+
+    def composition_offset(self, screen_position=None, *, distance=None, aspect=None):
+        """World offset placing the subject at a normalized top-left screen position."""
+        xy = np.asarray(self._screen_position if screen_position is None else screen_position, float)
+        if xy.shape != (2,) or not np.isfinite(xy).all() or ((xy < 0) | (xy > 1)).any():
+            raise ValueError("screen_position needs two normalized coordinates in [0, 1]")
+        half_height = (self.distance if distance is None else distance) * np.tan(self.fov / 2)
+        aspect = self.aspect if aspect is None else aspect
+        right = np.array([np.cos(self.theta), 0, -np.sin(self.theta)])
+        up = np.array(
+            [-np.sin(self.phi) * np.sin(self.theta), np.cos(self.phi), -np.sin(self.phi) * np.cos(self.theta)]
+        )
+        return 2 * half_height * (-right * (xy[0] - 0.5) * aspect + up * (xy[1] - 0.5))
 
     @staticmethod
     def _target_point(target):
@@ -148,7 +167,8 @@ class Camera:
         theta = self.theta + (theta - self.theta + np.pi) % (2 * np.pi) - np.pi
         return float(theta), float(phi)
 
-    def frame(self, *proteins, margin=1.25, aspect=16 / 9):
+    def frame(self, *proteins, margin=1.25, aspect=None, screen_position=(0.5, 0.5)):
+        aspect = self.aspect if aspect is None else aspect
         if not proteins or not np.isfinite(margin) or margin <= 0 or not np.isfinite(aspect) or aspect <= 0:
             raise ValueError("frame needs targets and positive finite margin/aspect values")
         points = np.concatenate(
@@ -158,12 +178,14 @@ class Camera:
         self.radius = max(float(np.linalg.norm(points - self.target, axis=1).max()) + 2, 1.0)
         half_fov = min(self.fov / 2, np.arctan(np.tan(self.fov / 2) * aspect))
         self.distance = self.radius * margin / np.sin(half_fov)
+        self.target += self.composition_offset(screen_position, aspect=aspect)
+        self.aspect, self._screen_position = aspect, tuple(screen_position)
         self._tracking = None
         return self
 
-    def focus(self, target, *, margin=1.25, aspect=16 / 9, follow=True):
+    def focus(self, target, *, margin=1.25, aspect=None, follow=True, screen_position=(0.5, 0.5)):
         """Immediately frame a Protein or Region, optionally tracking its moving center."""
-        self.frame(target, margin=margin, aspect=aspect)
+        self.frame(target, margin=margin, aspect=aspect, screen_position=screen_position)
         self._tracking = target if follow else None
         return self
 
@@ -173,7 +195,7 @@ class Camera:
             target = self._tracking
             m = target.model_matrix
             points = target.positions @ m[:3, :3].T + m[:3, 3]
-            self.target = (points.min(0) + points.max(0)) / 2
+            self.target = (points.min(0) + points.max(0)) / 2 + self.composition_offset()
 
     def orbit(self, theta=0.0, phi=0.0):
         self.theta += theta

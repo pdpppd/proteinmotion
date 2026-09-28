@@ -29,7 +29,11 @@ For a new project, `proteinmotion init movie` creates `movie/film.py` and `movie
 
 Load inputs and inspect chain IDs, residue numbers, atom availability, bound ligands and ions (`p.topology.residue_categories`), and state counts before choosing labels or analyses. Cartoons draw ligands, ions, and loaded waters by default; hide crystallization additives that are not part of the story. Resolve structure paths relative to `Path(__file__).parent` so the script works from any current directory. Keep input structures alongside the script or use explicit user paths.
 
-Compose a normal `ProteinScene.construct()` with `add`, `play`, and `wait`. Configure each object's initial geometry, palette, radii, and transform **before adding it**; frame the camera before the first `play`/`wait`. Use animations for subsequent changes so seeking and export reproduce the timeline. Clip durations add up; `run_time` belongs to `play`, not animation constructors. Angles are radians and coordinates are Å.
+Compose a normal `ProteinScene.construct()` with `add`, `play`, and `wait`. Ordinary setters are recorded at the current authoring time, including after `add()`. Use animations for interpolated changes. Frame the camera before the first `play`/`wait`; it inherits the scene aspect ratio. Clip durations add up; `run_time` belongs to `play`, while `animation.during(seconds, delay=...)` gives concurrent actions independent timing. Angles are radians and coordinates are Å. Set topology and secondary-structure assignments before building the timeline.
+
+Use `protein.select(residue_range=(23, 34))` for an inclusive range, `~region` for its complement, and `a | b` or `a & b` for selection unions or intersections. Fluent chains can combine style changes: `region.animate.set_color("#ffc46b").show_atoms()`. `SetOpacity(protein, value)` changes the global object multiplier; use `SetOpacity(protein, value, scope="residues")` to reset all local opacity multipliers. `Representation(protein, "surface", kind="vdw", grid_spacing=0.6)` configures the representation at the transition.
+
+Store `renderer = "studio"` and `look = StudioLook(lighting="soft", material="medium", effects="clean")` on the scene class to share settings between preview, stills, and video. Studio also supports the `studio`, `dramatic`, and `flat` lighting presets, `rough` and `glossy` materials, and `subtle`, `film`, or `dreamy` effect recipes. The native renderer remains available. See the [Studio guide](https://pdpppd.github.io/proteinmotion/docs/studio/) for individual grain, bloom, halation, and geometry controls.
 
 For an explanatory tour, prefer a continuous model and eased focus/representation transitions when they suit the user's storyboard. Leave enough time to read callouts. If the user wants cuts or a montage, follow that direction. Render at 60 fps for smooth final motion unless the user specifies otherwise.
 
@@ -37,7 +41,7 @@ Read only the relevant supporting reference:
 
 - [DNA and RNA](references/nucleic-acids.md): nucleotide backbones, base styles, modified residues, surfaces, color, opacity, and trajectories.
 - [Ligands, ions, and side chains](references/ligands-and-side-chains.md): default ligand/ion display, category and distance selectors, `ShowSideChains`/`ShowAtoms`, colors, and binding-site storyboards.
-- [Cutaways, depth tunnels, and threading](references/cutaways-and-threading.md): revealing hidden selections, showing their depth, and threading chains into view with glowing wires.
+- [Cutaways, depth tunnels, and threading](references/cutaways-and-threading.md): revealing hidden selections, showing their depth, and threading cartoon or ball-and-stick geometry into view, with an optional wire mode.
 - [Animation and state changes](references/animation.md): representations, residue styling, timelines, trajectories, same-topology deformation, and different-protein contact-map morphs.
 - [Numerical values, plots, and density](references/data-visualization.md): B factors, RMSF, custom residue values, synchronized plots, MRC/CCP4 contours, and slices.
 - [Annotations and interactions](references/annotations-and-interactions.md): selectors, focus, text, 3D regions, distance rulers, hydrogen bonds, and imported-charge electrostatics.

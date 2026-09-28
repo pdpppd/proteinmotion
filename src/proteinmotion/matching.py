@@ -307,6 +307,27 @@ class ContactMatch:
             object.__setattr__(self, name, values)
 
     @classmethod
+    def from_residues(cls, source, target, pairs):
+        """Match author residue IDs: [((chain, number, insertion), (chain, number, insertion)), ...]."""
+
+        def lookup(protein, identity):
+            if len(identity) == 2:
+                identity = (*identity, "")
+            found = [
+                i
+                for i, r in enumerate(protein.topology.residues)
+                if (r.chain, r.resid, r.icode) == tuple(identity)
+            ]
+            if len(found) != 1:
+                raise ValueError(f"Residue identity {identity!r} must identify exactly one residue")
+            return found[0]
+
+        pairs = list(pairs)
+        return cls.from_pairs(
+            source, target, [lookup(source, a) for a, _ in pairs], [lookup(target, b) for _, b in pairs]
+        )
+
+    @classmethod
     def from_pairs(cls, source, target, source_indices, target_indices):
         """Use explicit topology residue-index correspondences instead of automatic search."""
         a, b = np.asarray(source_indices), np.asarray(target_indices)

@@ -28,6 +28,7 @@ class DensityMap:
         data = np.asarray(values)
         if data.ndim != 3 or min(data.shape) < 2 or data.size > max_voxels:
             raise ValueError("Density needs a 3D grid with at least 2 samples per axis, within max_voxels")
+        self._follow = None
         self.periodic = bool(periodic)
         self.values = np.array(data, dtype=np.float32, copy=True, order="C")
         if not np.isfinite(self.values).all():
@@ -50,6 +51,15 @@ class DensityMap:
         self.values.flags.writeable = self.origin.flags.writeable = self.basis.flags.writeable = False
         self.mean, self.std = float(self.values.mean(dtype=float)), float(self.values.std(dtype=float))
         self.minimum, self.maximum = float(self.values.min()), float(self.values.max())
+
+    def attach_to(self, protein):
+        """Associate future surfaces/slices with this protein's scene transform."""
+        from .protein import Protein
+
+        if not isinstance(protein, Protein):
+            raise TypeError("Attach density to a Protein")
+        self._follow = protein
+        return self
 
     @classmethod
     def from_file(cls, path, *, origin="auto", max_voxels=32_000_000):
@@ -150,18 +160,36 @@ class DensityMap:
             max_voxels=max(self.values.size, values.size),
         )
         cropped.mean, cropped.std = self.mean, self.std
+        cropped._follow = region.protein
         return cropped
 
     def isosurface(self, level=1.0, *, units="sigma", color="#75d5cb", opacity=0.3, step_size=1, follow=None):
         """Create a shaded surface at an absolute or mean-plus-sigma contour level."""
         return DensitySurface(
-            self, level, units=units, color=color, opacity=opacity, step_size=step_size, follow=follow
+            self,
+            level,
+            units=units,
+            color=color,
+            opacity=opacity,
+            step_size=step_size,
+            follow=self._follow if follow is None else None if follow is False else follow,
         )
 
-    def slice(self, axis="z", position=0.5, *, scale=None, opacity=1.0, resolution=128, follow=None):
+    def slice(
+        self, axis="z", position=0.5, *, scale=None, opacity=1.0, resolution=None, samples=None, follow=None
+    ):
         """Create a colored plane at a fractional grid position in [0, 1]."""
+        if resolution is not None and samples is not None:
+            raise ValueError("Use samples or its legacy alias resolution, not both")
+        count = samples if samples is not None else 128 if resolution is None else resolution
         return DensitySlice(
-            self, axis, position, scale=scale, opacity=opacity, resolution=resolution, follow=follow
+            self,
+            axis,
+            position,
+            scale=scale,
+            opacity=opacity,
+            resolution=count,
+            follow=self._follow if follow is None else None if follow is False else follow,
         )
 
 
@@ -296,14 +324,10 @@ class DensityAnimate(Animate):
     """Fluent contour or slice animation, plus the usual mesh transforms and fades."""
 
     def set_level(self, level):
-        if self.operations:
-            raise ValueError("Play contour and transform animations separately")
-        return _DensityParameter(self.target, "level", level)
+        return self._extra(_DensityParameter(self.target, "level", level))
 
     def set_slice(self, position):
-        if self.operations:
-            raise ValueError("Play slice and transform animations separately")
-        return _DensityParameter(self.target, "coordinate", position)
+        return self._extra(_DensityParameter(self.target, "coordinate", position))
 
 
 class _DensityParameter(Animation):

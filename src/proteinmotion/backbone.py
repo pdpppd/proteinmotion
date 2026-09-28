@@ -4,7 +4,7 @@ import numpy as np
 
 from .animation import Animation
 from .matching import ContactMatch, fit_transform, match_backbones, morph_anchors
-from .rates import linear
+from .rates import evaluate, linear, resolve, smooth
 from .structure import coordinates
 
 
@@ -37,21 +37,37 @@ class BackboneMorph(Animation):
         fade_in=(0.65, 1.0),
         align=True,
         motion_easing="smooth",
+        easing=None,
+        delay_seconds=None,
+        stagger_fraction=None,
         **match_options,
     ):
         super().__init__(source, rate_func=linear)
         if source is destination:
             raise ValueError("BackboneMorph needs two different Protein objects")
+        residue_delay = residue_delay if delay_seconds is None else delay_seconds
+        if stagger_fraction is not None and (
+            not np.isfinite(stagger_fraction) or not 0 <= stagger_fraction < 1
+        ):
+            raise ValueError("stagger_fraction must be in [0, 1)")
+        self.stagger_fraction = stagger_fraction
         if not np.isfinite(residue_delay) or residue_delay < 0:
             raise ValueError("residue_delay must be finite and nonnegative")
         for interval in (fade_out, fade_in):
             if len(interval) != 2 or not 0 <= interval[0] < interval[1] <= 1:
                 raise ValueError("Fade intervals must satisfy 0 <= start < end <= 1")
-        if motion_easing not in ("smooth", "linear"):
-            raise ValueError("motion_easing must be 'smooth' or 'linear'")
+        motion_easing = resolve(motion_easing if easing is None else easing)
         self.destination, self.match = destination, match
         self.residue_delay, self.fade_out, self.fade_in = residue_delay, fade_out, fade_in
         self.align, self.motion_easing, self.match_options = align, motion_easing, match_options
+
+    @property
+    def result(self):
+        """The destination object to select, label and animate after this morph."""
+        return self.destination
+
+    def _set_easing(self, easing):
+        self.motion_easing = resolve(easing)
 
     @property
     def targets(self):
@@ -97,6 +113,8 @@ class BackboneMorph(Animation):
                 raise ValueError(f"Saved {endpoint} morph anchor {stored!r} does not match {anchor!r}")
         self.source_anchor_indices, self.target_anchor_indices = ac, bc
         self.run_time = getattr(self, "run_time", 1.0)
+        if self.stagger_fraction is not None:
+            self.residue_delay = self.run_time * self.stagger_fraction / max(1, len(a) - 1)
         span = self.run_time - (len(a) - 1) * self.residue_delay
         if span <= 0:
             raise ValueError(
@@ -119,7 +137,7 @@ class BackboneMorph(Animation):
         dr = np.array([atom.residue_index for atom in dest.topology.atoms])
         self.source_controls = self._controls(source, 1, 0, self.fade_out)
         self.destination_controls = self._controls(dest, 0, 1, self.fade_in)
-        easing = 2 if self.motion_easing == "smooth" else 1
+        easing = 2 if self.motion_easing is smooth else 1
         for rank, (si, ti, satom, tatom) in enumerate(zip(a, b, ac, bc)):
             s_mask, d_mask = sr == si, dr == ti
             delta = tw[tatom] - sw[satom]
@@ -155,5 +173,18 @@ class BackboneMorph(Animation):
         dest._pair(self.destination_start, self.destination_end, alpha)
         source._controls = self.source_controls
         dest._controls = self.destination_final_controls if alpha >= 1 else self.destination_controls
+        if self.motion_easing not in (smooth, linear) and 0 < alpha < 1:
+            for protein, start, end, controls in (
+                (source, self.source_start, self.source_end, self.source_controls),
+                (dest, self.destination_start, self.destination_end, self.destination_controls),
+            ):
+                local = np.clip((alpha - controls[:, 0]) / controls[:, 1], 0, 1)
+                fraction = np.array([evaluate(self.motion_easing, t) for t in local])[:, None]
+                points = coordinates((1 - fraction) * start + fraction * end)
+                protein._pair(points, points, alpha)
+                custom = controls.copy()
+                custom[:, 2] = 0
+                custom.flags.writeable = False
+                protein._controls = custom
         source.opacity = self.source_opacity if alpha < 1 else 0.0
         dest.opacity = self.destination_opacity if alpha > 0 else 0.0

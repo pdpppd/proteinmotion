@@ -3,6 +3,30 @@
 import math
 
 
+def resolve(easing):
+    """Accept the same named or callable easing everywhere."""
+    if isinstance(easing, str):
+        choices = {
+            "linear": linear,
+            "smooth": smooth,
+            "ease_in_out_sine": ease_in_out_sine,
+            "there_and_back": there_and_back,
+        }
+        if easing not in choices:
+            raise ValueError(f"Unknown easing {easing!r}; choose from {', '.join(choices)}")
+        return choices[easing]
+    if not callable(easing):
+        raise TypeError("easing must be a rate function or a named easing")
+    return easing
+
+
+def evaluate(easing, value):
+    result = float(easing(float(value)))
+    if not math.isfinite(result) or not 0 <= result <= 1:
+        raise ValueError("Rate functions must return a finite value in [0, 1]")
+    return result
+
+
 def linear(t):
     return t
 

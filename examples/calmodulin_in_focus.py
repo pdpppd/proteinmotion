@@ -158,7 +158,7 @@ class CalmodulinInFocus(ProteinScene):
             *self.replace_caption("Moving the focus", "Gold: 5–19   /   Teal: 118–128"),
             FadeOut(network),
             Representation(p, "cartoon"),
-            SetOpacity(p, 1),
+            SetOpacity(p, 1, scope="residues"),
             Colorize(helix, GOLD),
             Colorize(far_helix, TEAL),
             self.fit(p, 1.12),
@@ -193,7 +193,7 @@ class CalmodulinInFocus(ProteinScene):
         legend = ColorLegend(scale, title="Cα B factor", unit="Å²", position=(0.06, 0.82), size=(0.24, 0.11))
         self.play(
             *self.replace_caption("The molecular surface", "Color follows the deposited B factors"),
-            SetOpacity(p, 1),
+            SetOpacity(p, 1, scope="residues"),
             Representation(p, "surface"),
             ColorByProperty(p, values, scale=scale),
             self.fit(p, 1.15),

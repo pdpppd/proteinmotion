@@ -156,6 +156,7 @@ class TimeSeriesPlot(_Plot):
         values,
         *,
         protein=None,
+        trajectory=None,
         title="",
         xlabel="Time (s)",
         ylabel="Value",
@@ -181,14 +182,25 @@ class TimeSeriesPlot(_Plot):
             raise ValueError("times must strictly increase; values must be finite or NaN")
         if not np.isfinite(self.values).any():
             raise ValueError("The plot needs at least one finite value")
-        if protein is not None and len(self.times) != len(protein.trajectory):
+        trajectory = (
+            trajectory if trajectory is not None else (None if protein is None else protein.trajectory)
+        )
+        if trajectory is not None and protein is None:
+            raise ValueError("Pass protein with trajectory so the plot can follow playback")
+        if trajectory is not None and (
+            trajectory.n_atoms != len(protein.topology.atoms)
+            or trajectory.topology is not None
+            and trajectory.topology.keys != protein.topology.keys
+        ):
+            raise ValueError("Plot trajectory must match the protein topology")
+        if protein is not None and len(self.times) != len(trajectory):
             raise ValueError("A trajectory plot needs one sample for each state in protein.trajectory")
         if live_value is not None and not callable(live_value):
             raise TypeError("live_value must be a callable")
         self.times.flags.writeable = self.values.flags.writeable = False
         self.protein, self.live_value, self.reveal = protein, live_value, bool(reveal)
         self.grid, self.tips = bool(grid), bool(tips)
-        self._trajectory = None if protein is None else protein.trajectory
+        self._trajectory = trajectory
         self.xlabel, self.ylabel, self.color = str(xlabel), str(ylabel), parse_color(color)
         if ylim is None:
             lo, hi = np.nanmin(self.values), np.nanmax(self.values)
@@ -200,8 +212,8 @@ class TimeSeriesPlot(_Plot):
         self.cursor = float(self.times[0])
 
     @classmethod
-    def distance(cls, first, second, *, times=None, **kwargs):
-        """Trace centroid distance between two Regions of the same protein, in Å.
+    def distance(cls, first, second, *, times=None, trajectory=None, anchor="backbone", **kwargs):
+        """Trace distance using the same anchors as Distance between two Regions of the same protein, in Å.
 
         Coordinates are measured before scene transforms. When times is omitted,
         the x axis contains state indices. Supply physical times for an MD trace.
@@ -212,20 +224,27 @@ class TimeSeriesPlot(_Plot):
             or first.protein is not second.protein
         ):
             raise ValueError("Distance traces need two regions of the same protein")
+        from .distances import endpoint
+
+        first, second = endpoint(first, anchor), endpoint(second, anchor)
         p = first.protein
+        trajectory = trajectory if trajectory is not None else p.trajectory
         values = []
-        for i in range(len(p.trajectory)):
-            xyz = p.trajectory.frame(i)
+        for i in range(len(trajectory)):
+            xyz = trajectory.frame(i)
             values.append(np.linalg.norm(xyz[first.atom_indices].mean(0) - xyz[second.atom_indices].mean(0)))
         if times is None:
-            times = np.arange(len(values))
-            kwargs.setdefault("xlabel", "State index")
+            physical = trajectory.times
+            times = np.arange(len(values)) if physical is None else physical
+            kwargs.setdefault(
+                "xlabel", "State index" if physical is None else f"Time ({trajectory.time_unit})"
+            )
         kwargs.setdefault("ylabel", "Distance (Å)")
 
         def current():
             return float(np.linalg.norm(first.positions.mean(0) - second.positions.mean(0)))
 
-        return cls(times, values, protein=p, live_value=current, **kwargs)
+        return cls(times, values, protein=p, trajectory=trajectory, live_value=current, **kwargs)
 
     def _set_time(self, time):
         if (
@@ -358,6 +377,8 @@ class SequenceTrack(_Plot):
         *,
         region=None,
         selection=None,
+        display_region=None,
+        highlight_region=None,
         values=None,
         scale=None,
         title="Sequence",
@@ -365,6 +386,14 @@ class SequenceTrack(_Plot):
         size=(0.88, 0.13),
         highlight_color="#f5d477",
     ):
+        if display_region is not None:
+            if region is not None:
+                raise ValueError("Use display_region or its legacy alias region, not both")
+            region = display_region
+        if highlight_region is not None:
+            if selection is not None:
+                raise ValueError("Use highlight_region or its legacy alias selection, not both")
+            selection = highlight_region
         super().__init__(position, size, title)
         self.protein, self.selection = protein, selection
         _selection(protein, selection)
@@ -453,6 +482,8 @@ class ContactMap(_Plot):
         *,
         region=None,
         selection=None,
+        display_region=None,
+        highlight_region=None,
         cutoff=8.0,
         min_separation=3,
         position=(0.69, 0.12),
@@ -462,6 +493,14 @@ class ContactMap(_Plot):
         contact_color="#65c8bd",
         highlight_color="#f5d477",
     ):
+        if display_region is not None:
+            if region is not None:
+                raise ValueError("Use display_region or its legacy alias region, not both")
+            region = display_region
+        if highlight_region is not None:
+            if selection is not None:
+                raise ValueError("Use highlight_region or its legacy alias selection, not both")
+            selection = highlight_region
         super().__init__(position, size, title)
         if not np.isfinite(cutoff) or cutoff <= 0:
             raise ValueError("cutoff must be finite and positive")

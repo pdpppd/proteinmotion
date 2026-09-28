@@ -41,7 +41,7 @@ class _MoleculeGPU:
         self.metadata_reference = protein._metadata_override
         self.metadata_color = str(protein.color_scheme)
         self.bonds = storage(protein.topology.bonds)
-        self.segment_data = segments(protein)
+        self.segment_data = renderer._segment_data(protein)
         self.segments = storage(self.segment_data)
         self.controls = storage(protein._controls)
         self.controls_key = id(protein._controls)
@@ -128,7 +128,7 @@ class _MoleculeGPU:
             or self.backbone_radius != protein.backbone_radius
             or not np.array_equal(self.shape_reference, protein._cartoon_scale)
         ):
-            queue.write_buffer(self.segments, 0, segments(protein))
+            queue.write_buffer(self.segments, 0, self.renderer._segment_data(protein))
             self.color_key = str(protein.color_scheme)
             self.shape_reference = protein._cartoon_scale
             self.backbone_radius = protein.backbone_radius
@@ -148,7 +148,7 @@ class _MoleculeGPU:
             ]
             u[24:28] = [protein._color_mix, protein._opacity_mix, protein._detail_mix, ball]
             queue.write_buffer(self.uniforms[i], 0, u)
-        if protein.surface_opacity > 0:
+        if protein.surface_opacity > 0 and not getattr(self.renderer, "gpu_surfaces", False):
             if self.surface is None:
                 from .surface import SurfaceGPU
 
@@ -173,6 +173,44 @@ class _MoleculeGPU:
 
 
 class Renderer:
+    # Subclasses can render the scene into another format and post-process it.
+    SCENE_FORMAT = "rgba8unorm"
+    KEEP_DEPTH = False
+    # Reversed-Z maps the far plane to depth 0 and the near plane to 1. With float depth,
+    # precision is then nearly uniform with distance instead of concentrated near the camera.
+    REVERSED_Z = False
+
+    def _depth_test(self, transparent=False):
+        if self.REVERSED_Z:
+            return "greater-equal" if transparent else "greater"
+        return "less-equal" if transparent else "less"
+
+    def _segment_data(self, protein):
+        return segments(protein)
+
+    def _sweep_grid(self):
+        return sweep_grid()
+
+    def _shader_code(self):
+        return files("proteinmotion").joinpath("shaders/molecule.wgsl").read_text()
+
+    def _setup_scene_targets(self):
+        """Scene passes render into these views; the base renderer draws straight to the output."""
+        self.scene_ms_view, self.scene_view = self.ms_view, self.view
+
+    def _scene_final(self, annotations):
+        """True when the scene pass resolves straight into the image that is read back."""
+        return not annotations
+
+    def _post_process(self, encoder, camera, background, annotations):
+        """Hook between the scene and the overlay passes."""
+
+    def _prepare(self, encoder, draws):
+        """Hook for GPU work (such as compute passes) before the scene passes."""
+
+    def _draw_extra(self, render_pass, draws, transparent):
+        """Hook for additional scene geometry in the opaque or transparent pass."""
+
     def __init__(
         self,
         width=1920,
@@ -198,7 +236,7 @@ class Renderer:
         )
         d = self.device
         self.camera_buffer = d.create_buffer(
-            size=192, usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST
+            size=224, usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST
         )
         self.cutaway_open = False
         self.draw_geometry_objects = True  # EEVEE's overlay pass draws only 2D annotation parts.
@@ -225,9 +263,7 @@ class Renderer:
             ]
         )
         layout = d.create_pipeline_layout(bind_group_layouts=[self.camera_layout, self.object_layout])
-        shader = d.create_shader_module(
-            code=files("proteinmotion").joinpath("shaders/molecule.wgsl").read_text()
-        )
+        shader = d.create_shader_module(code=self._shader_code())
         self._shader = shader
         self._glow_pipeline = self._glow_buffer = None
 
@@ -239,7 +275,7 @@ class Renderer:
             layout_override=None,
             cull_mode=None,
         ):
-            targets = [{"format": "rgba8unorm"}]
+            targets = [{"format": self.SCENE_FORMAT}]
             if transparent:
                 additive = {"src_factor": "one", "dst_factor": "one", "operation": "add"}
                 transmittance = {"src_factor": "zero", "dst_factor": "one-minus-src", "operation": "add"}
@@ -261,7 +297,7 @@ class Renderer:
                 depth_stencil={
                     "format": "depth32float",
                     "depth_write_enabled": not transparent,
-                    "depth_compare": "less-equal" if transparent else "less",
+                    "depth_compare": self._depth_test(transparent),
                 },
                 multisample={"count": msaa},
             )
@@ -310,7 +346,7 @@ class Renderer:
         self._pipeline = pipeline
         self._oit_textures = []
         self.transparency_pipelines = None
-        verts, indices = sweep_grid()
+        verts, indices = self._sweep_grid()
         self.vertices = d.create_buffer_with_data(data=verts, usage=wgpu.BufferUsage.VERTEX)
         self.indices = d.create_buffer_with_data(data=indices, usage=wgpu.BufferUsage.INDEX)
         self.n_indices = len(indices)
@@ -335,9 +371,10 @@ class Renderer:
             size=(width, height, 1),
             sample_count=msaa,
             format="depth32float",
-            usage=wgpu.TextureUsage.RENDER_ATTACHMENT,
+            usage=wgpu.TextureUsage.RENDER_ATTACHMENT | wgpu.TextureUsage.TEXTURE_BINDING,
         )
         self.depth_view = self.depth.create_view()
+        self._setup_scene_targets()
         self._molecules = {}
         self._overlay = None
         self._pending, self._free = deque(), []
@@ -398,7 +435,7 @@ class Renderer:
                 "entry_point": "composite",
                 "targets": [
                     {
-                        "format": "rgba8unorm",
+                        "format": self.SCENE_FORMAT,
                         "blend": {
                             "color": {
                                 "src_factor": "src-alpha",
@@ -443,8 +480,19 @@ class Renderer:
     def _commands(self, proteins, camera, background):
         camera.update_tracking()
         d = self.device
-        u = np.zeros(48, np.float32)
-        u[:16] = camera.matrix(self.width / self.height).T.ravel()
+        u = np.zeros(56, np.float32)
+        self._last_vp = camera.matrix(self.width / self.height)
+        if self.REVERSED_Z:
+            flip = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 1], [0, 0, 0, 1]], float)
+            self._last_vp = flip @ self._last_vp
+        self._last_camera = camera
+        u[:16] = self._last_vp.T.ravel()
+        # Camera basis, for lights that follow the view.
+        forward = camera.target - camera.eye
+        forward /= max(np.linalg.norm(forward), 1e-9)
+        right = np.cross(forward, [0.0, 1.0, 0.0])
+        right = right / np.linalg.norm(right) if np.linalg.norm(right) > 1e-6 else np.array([1.0, 0, 0])
+        u[48:51], u[52:55] = right, np.cross(right, forward)
         u[16:20] = [*camera.eye, camera.distance - camera.radius * 1.05]
         u[20:24] = [*background, camera.distance + camera.radius * 1.5]
         u[24] = camera.depth_cue
@@ -514,10 +562,11 @@ class Renderer:
         if has_transparency and self.transparency_pipelines is None:
             self._create_transparency()
         encoder = d.create_command_encoder()
+        self._prepare(encoder, draws)
         attachment = {
-            "view": self.ms_view,
-            "resolve_target": self.view
-            if self.msaa > 1 and not has_transparency and not annotations and glow is None
+            "view": self.scene_ms_view,
+            "resolve_target": self.scene_view
+            if self.msaa > 1 and not has_transparency and self._scene_final(annotations) and glow is None
             else None,
             "clear_value": (*map(float, background), 1.0),
             "load_op": "clear",
@@ -527,14 +576,17 @@ class Renderer:
             color_attachments=[attachment],
             depth_stencil_attachment={
                 "view": self.depth_view,
-                "depth_clear_value": 1.0,
+                "depth_clear_value": 0.0 if self.REVERSED_Z else 1.0,
                 "depth_load_op": "clear",
-                "depth_store_op": "store" if has_transparency or glow is not None else "discard",
+                "depth_store_op": "store"
+                if has_transparency or glow is not None or self.KEEP_DEPTH
+                else "discard",
             },
         )
         self._draw_molecules(
             render_pass, draws, (self.ribbon_pipeline, self.bond_pipeline, self.sphere_pipeline)
         )
+        self._draw_extra(render_pass, draws, False)
         for gpu in mesh_draws:
             gpu.draw(render_pass)
         render_pass.end()
@@ -552,6 +604,7 @@ class Renderer:
                 depth_stencil_attachment={"view": self.depth_view, "depth_read_only": True},
             )
             self._draw_molecules(trans, transparent_draws, self.transparency_pipelines)
+            self._draw_extra(trans, transparent_draws, True)
             if self.tunnel_wall:
                 if not hasattr(self, "tunnel_pipeline"):
                     layout = d.create_pipeline_layout(bind_group_layouts=[self.camera_layout])
@@ -572,9 +625,9 @@ class Renderer:
             composite = encoder.begin_render_pass(
                 color_attachments=[
                     {
-                        "view": self.ms_view,
-                        "resolve_target": self.view
-                        if self.msaa > 1 and not annotations and glow is None
+                        "view": self.scene_ms_view,
+                        "resolve_target": self.scene_view
+                        if self.msaa > 1 and self._scene_final(annotations) and glow is None
                         else None,
                         "load_op": "load",
                         "store_op": "store",
@@ -586,7 +639,8 @@ class Renderer:
             composite.draw(3)
             composite.end()
         if glow is not None:
-            self._draw_glow(encoder, glow, resolve=self.msaa > 1 and not annotations)
+            self._draw_glow(encoder, glow, resolve=self.msaa > 1 and self._scene_final(annotations))
+        self._post_process(encoder, camera, background, annotations)
         if annotations:
             if self._overlay is None:
                 from .overlay import OverlayRenderer
@@ -622,13 +676,13 @@ class Renderer:
                 fragment={
                     "module": self._shader,
                     "entry_point": "glow_fragment",
-                    "targets": [{"format": "rgba8unorm", "blend": {"color": additive, "alpha": keep}}],
+                    "targets": [{"format": self.SCENE_FORMAT, "blend": {"color": additive, "alpha": keep}}],
                 },
                 primitive={"topology": "triangle-list", "cull_mode": "none"},
                 depth_stencil={
                     "format": "depth32float",
                     "depth_write_enabled": False,
-                    "depth_compare": "less-equal",
+                    "depth_compare": self._depth_test(True),
                 },
                 multisample={"count": self.msaa},
             )
@@ -642,8 +696,8 @@ class Renderer:
         glow_pass = encoder.begin_render_pass(
             color_attachments=[
                 {
-                    "view": self.ms_view,
-                    "resolve_target": self.view if resolve else None,
+                    "view": self.scene_ms_view,
+                    "resolve_target": self.scene_view if resolve else None,
                     "load_op": "load",
                     "store_op": "store",
                 }

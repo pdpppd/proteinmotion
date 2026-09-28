@@ -3,7 +3,7 @@
 import numpy as np
 
 from .math3d import color
-from .styling import _AppearanceAnimation, progress
+from .styling import _AppearanceAnimation
 
 
 class ColorScale:
@@ -201,10 +201,28 @@ class ColorByProperty(_AppearanceAnimation):
     kind = "color"
 
     def __init__(
-        self, protein, values, *, scale=None, thickness=None, residue_delay=0, reverse=False, easing="smooth"
+        self,
+        protein,
+        values,
+        *,
+        scale=None,
+        thickness=None,
+        residue_delay=0,
+        delay_seconds=None,
+        stagger=None,
+        reverse=False,
+        easing="smooth",
     ):
         tint, self.widths = _style(protein, values, scale, thickness)
-        super().__init__(protein, tint, residue_delay=residue_delay, reverse=reverse, easing=easing)
+        super().__init__(
+            protein,
+            tint,
+            residue_delay=residue_delay,
+            delay_seconds=delay_seconds,
+            stagger=stagger,
+            reverse=reverse,
+            easing=easing,
+        )
         if self.widths is not None:
             self.channels |= {"cartoon_thickness"}
 
@@ -218,9 +236,15 @@ class ColorByProperty(_AppearanceAnimation):
             ranks = np.arange(len(self.widths))
             if self.reverse:
                 ranks = ranks[::-1]
-            t = progress(
-                alpha * self.duration, ranks * self.residue_delay, self.span, self.easing == "smooth"
+            from .rates import evaluate
+
+            delay = (
+                self.duration * self.stagger / max(1, len(ranks) - 1)
+                if self.stagger is not None
+                else self.residue_delay
             )
+            local = np.clip((alpha * self.duration - ranks * delay) / self.span, 0, 1)
+            t = np.array([evaluate(self.easing, value) for value in local])
             widths = ((1 - t) * self.start_widths + t * self.widths).astype(np.float32)
             widths.flags.writeable = False
             self.protein._cartoon_scale = widths

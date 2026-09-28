@@ -63,6 +63,13 @@ class Protein:
         water=False,
         within=None,
         of=None,
+        residue_range=None,
+        element=None,
+        secondary=None,
+        polymer=None,
+        icode=None,
+        required=True,
+        updating=False,
     ):
         """Select atoms by chain, PDB residue number, atom and residue name, or category.
 
@@ -84,7 +91,42 @@ class Protein:
             water=water,
             within=within,
             of=of,
+            residue_range=residue_range,
+            element=element,
+            secondary=secondary,
+            polymer=polymer,
+            icode=icode,
+            required=required,
+            updating=updating,
         )
+
+    def summary(self):
+        """Describe available selections without reading topology internals."""
+        from collections import Counter
+
+        return dict(
+            atoms=len(self.topology.atoms),
+            residues=len(self.topology.residues),
+            chains=sorted({a.chain for a in self.topology.atoms}),
+            categories=dict(Counter(self.topology.residue_categories)),
+            residue_names=sorted({r.name for r in self.topology.residues}),
+            frames=len(self.trajectory),
+        )
+
+    def set_style(self, style):
+        """Apply a reusable MolecularStyle."""
+        return style.apply(self)
+
+    def reset_style(self):
+        """Clear atom overrides and cartoon thickness, restoring the base palette."""
+        from .styling import initial_appearance
+
+        self._appearance = initial_appearance(len(self.topology.atoms), self.topology.untraced_atoms)
+        self._color_mix = self._opacity_mix = self._detail_mix = 1.0
+        self._cartoon_scale = np.ones(len(self.topology.residues), np.float32)
+        self._cartoon_scale.flags.writeable = False
+        self.opacity = 1.0
+        return self
 
     def show_atoms(self):
         """Draw every atom as ball-and-stick over the current cartoon, ribbon or surface."""
@@ -98,25 +140,84 @@ class Protein:
 
         return set_detail(self, 0.0)
 
-    def label_residues(self, *, chain=None, residues=None, **kwargs):
-        """Label selected amino acids or nucleotides at their backbone anchors."""
+    def label_residues(
+        self,
+        *,
+        chain=None,
+        residues=None,
+        font_size=26,
+        color="#edf3fc",
+        format="three_letter",
+        include_chain=True,
+        avoid_overlap=True,
+        offsets=None,
+        **kwargs,
+    ):
+        """Label residues at backbone anchors, or centroids for ligands and ions."""
         from .annotations import ResidueLabels
 
-        return ResidueLabels(self.select(chain=chain, residues=residues), **kwargs)
+        return ResidueLabels(
+            self.select(chain=chain, residues=residues),
+            font_size=font_size,
+            color=color,
+            format=format,
+            include_chain=include_chain,
+            avoid_overlap=avoid_overlap,
+            offsets=offsets,
+            **kwargs,
+        )
 
-    def hydrogen_bonds(self, **kwargs):
+    def hydrogen_bonds(
+        self,
+        *,
+        donors=None,
+        acceptors=None,
+        max_distance=3.5,
+        min_angle=150,
+        hydrogens="auto",
+        donor_h_cutoff=1.3,
+    ):
         from .interactions import HydrogenBonds
 
-        return HydrogenBonds(self, **kwargs)
+        return HydrogenBonds(
+            self,
+            donors=donors,
+            acceptors=acceptors,
+            max_distance=max_distance,
+            min_angle=min_angle,
+            hydrogens=hydrogens,
+            donor_h_cutoff=donor_h_cutoff,
+        )
 
-    def electrostatics(self, charges="formal", **kwargs):
+    def electrostatics(
+        self,
+        charges="formal",
+        *,
+        dielectric=80,
+        screening_length=8,
+        cutoff=12,
+        min_energy=0.05,
+        exclude_same_residue=True,
+        exclude_bonded=True,
+    ):
         from .interactions import Electrostatics
 
-        return Electrostatics(self, charges, **kwargs)
+        return Electrostatics(
+            self,
+            charges,
+            dielectric=dielectric,
+            screening_length=screening_length,
+            cutoff=cutoff,
+            min_energy=min_energy,
+            exclude_same_residue=exclude_same_residue,
+            exclude_bonded=exclude_bonded,
+        )
 
     @classmethod
-    def from_file(cls, path, **kwargs):
-        topo, frames = load_structure(path, **kwargs)
+    def from_file(cls, path, *, chains=None, include_water=False, include_hydrogens=False):
+        topo, frames = load_structure(
+            path, chains=chains, include_water=include_water, include_hydrogens=include_hydrogens
+        )
         return cls(topo, frames[0], trajectory=Trajectory(frames, topology=topo))
 
     @classmethod
@@ -216,17 +317,28 @@ class Protein:
         return self
 
     def surface(
-        self, *, kind="ses", probe_radius=1.4, resolution=0.7, color="secondary", update="rebuild", **kwargs
+        self,
+        *,
+        kind="ses",
+        probe_radius=1.4,
+        resolution=None,
+        grid_spacing=None,
+        color="secondary",
+        update="rebuild",
+        max_voxels=8_000_000,
     ):
         from .surface import surface_options
 
+        if resolution is not None and grid_spacing is not None:
+            raise ValueError("Use grid_spacing or its legacy alias resolution, not both")
+        resolution = grid_spacing if grid_spacing is not None else 0.7 if resolution is None else resolution
         self._surface_options = surface_options(
             kind=kind,
             probe_radius=probe_radius,
             resolution=resolution,
             update=update,
             reference=self.positions,
-            **kwargs,
+            max_voxels=max_voxels,
         )
         self.representation = np.zeros(3)
         self.surface_opacity = 1.0
@@ -234,7 +346,15 @@ class Protein:
         return self
 
     def cartoon(
-        self, *, color="secondary", bases="slabs", backbone_radius=0.38, base_thickness=0.36, base_radius=0.16
+        self,
+        *,
+        color="secondary",
+        bases="slabs",
+        backbone_radius=0.38,
+        base_thickness=0.36,
+        base_radius=0.16,
+        atom_scale=None,
+        bond_radius=None,
     ):
         """Protein cartoons and nucleotide backbone tubes with selectable base shapes.
 
@@ -244,6 +364,11 @@ class Protein:
         self.set_bases(
             bases, backbone_radius=backbone_radius, base_thickness=base_thickness, base_radius=base_radius
         )
+        for name, value in (("atom_scale", atom_scale), ("bond_radius", bond_radius)):
+            if value is not None:
+                if not np.isfinite(value) or value <= 0:
+                    raise ValueError(f"{name} must be finite and positive")
+                setattr(self, name, float(value))
         self.representation = np.array([1.0, 0.0, 0.0])
         self.surface_opacity = 0.0
         self.color_scheme = color

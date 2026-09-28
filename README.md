@@ -189,3 +189,5 @@ Documentation is in `docs/`; the website is in `website/`. See [CONTRIBUTING.md]
 ## License
 
 The package and website use the [MIT license](https://github.com/pdpppd/proteinmotion/blob/main/LICENSE). `Write` timing is adapted from MIT-licensed Manim. The bundled Source Sans 3 fonts use the SIL Open Font License. See [third-party notices](https://github.com/pdpppd/proteinmotion/blob/main/THIRD_PARTY.md) and [structure sources](https://pdpppd.github.io/proteinmotion/docs/rendering/#structure-provenance).
+
+For composable timing, shared renderer settings, selection algebra, reusable styles and migration notes, see [Readable authoring](docs/readable-authoring.md).

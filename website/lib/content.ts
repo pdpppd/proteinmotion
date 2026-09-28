@@ -120,13 +120,16 @@ export function compile(markdown: string) {
       },
       link({ href, tokens }) {
         if (!/^(https?:|mailto:|#)/.test(href)) {
-          const filename = href.replace(/^docs\//, "");
+          const [filename, fragment] = href
+            .replace(/^docs\//, "")
+            .split("#", 2);
           const guide = guides.find((g) => g.file === filename);
           href = guide
             ? asset(`docs/${guide.slug}/`)
             : filename === "README.md"
               ? asset("docs/getting-started/")
               : asset(`downloads/${filename}`);
+          if (fragment) href += `#${fragment}`;
         }
         return `<a href="${escape(href)}">${this.parser.parseInline(tokens)}</a>`;
       },

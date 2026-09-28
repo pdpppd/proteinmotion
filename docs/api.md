@@ -15,15 +15,15 @@ Subclass `ProteinScene` and implement `construct()`. `Scene` is an alias.
 | Method | Behavior |
 |---|---|
 | `add(*proteins)` | Add proteins, density objects, highlights, text or callouts at the current timeline position |
-| `play(*animations, run_time=1.0, rate_func=None)` | Run animations concurrently, then advance the timeline |
+| `play(*animations, run_time=None, easing=None)` | Run actions concurrently; infer grouped duration or use one second |
 | `wait(duration=1.0)` | Hold the current scene |
 | `focus(target, run_time=1.5, margin=1.25, follow=True)` | Ease the camera to a protein or region |
 | `seek(time)` | Evaluate a time deterministically; supports backward seeks |
 | `render(output, codec="auto", bitrate="20M")` | Export an MP4 and return timing/adapter metadata |
 | `render_frame(time=0, output=None, renderer=None)` | Render one RGBA frame; optionally save an image |
-| `preview()` | Open the optional interactive native preview |
+| `preview(renderer=None, look=None)` | Open native or Studio preview using scene defaults |
 
-Animations in separate calls run sequentially. Concurrent writers to the same object property are rejected. Configure initial styles and camera pose before the first `play()` or `wait()`.
+Animations in separate calls run sequentially. Concurrent writers to the same object property are rejected. Direct setters are captured at the current authoring time; `play()` interpolates changes. See [readable authoring](readable-authoring.md) for grouped timing, style reuse, selection algebra, and renderer settings.
 
 ## Protein
 
@@ -160,7 +160,7 @@ self.play(self.camera.animate.zoom(1.3), run_time=1)
 | `ShowAtoms(target, ...)` / `HideAtoms(target, ...)` | Draw or remove atoms as ball-and-stick over a cartoon, ribbon, or surface |
 | `ShowSideChains(target, ...)` / `HideSideChains(target, ...)` | Grow or remove amino acid side chains, joined to the cartoon at Cα |
 | `Reveal(camera, region, window=1.35, shape="cone")` / `Conceal(camera)` | Open or close a cutaway onto a hidden selection; `shape="tunnel"` marks depth every 5 Å. [Guide](tunnels.md) |
-| `Thread(protein, camera=None, stagger=0.0, glow=12.0, ...)` / `Unthread(...)` | Wires fly in, trace each chain from C to N terminus, and fade into the protein, or the reverse. [Guide](threading.md) |
+| `Thread(protein, camera=None, easing=None, ...)` / `Unthread(...)` | Thread the actual cartoon or atoms and bonds into view with eased travel, or reverse the motion. Surface is unsupported; `mode="wire"` retains the original effect. [Guide](threading.md) |
 | `Morph(protein, target, align=True)` | Morph matching atom topology or ordered coordinate arrays |
 | `Deform(protein, function)` | Transform coordinates through a callable |
 | `Focus(camera, region, margin=1.25, aspect=16/9, follow=True)` | Animate camera focus; evaluate after molecular motion |
@@ -233,3 +233,11 @@ Shared render/still/preview options: `--width`, `--height`, `--fps`, `--msaa 1|4
 `DensityMap.from_file(path)` loads MRC/CCP4 grids, including compressed files. `density.isosurface(level, units="sigma")` makes a contour; `density.slice("z", 0.5)` makes a sampled plane. Add either to a scene and animate with `shell.animate.set_level(...)` or `section.animate.set_slice(...)`.
 
 Use `density.crop(region, padding=3)` for local views and `follow=protein` when the map and protein should share scene transforms. [Guide and rendered output](density-maps.md).
+
+## Readable authoring additions
+
+`StudioLook` provides lighting, material and effects recipes. Put `renderer="studio"` and `look=StudioLook(...)` on the scene class or pass them to its constructor. Preview, stills, movies and CLI share those settings. Derive looks with `look.with_presets(...)`.
+
+`MolecularStyle` stores a representation and options; `TextStyle` stores typography; `TextGroup` stacks caption text; `AnimationGroup` assigns actions separate durations and offsets. `animation.during(seconds, delay=...)` is the timing shorthand. [Complete examples and migration notes](readable-authoring.md).
+
+`SetOpacity(protein, value)` now changes global opacity. Use `scope="residues"` to preserve legacy whole-protein per-atom behavior. `TimeSeriesPlot.distance` now defaults to the same backbone anchors as `Distance`; pass `anchor="centroid"` to preserve legacy plots.

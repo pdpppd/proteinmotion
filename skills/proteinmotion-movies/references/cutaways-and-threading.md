@@ -39,8 +39,10 @@ self.play(Thread(p, self.camera, stagger=0.16, glow_color="#bfefff"), run_time=7
 self.play(Unthread(p, self.camera, stagger=0.16), run_time=5)
 ```
 
-Each traced chain gets a wire from its own side of the screen; it enters at the C terminus, traces the backbone to the N terminus, and the protein fades in over the final `settle` fraction. Pass the scene camera so wires start just off-screen. Options: `radius`, `head`, `easing` (default `ease_in_out_sine`), `stagger` (delay per chain as a fraction of the threading time), `swirl`, `seed`, and the glow `glow` (size relative to the wire radius; 0 disables), `glow_color`, `glow_brightness`.
+By default the actual cartoon, ribbon, or atoms and bonds follow a route through the C terminus toward the N terminus. Geometry travel uses quintic `smooth` easing over the full clip. Try `swirl=0.25` and an eight-second entrance. Surface representation raises `ValueError`. Residues and ligands move as rigid groups, but inter-residue bonds may stretch. Coordinates restore exactly at the end. Do not combine with concurrent coordinate or representation animations.
 
-Plan 5–8 s for a few chains and allow the camera to be framed before `Thread`. Wires take cartoon colors, including tints: tint polymer atoms only if ligands should keep their own color. Describe flight paths as illustrations, never as folding or physical motion.
+Pass the scene camera and `aspect=self.width/self.height` for off-screen entry. Options include `easing`, `stagger` (per-chain delay as a fraction of the clip), `swirl`, `seed`, and the optional halo `glow` (size relative to `radius`; 0 disables), `glow_color`, `glow_brightness`. Plan 5–8 s and frame the resting protein first. Describe these animations as illustrations, never as folding or physical motion.
+
+`mode="wire"` preserves the original wire-to-protein fade, with sine easing by default and `settle` controlling the crossfade in wire mode only. Wire colors follow cartoon tints, `radius` and `head` size the wire. `examples/studio_threading.py` renders actual geometry in cartoon and ball-and-stick; the hemoglobin example explicitly selects wire mode.
 
 Examples: `examples/depth_tunnels.py` (GroEL–GroES, 1AON) and `examples/thread_hemoglobin.py` (4HHB).

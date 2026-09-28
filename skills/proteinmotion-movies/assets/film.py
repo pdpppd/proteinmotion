@@ -7,8 +7,6 @@ Data: https://www.rcsb.org/structure/1UBQ
 
 from pathlib import Path
 
-import numpy as np
-
 from proteinmotion import (
     Colorize,
     FadeIn,
@@ -16,7 +14,6 @@ from proteinmotion import (
     Focus,
     Protein,
     ProteinScene,
-    Region,
     Representation,
     Rotate,
     SetOpacity,
@@ -30,16 +27,11 @@ STRUCTURE = Path(__file__).parent / "1ubq.cif"
 
 class ProteinMovie(ProteinScene):
     def construct(self):
-        p = (
-            Protein.from_file(STRUCTURE, chains="A")
-            .ball_and_stick(atom_scale=0.28, bond_radius=0.10)
-            .cartoon()
-            .center()
-        )
-        helix = p.select(residues=(23, 34))
-        rest = Region(p, np.setdiff1d(np.arange(len(p.topology.atoms)), helix.atom_indices))
+        p = Protein.from_file(STRUCTURE, chains="A").cartoon(atom_scale=0.28, bond_radius=0.10).center()
+        helix = p.select(residue_range=(23, 34))
+        rest = ~helix
         self.add(p)
-        self.camera.frame(p, margin=1.35, aspect=self.width / self.height)
+        self.camera.frame(p, margin=1.35)
         self.camera.depth_cue = 0.3
         title = Text("A protein in motion", font_size=58, font="semibold", position=(0.06, 0.07))
         note = helix.callout(
@@ -54,16 +46,16 @@ class ProteinMovie(ProteinScene):
         self.play(Rotate(p, 0.8), run_time=2)
         self.play(Colorize(helix, "#50e0d0", residue_delay=0.05), FadeIn(box), Write(note), run_time=2)
         self.play(
-            Focus(self.camera, helix, margin=1.8, aspect=self.width / self.height),
+            Focus(self.camera, helix, margin=1.8),
             SetOpacity(rest, 0.08),
             run_time=2.4,
         )
-        self.play(Representation(p, "ball_and_stick"), FadeOut(box), run_time=1.5)
+        self.play(
+            Representation(p, "ball_and_stick", atom_scale=0.28, bond_radius=0.10), FadeOut(box), run_time=1.5
+        )
         self.play(self.camera.animate.orbit(0.5), run_time=2)
         self.play(Unwrite(note), run_time=1)
-        self.play(
-            Focus(self.camera, p, margin=1.35, aspect=self.width / self.height), SetOpacity(p, 1), run_time=2
-        )
+        self.play(Focus(self.camera, p, margin=1.35), SetOpacity(p, 1, scope="residues"), run_time=2)
         self.play(Representation(p, "ribbon"), run_time=1.5)
         self.play(Rotate(p, 0.4), run_time=1.8)
         self.play(FadeOut(p), Unwrite(title), run_time=1.2)

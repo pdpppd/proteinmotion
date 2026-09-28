@@ -72,7 +72,15 @@ class ThreadHemoglobin(ProteinScene):
         # Four wires, one per chain, arriving in turn from four sides.
         self.play(
             Thread(
-                p, self.camera, radius=0.42, head=2.2, glow=16.0, glow_brightness=1.2, stagger=0.16, seed=7
+                p,
+                self.camera,
+                mode="wire",
+                radius=0.42,
+                head=2.2,
+                glow=16.0,
+                glow_brightness=1.2,
+                stagger=0.16,
+                seed=7,
             ),
             self.camera.animate.orbit(0.25, 0.02),
             run_time=7.5,
@@ -103,7 +111,15 @@ class ThreadHemoglobin(ProteinScene):
         # And out again, last chain first.
         self.play(
             Unthread(
-                p, self.camera, radius=0.42, head=2.2, glow=16.0, glow_brightness=1.2, stagger=0.16, seed=12
+                p,
+                self.camera,
+                mode="wire",
+                radius=0.42,
+                head=2.2,
+                glow=16.0,
+                glow_brightness=1.2,
+                stagger=0.16,
+                seed=12,
             ),
             run_time=5.5,
         )

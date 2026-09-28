@@ -10,6 +10,26 @@ Residue color and opacity apply across representations. A separate pass draws te
 
 The renderer uses 4× multisample antialiasing (MSAA) to smooth geometry edges. Sphere silhouettes use analytical intersections and receive partial antialiasing. Current rendering limits include shadows, screen-space ambient occlusion, ray tracing, and refractive materials.
 
+## Studio GPU rendering
+
+Use `renderer="studio"` with a `StudioLook` for four lighting presets, three material
+presets, smooth helix bands and sheet-arrow cartoons, ambient occlusion, and molecular surfaces. Luminance-based film grain,
+bloom, and warm halation can be selected individually or through a global recipe:
+
+```python
+from proteinmotion import StudioLook
+
+scene.render("film.mp4", renderer="studio", look=StudioLook(
+    lighting="dramatic", material="medium", effects="film",
+))
+```
+
+See [studio looks and film effects](studio.md) for the presets, numeric controls,
+4K stills, and command-line options. The native renderer's limitations above do not
+include the studio backend's ambient occlusion and post-processing features.
+Studio uses `cartoon_style="classic"` by default; `StudioLook(cartoon_style="legacy")`
+retains its original elliptical cartoon sweep. See [classic cartoons](studio.md#classic-cartoons).
+
 ## Blender EEVEE
 
 Use `--renderer eevee` or `scene.render("film.mp4", renderer="eevee")` to export through Blender. Install Blender 4.5+ separately; EEVEE is part of Blender. ProteinMotion starts one background Blender process per export and reuses it for all frames. macOS uses Metal.
@@ -38,9 +58,12 @@ Ball-and-stick bonds end at their atom surfaces. This hides the part of each cyl
 
 ## Surfaces and interactions
 
-Surface meshes are built on the CPU from voxel fields using distance transforms and marching cubes. The default `update="rebuild"` creates a new mesh when coordinates change. Rotation, color, and opacity changes reuse the mesh. Rebuilding a moving surface can take most of the export time.
+Native and Studio share VDW, SAS, and approximate SES surface meshes, built on the CPU from voxel fields using distance transforms and marching cubes. Both honor element-specific VDW radii, probe radius, grid resolution, and the voxel allocation limit. The default `update="rebuild"` creates a new mesh when coordinates change. Rotation, color, and opacity changes reuse the mesh. Rebuilding a moving surface can take most of the export time.
 
 The optional `update="deform"` mode moves a reference mesh on the GPU. Use it for small displacements; large changes can fold or tear the mesh. See [surface settings](styling.md).
+
+Studio also retains its original artistic GPU density surface through
+`StudioLook(surface_mode="density")`; see [Studio surface modes](studio.md#molecular-surfaces).
 
 Hydrogen-bond and screened Coulomb calculations use CPU spatial queries. Results are cached until coordinates or analysis settings change. Their 3D lines are drawn with the molecular geometry; 2D lines and all distance text are drawn over the image. See [interaction methods](interactions.md).
 

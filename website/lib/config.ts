@@ -24,7 +24,8 @@ export const guides = [
     file: "getting-started.md",
     title: "Get started",
     group: "START HERE",
-    description: "Install on macOS or Windows with NVIDIA graphics and render a video.",
+    description:
+      "Install on macOS or Windows with NVIDIA graphics and render a video.",
   },
   {
     slug: "agent-skill",
@@ -32,6 +33,22 @@ export const guides = [
     title: "AI agent skill",
     group: "START HERE",
     description: "Set up the movie-making skill for your AI agent.",
+  },
+  {
+    slug: "readable-authoring",
+    file: "readable-authoring.md",
+    title: "Readable authoring",
+    group: "AUTHORING",
+    description:
+      "Shared styles, selections, animation timing, and renderer settings.",
+  },
+  {
+    slug: "studio",
+    file: "studio.md",
+    title: "Studio renderer",
+    group: "AUTHORING",
+    description:
+      "Lighting, materials, film effects, and interactive Studio preview.",
   },
   {
     slug: "scenes",
@@ -209,7 +226,8 @@ export const guides = [
     file: "VALIDATION.md",
     title: "Tests & benchmarks",
     group: "REFERENCE",
-    description: "Test results, Apple M3 Max and NVIDIA RTX rendering times, and input data.",
+    description:
+      "Test results, Apple M3 Max and NVIDIA RTX rendering times, and input data.",
   },
   {
     slug: "contributing",
@@ -236,6 +254,66 @@ export const demoCommand = (demo: Demo) =>
   demo.renderCommand ??
   `proteinmotion render ${demo.source} ${demo.scene} \\\n  -o ${demo.file}.mp4 --fps 60`;
 export const demos: Demo[] = [
+  {
+    id: "studio-threading",
+    title: "A cartoon threads into view",
+    file: "docs/studio-threading",
+    label: "STUDIO \u00b7 AUTHORING",
+    detail:
+      "Classic helix bands, beta arrows, and round loops enter with smooth easing. The animation moves the actual cartoon geometry; it illustrates an entrance, not protein folding.",
+    source: "examples/studio_examples.py",
+    scene: "CartoonThreading",
+    duration: "9 s",
+    pdb: "2DRI",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/studio_examples.py CartoonThreading \\\n  --width 1280 --height 720 --fps 60 -o studio-threading.mp4",
+  },
+  {
+    id: "studio-atoms",
+    title: "Atoms follow the same entrance",
+    file: "docs/studio-atoms",
+    label: "STUDIO \u00b7 AUTHORING",
+    detail:
+      "Ball-and-stick geometry threads into place with glossy materials and subtle grain, bloom, and halation. Residues move as rigid groups; connecting bonds can stretch.",
+    source: "examples/studio_examples.py",
+    scene: "AtomThreading",
+    duration: "9 s",
+    pdb: "2DRI",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/studio_examples.py AtomThreading \\\n  --width 1280 --height 720 --fps 60 -o studio-atoms.mp4",
+  },
+  {
+    id: "studio-cutaway",
+    title: "Open a buried binding pocket",
+    file: "docs/studio-cutaway",
+    label: "STUDIO \u00b7 AUTHORING",
+    detail:
+      "Switch from cartoon to a solvent-excluded surface, open a cutaway onto bound ribose RIP A272, and return to cartoon. Uses a 0.6 \u00c5 surface grid and dramatic lighting.",
+    source: "examples/studio_examples.py",
+    scene: "BuriedLigand",
+    duration: "9.5 s",
+    pdb: "2DRI",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/studio_examples.py BuriedLigand \\\n  --width 1280 --height 720 --fps 60 -o studio-cutaway.mp4",
+  },
+  {
+    id: "readable-timing",
+    title: "Readable code, independent timing",
+    file: "docs/readable-timing",
+    label: "STUDIO \u00b7 AUTHORING",
+    detail:
+      "Select a helix by residue range, reuse a molecular style, and give text, styling, and camera motion separate durations. Studio film effects finish the image.",
+    source: "examples/studio_examples.py",
+    scene: "ReadableTiming",
+    duration: "7.5 s",
+    pdb: "1UBQ",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/studio_examples.py ReadableTiming \\\n  --width 1280 --height 720 --fps 60 -o readable-timing.mp4",
+  },
   {
     id: "depth-tunnels",
     title: "How deep is it?",

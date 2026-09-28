@@ -13,7 +13,22 @@ from .protein import Protein
 
 
 class ProteinScene:
-    def __init__(self, *, width=1920, height=1080, fps=30, background="#0b1220", msaa=4):
+    renderer = "native"
+    look = None
+    eevee = None
+
+    def __init__(
+        self,
+        *,
+        width=1920,
+        height=1080,
+        fps=30,
+        background="#0b1220",
+        msaa=4,
+        renderer=None,
+        look=None,
+        eevee=None,
+    ):
         if not isinstance(width, int) or not isinstance(height, int) or width < 1 or height < 1:
             raise ValueError("Image dimensions must be positive integers")
         if not np.isfinite(fps) or fps <= 0:
@@ -22,11 +37,44 @@ class ProteinScene:
             raise ValueError("msaa must be 1 or 4")
         self.width, self.height, self.fps, self.msaa = width, height, float(fps), msaa
         self.background = color(background)
+        self.renderer = renderer if renderer is not None else type(self).renderer
+        self.look = look if look is not None else type(self).look
+        self.eevee = eevee if eevee is not None else type(self).eevee
         self.camera = Camera()
+        self.camera.aspect = width / height
         self.duration = 0.0
         self._objects, self._clips = [], []
         self._built, self._building = False, False
         self._camera_base = None
+        self._author_states = {}
+        self._view_states = None
+
+    def _remember(self):
+        self._author_states = {id(p): p.snapshot() for p, _, _ in self._objects}
+        self._author_states[id(self.camera)] = self.camera.snapshot()
+        self._view_states = None
+
+    def _capture_edits(self):
+        from .timeline import RestoreState, same_state
+
+        edits = []
+        for target in [p for p, _, _ in self._objects] + [self.camera]:
+            state = target.snapshot()
+            previous = self._author_states.get(id(target))
+            if self._view_states is not None and id(target) in self._view_states and previous is not None:
+                viewed = self._view_states[id(target)]
+                changes = {
+                    key: value
+                    for key, value in state.items()
+                    if key not in viewed or not same_state(value, viewed[key])
+                }
+                state = {**previous, **changes}
+                target.restore(state)
+            if previous is not None and not same_state(state, previous):
+                edits.append(RestoreState(target, state))
+        if edits:
+            self._clips.append((self.duration, 0.0, tuple(edits), None))
+        self._remember()
 
     def construct(self):
         """Override this method, using add(), play(), wait(), and camera.frame()."""
@@ -38,15 +86,37 @@ class ProteinScene:
             if any(item[0] is p for item in self._objects):
                 raise ValueError("Object is already in this scene")
             self._objects.append((p, self.duration, p.snapshot()))
+            self._author_states[id(p)] = p.snapshot()
         return self
 
-    def play(self, *animations, run_time=1.0, rate_func=None):
+    def play(self, *animations, run_time=None, rate_func=None, easing=None):
+        from .rates import resolve
+        from .timeline import AnimationGroup
+
+        if any(isinstance(a, AnimationGroup) for a in animations):
+            animations = (AnimationGroup(*animations),)
+        run_time = (
+            (getattr(animations[0], "duration", 1.0) if animations else 1.0) if run_time is None else run_time
+        )
+        if easing is not None and rate_func is not None:
+            raise ValueError("Use easing or its legacy clip-clock override rate_func, not both")
+        if easing is not None:
+            for animation in animations:
+                animation._set_easing(easing)
+        rate_func = resolve(rate_func) if rate_func is not None else None
         if not np.isfinite(run_time) or run_time <= 0 or not animations:
             raise ValueError("play() needs animations and a positive run_time")
+        self._capture_edits()
         if self._camera_base is None:
             self._camera_base = self.camera.snapshot()
         used = set()
         for anim in animations:
+            if hasattr(anim, "_prepare"):
+                anim._prepare(self)
+            if rate_func is not None and hasattr(anim, "transform_easing"):
+                from .rates import linear
+
+                anim.transform_easing = linear
             if getattr(anim, "requires_linear_timeline", False) and rate_func not in (None, anim.rate_func):
                 raise ValueError(
                     "Staggered animations need a linear clip clock for delays in seconds; use their per-residue easing"
@@ -73,14 +143,24 @@ class ProteinScene:
             anim.apply((rate_func or anim.rate_func)(1.0))
         self.camera.update_tracking()
         self.duration += float(run_time)
+        self._remember()
         return self
 
-    def focus(self, target, *, run_time=1.5, margin=1.25, follow=True, rate_func=None):
+    def focus(
+        self, target, *, run_time=1.5, margin=1.25, follow=True, rate_func=None, screen_position=(0.5, 0.5)
+    ):
         """Animate the camera to a selected region using this scene's aspect ratio."""
         from .animation import Focus
 
         return self.play(
-            Focus(self.camera, target, margin=margin, aspect=self.width / self.height, follow=follow),
+            Focus(
+                self.camera,
+                target,
+                margin=margin,
+                aspect=self.width / self.height,
+                follow=follow,
+                screen_position=screen_position,
+            ),
             run_time=run_time,
             rate_func=rate_func,
         )
@@ -88,6 +168,7 @@ class ProteinScene:
     def wait(self, duration=1.0):
         if not np.isfinite(duration) or duration < 0:
             raise ValueError("Wait duration must be finite and nonnegative")
+        self._capture_edits()
         if self._camera_base is None:
             self._camera_base = self.camera.snapshot()
         self.duration += float(duration)
@@ -98,6 +179,7 @@ class ProteinScene:
             self._building = True
             try:
                 self.construct()
+                self._capture_edits()
                 self._camera_base = self._camera_base or self.camera.snapshot()
                 self._built = True
             finally:
@@ -115,7 +197,7 @@ class ProteinScene:
         for start, duration, animations, override in self._clips:
             if time < start:
                 break
-            alpha = min((time - start) / duration, 1.0)
+            alpha = min((time - start) / duration, 1.0) if duration else 1.0
             for anim in animations:
                 eased = float((override or anim.rate_func)(alpha))
                 if not np.isfinite(eased) or not 0 <= eased <= 1:
@@ -128,25 +210,40 @@ class ProteinScene:
                 p._set_time(time)
             if hasattr(p, "_sync"):
                 p._sync()
+        self._view_states = {id(p): p.snapshot() for p, _, _ in self._objects}
+        self._view_states[id(self.camera)] = self.camera.snapshot()
         return visible
 
-    def render_frame(self, time=0.0, *, output=None, renderer=None, eevee=None):
-        """Render a still with 'native', 'eevee', or an existing renderer instance."""
+    def render_frame(self, time=0.0, *, output=None, renderer=None, eevee=None, look=None):
+        """Render a still. Use renderer='studio', look=StudioLook(...) for studio presets."""
         from .renderer import Renderer
 
+        renderer, look, eevee = self._render_settings(renderer, look, eevee)
+
+        if eevee is not None and renderer != "eevee":
+            raise ValueError("EEVEE settings require renderer='eevee'")
+        if look is not None and renderer != "studio":
+            raise ValueError(
+                "StudioLook settings require renderer='studio'; configure existing renderers directly"
+            )
         own = renderer is None or isinstance(renderer, str)
         if renderer is None or renderer == "native":
-            if eevee is not None:
-                raise ValueError("EEVEE settings require renderer='eevee'")
             renderer = Renderer(self.width, self.height, msaa=self.msaa)
+        elif renderer == "studio":
+            from .studio import StudioRenderer
+
+            renderer = StudioRenderer(self.width, self.height, msaa=self.msaa, look=look)
         elif renderer == "eevee":
             from .eevee import EEVEE
 
             renderer = EEVEE(self.width, self.height, options=eevee)
         elif isinstance(renderer, str):
-            raise ValueError("renderer must be 'native', 'eevee', or a renderer instance")
+            raise ValueError("renderer must be 'native', 'studio', 'eevee', or a renderer instance")
         try:
-            pixels = renderer.render(self.seek(time), self.camera, self.background)
+            objects = self.seek(time)
+            if hasattr(renderer, "set_time"):
+                renderer.set_time(float(np.clip(time, 0, self.duration)))
+            pixels = renderer.render(objects, self.camera, self.background)
             if output is not None:
                 from PIL import Image
 
@@ -157,8 +254,10 @@ class ProteinScene:
             if own:
                 renderer.close()
 
-    def render(self, output, *, codec="auto", bitrate="20M", progress=True, renderer="native", eevee=None):
-        """Export a movie with the native GPU renderer or optional Blender EEVEE."""
+    def render(
+        self, output, *, codec="auto", bitrate="20M", progress=True, renderer=None, eevee=None, look=None
+    ):
+        """Export a movie. Studio lighting/material/effects are configured with look=StudioLook(...)."""
         import platform
         import time
 
@@ -166,10 +265,13 @@ class ProteinScene:
         from .video import VideoWriter
 
         self.build()
-        if renderer not in ("native", "eevee"):
-            raise ValueError("renderer must be 'native' or 'eevee'")
-        if renderer == "native" and eevee is not None:
+        renderer, look, eevee = self._render_settings(renderer, look, eevee)
+        if renderer not in ("native", "studio", "eevee"):
+            raise ValueError("renderer must be 'native', 'studio', or 'eevee'")
+        if renderer != "eevee" and eevee is not None:
             raise ValueError("EEVEE settings require renderer='eevee'")
+        if look is not None and renderer != "studio":
+            raise ValueError("StudioLook settings require renderer='studio'")
         count = max(1, math.ceil(self.duration * self.fps))
         platform_name = platform.system()
         start = time.perf_counter()
@@ -203,7 +305,12 @@ class ProteinScene:
                 "platform": platform_name,
                 "output": str(output),
             }
-        with Renderer(self.width, self.height, msaa=self.msaa, readback_format="nv12") as renderer:
+        options = {}
+        if renderer == "studio":
+            from .studio import StudioRenderer as Renderer
+
+            options["look"] = look
+        with Renderer(self.width, self.height, msaa=self.msaa, readback_format="nv12", **options) as renderer:
             with VideoWriter(
                 output, self.width, self.height, self.fps, codec=codec, bitrate=bitrate, pixel_format="nv12"
             ) as writer:
@@ -215,6 +322,8 @@ class ProteinScene:
                     )
                 # Triple-buffered GPU readback overlaps rendering and hardware encoding.
                 for i in range(count):
+                    if hasattr(renderer, "set_time"):
+                        renderer.set_time(i / self.fps)
                     pixels = renderer.enqueue(self.seek(i / self.fps), self.camera, self.background)
                     if pixels is not None:
                         writer.write(pixels)
@@ -236,10 +345,16 @@ class ProteinScene:
             "output": str(output),
         }
 
-    def preview(self):
+    def _render_settings(self, renderer, look, eevee):
+        renderer = self.renderer if renderer is None else renderer
+        look = self.look if look is None and renderer == "studio" else look
+        eevee = self.eevee if eevee is None and renderer == "eevee" else eevee
+        return renderer, look, eevee
+
+    def preview(self, *, renderer=None, look=None, close_after=None):
         from .preview import preview
 
-        return preview(self)
+        return preview(self, renderer=renderer, look=look, close_after=close_after)
 
 
 Scene = ProteinScene

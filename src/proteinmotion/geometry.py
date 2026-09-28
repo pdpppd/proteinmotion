@@ -144,6 +144,38 @@ def segments(protein):
     return np.asarray(rows, np.float32).reshape(-1, 20)
 
 
+def studio_cartoon_segments(protein):
+    """Classic cartoon profile in the existing 80-byte segment layout.
+
+    Color alpha slots carry secondary-structure codes (coil=0, helix=1,
+    strand=2, nucleotide=-1); caps.z marks the final span of a sheet arrow.
+    Native/legacy metadata and nucleotide dimensions are left unchanged.
+    """
+    rows = segments(protein)
+    topo = protein.topology
+    offset = 0
+    for chain in topo.chains:
+        for j in range(len(chain) - 1):
+            row = rows[offset]
+            offset += 1
+            for endpoint, ri in enumerate(chain[j : j + 2]):
+                residue = topo.residues[ri]
+                if residue.is_nucleic:
+                    row[11 + 4 * endpoint] = -1
+                    continue
+                ss = residue.secondary
+                row[11 + 4 * endpoint] = {"C": 0, "H": 1, "E": 2}[ss]
+                width, height = {"C": (0.18, 0.18), "H": (1.25, 0.16), "E": (1.20, 0.12)}[ss]
+                scale = protein._cartoon_scale[ri]
+                row[4 + endpoint], row[6 + endpoint] = width * scale, height * scale
+            before, after = [topo.residues[ri] for ri in chain[j : j + 2]]
+            row[18] = not before.is_nucleic and (
+                (before.secondary == "E" and after.secondary != "E")
+                or (after.secondary == "E" and j == len(chain) - 2)
+            )
+    return rows
+
+
 def state_data(topology, xyz, reference_normals=None):
     """Compute frame guides once per keyframe, never once per rendered tween."""
     data = np.zeros((len(xyz), 8), np.float32)

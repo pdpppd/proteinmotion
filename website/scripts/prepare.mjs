@@ -37,6 +37,11 @@ for (const filename of [
   "synchronized_plots.py",
   "density_maps.py",
   "docs_examples.py",
+  "studio_examples.py",
+  "studio_threading.py",
+  "studio_buried_ligand.py",
+  "studio_presets.py",
+  "studio_cartoons.py",
   "nmr_regions.py",
   "labels_and_callouts.py",
   "molecular_tools.py",
@@ -45,7 +50,7 @@ for (const filename of [
 ])
   await copyFile(`../examples/${filename}`, `${target}/${filename}`);
 await mkdir(`${target}/data`, { recursive: true });
-for (const pdb of ["1cll", "1bna", "1ehz", "2dcg"])
+for (const pdb of ["1cll", "1bna", "1ehz", "2dcg", "1ubq", "2dri"])
   await copyFile(`../examples/data/${pdb}.cif`, `${target}/data/${pdb}.cif`);
 await writeFile("public/.nojekyll", "");
 
@@ -61,10 +66,7 @@ async function hash(file) {
     // uses LF on every platform; binary structure and media hashes stay exact.
     if (file.endsWith(".py"))
       data = Buffer.from(data.toString("utf8").replace(/\r\n/g, "\n"));
-    hashes.set(
-      file,
-      createHash("sha256").update(data).digest("hex"),
-    );
+    hashes.set(file, createHash("sha256").update(data).digest("hex"));
   }
   return hashes.get(file);
 }

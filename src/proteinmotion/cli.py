@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
+from .looks import EFFECTS_PRESETS, LIGHTING_PRESETS, MATERIAL_PRESETS, StudioLook
 from .scene import ProteinScene
 
 
@@ -16,7 +17,7 @@ def _shell_quote(path):
     return "'" + value.replace("'", "''") + "'" if sys.platform == "win32" else shlex.quote(value)
 
 
-def load_scene(path, name, **kwargs):
+def load_scene(path, name=None, **kwargs):
     path = Path(path).resolve()
     spec = importlib.util.spec_from_file_location("proteinmotion_user_scene", path)
     if spec is None or spec.loader is None:
@@ -27,10 +28,22 @@ def load_scene(path, name, **kwargs):
         spec.loader.exec_module(module)
     finally:
         sys.path.pop(0)
-    cls = getattr(module, name)
+    candidates = {
+        key: value
+        for key, value in vars(module).items()
+        if isinstance(value, type)
+        and issubclass(value, ProteinScene)
+        and value is not ProteinScene
+        and value.__module__ == module.__name__
+    }
+    if name is None and len(candidates) == 1:
+        name = next(iter(candidates))
+    if name not in candidates:
+        raise ValueError(f"Choose a scene class from {path.name}: {', '.join(candidates) or 'none found'}")
+    cls = candidates[name]
     if not isinstance(cls, type) or not issubclass(cls, ProteinScene):
         raise TypeError(f"{name} must derive from ProteinScene")
-    return cls(**kwargs)
+    return cls(**{key: value for key, value in kwargs.items() if value is not None})
 
 
 def main():
@@ -61,19 +74,24 @@ def main():
         p = commands.add_parser(mode)
         gpu_parsers.append(p)
         p.add_argument("file", type=Path)
-        p.add_argument("scene")
-        p.add_argument("--width", type=int, default=1920 if mode != "preview" else 1280)
-        p.add_argument("--height", type=int, default=1080 if mode != "preview" else 720)
-        p.add_argument("--fps", type=float, default=30)
-        p.add_argument("--msaa", type=int, choices=(1, 4), default=4)
+        p.add_argument("scene", nargs="?")
+        p.add_argument("--width", type=int, default=None)
+        p.add_argument("--height", type=int, default=None)
+        p.add_argument("--fps", type=float, default=None)
+        p.add_argument("--msaa", type=int, choices=(1, 4), default=None)
         if mode != "preview":
             p.add_argument("-o", "--output", type=Path, required=True)
-            p.add_argument("--renderer", choices=("native", "eevee"), default="native")
-            p.add_argument("--blender", help="Blender executable path (EEVEE only)")
-            p.add_argument("--samples", type=int, default=64, help="EEVEE samples per pixel")
+        p.add_argument("--renderer", choices=("native", "studio", "eevee"), default=None)
+        p.add_argument("--lighting", choices=tuple(LIGHTING_PRESETS), help="Studio lighting preset")
+        p.add_argument("--material", choices=tuple(MATERIAL_PRESETS), help="Studio material preset")
+        p.add_argument("--effects", choices=tuple(EFFECTS_PRESETS), help="Studio global effects recipe")
+        for effect in ("grain", "bloom", "halation"):
             p.add_argument(
-                "--supersampling", type=float, default=1.5, help="EEVEE spatial resolution multiplier"
+                f"--{effect}", help=f"Studio {effect}: preset name or numeric strength (0 disables)"
             )
+        p.add_argument("--blender", help="Blender executable path (EEVEE only)")
+        p.add_argument("--samples", type=int, default=64, help="EEVEE samples per pixel")
+        p.add_argument("--supersampling", type=float, default=1.5, help="EEVEE spatial resolution multiplier")
         if mode == "render":
             p.add_argument("--codec", default="auto")
             p.add_argument("--bitrate", default="20M")
@@ -153,6 +171,27 @@ def main():
             )
         )
         return
+    look = None
+    if args.command in ("render", "still", "preview"):
+        settings = {
+            name: getattr(args, name)
+            for name in ("lighting", "material", "effects", "grain", "bloom", "halation")
+            if getattr(args, name) is not None
+        }
+        if settings:
+            args.renderer = args.renderer or "studio"
+            if args.renderer not in (None, "studio"):
+                parser.error("Lighting, material and effects options require --renderer studio")
+            for name in ("grain", "bloom", "halation"):
+                if name in settings:
+                    try:
+                        settings[name] = float(settings[name])
+                    except ValueError:
+                        pass  # Preset name; StudioLook supplies a useful validation error.
+            try:
+                look = StudioLook(**settings)
+            except (ValueError, TypeError) as error:
+                parser.error(str(error))
     scene = load_scene(
         args.file, args.scene, width=args.width, height=args.height, fps=args.fps, msaa=args.msaa
     )
@@ -166,6 +205,7 @@ def main():
             bitrate=args.bitrate,
             renderer=args.renderer,
             eevee=options if args.renderer == "eevee" else None,
+            look=look,
         )
     elif args.command == "still":
         from .eevee import EEVEEOptions
@@ -176,9 +216,10 @@ def main():
             output=args.output,
             renderer=args.renderer,
             eevee=options if args.renderer == "eevee" else None,
+            look=look,
         )
     else:
-        scene.preview()
+        scene.preview(renderer=args.renderer, look=look)
 
 
 if __name__ == "__main__":

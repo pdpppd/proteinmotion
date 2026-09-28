@@ -188,6 +188,41 @@ class HydrogenBonds(_Analysis):
         for i, a in enumerate(atoms):
             self._names[a.residue_index][a.name] = i
 
+    def diagnostics(self):
+        """Report usable donors and missing hydrogens without inventing chemistry."""
+        xyz, atoms = self._coordinates(), self.protein.topology.atoms
+        missing, explicit, virtual = [], [], []
+        for donor in self.donors:
+            atom = atoms[donor]
+            candidates = [
+                h
+                for h in self._hydrogen_ids
+                if atoms[h].residue_index == atom.residue_index
+                and 0.4 < np.linalg.norm(xyz[h] - xyz[donor]) <= self.donor_h_cutoff
+            ]
+            same = [d for d in self.donors if atoms[d].residue_index == atom.residue_index]
+            candidates = [
+                h
+                for h in candidates
+                if donor == same[int(np.argmin(np.linalg.norm(xyz[same] - xyz[h], axis=1)))]
+            ]
+            identity = (atom.chain, atom.resid, atom.icode, atom.name)
+            if candidates and self.hydrogens != "backbone":
+                explicit.append(identity)
+            elif self.hydrogens != "explicit" and self._virtual_hydrogen(int(donor), xyz) is not None:
+                virtual.append(identity)
+            else:
+                missing.append(identity)
+        return dict(
+            donors=len(self.donors),
+            acceptors=len(self.acceptors),
+            explicit_donors=tuple(explicit),
+            virtual_backbone_donors=tuple(virtual),
+            missing_hydrogen_donors=tuple(missing),
+            pairs=len(self.pairs),
+            hint="Load with include_hydrogens=True; nonstandard residues need explicit donors/acceptors",
+        )
+
     def _settings_key(self):
         return (
             self.max_distance,
@@ -477,6 +512,7 @@ class InteractionHighlight(Annotation):
         show_distances=False,
         max_pairs=100,
         region=None,
+        between=None,
         endpoints="donor_acceptor",
         **line_options,
     ):
@@ -489,6 +525,13 @@ class InteractionHighlight(Annotation):
             raise ValueError("endpoints must be donor_acceptor or hydrogen_acceptor")
         if endpoints == "hydrogen_acceptor" and not isinstance(analysis, HydrogenBonds):
             raise ValueError("hydrogen_acceptor endpoints require HydrogenBonds")
+        if between is not None:
+            if len(between) != 2 or any(
+                not isinstance(r, Region) or r.protein is not analysis.protein for r in between
+            ):
+                raise ValueError("between needs two Regions from the analyzed protein")
+        self.between = between
+        self._warned_truncation = False
         self.endpoints = endpoints
         self.analysis, self.max_pairs, self.region = analysis, max_pairs, region
         self.color = None if color is None else parse_color(color)
@@ -504,7 +547,17 @@ class InteractionHighlight(Annotation):
 
     def _refresh(self):
         records = self.analysis.pairs
-        key = (id(records), self.endpoints, self._write, self._lag_ratio, self._stroke_width, self._reverse)
+        key = (
+            id(records),
+            self.endpoints,
+            self._write,
+            self._lag_ratio,
+            self._stroke_width,
+            self._reverse,
+            self.max_pairs,
+            None if self.region is None else tuple(self.region.atom_indices),
+            None if self.between is None else tuple(tuple(r.atom_indices) for r in self.between),
+        )
         if key == self._refresh_key:
             return
         self._refresh_key = key
@@ -512,7 +565,20 @@ class InteractionHighlight(Annotation):
         if self.region is not None:
             allowed = set(self.region.atom_indices)
             records = [r for r in records if r.a in allowed or r.b in allowed]
+        if self.between is not None:
+            left, right = (set(r.atom_indices) for r in self.between)
+            records = [r for r in records if (r.a in left and r.b in right) or (r.b in left and r.a in right)]
         self.total_pairs = len(records)
+        if self.total_pairs > self.max_pairs and not self._warned_truncation:
+            import warnings
+
+            warnings.warn(
+                f"Showing {self.max_pairs} of {self.total_pairs} interactions; "
+                "increase max_pairs or restrict between/region",
+                UserWarning,
+                stacklevel=2,
+            )
+            self._warned_truncation = True
         self.visible_pairs = tuple(records[: self.max_pairs])
         p = self.analysis.protein
         for index, record in enumerate(self.visible_pairs):

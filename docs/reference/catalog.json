@@ -27,7 +27,7 @@
     },
     "thread": {
       "title": "Threading",
-      "description": "Bring chains into view as wires that trace the backbone from C to N terminus.",
+      "description": "Thread actual cartoon, ribbon, or ball-and-stick geometry into view, with optional legacy wire mode.",
       "guide": "threading"
     },
     "annotations": {
@@ -99,6 +99,21 @@
       "title": "DNA and RNA bases",
       "description": "Choose nucleotide base shapes and animate transitions between styles.",
       "guide": "dna-rna"
+    },
+    "looks": {
+      "title": "Studio looks",
+      "description": "Studio looks for readable molecular movies.",
+      "guide": "studio"
+    },
+    "styles": {
+      "title": "Reusable styles",
+      "description": "Reusable styles for readable molecular movies.",
+      "guide": "readable-authoring"
+    },
+    "timeline": {
+      "title": "Animation groups",
+      "description": "Animation groups for readable molecular movies.",
+      "guide": "readable-authoring"
     }
   },
   "parameters": {
@@ -116,7 +131,7 @@
     "duration": "Hold duration in seconds; must be nonnegative.",
     "time": "Timeline position in seconds.",
     "output": "Output file path.",
-    "renderer": "Existing Renderer to reuse; None creates and closes one for this frame.",
+    "renderer": "native, studio, or eevee; None inherits the scene setting. render_frame also accepts a renderer instance.",
     "codec": "FFmpeg encoder name. auto tries H.264 VideoToolbox on macOS or NVENC elsewhere, then falls back to libx264 with a warning if hardware initialization fails.",
     "bitrate": "Target video bitrate, such as \"20M\".",
     "progress": "Print frame progress and render timing.",
@@ -161,7 +176,7 @@
     "representation": "\"cartoon\", \"ribbon\", \"ball_and_stick\", or \"surface\".",
     "residue_delay": "Delay in seconds between successive residue starts.",
     "reverse": "Reverse residue or glyph order.",
-    "easing": "Rate function that maps clip time to wire travel, such as ease_in_out_sine or smooth.",
+    "easing": "Named easing (smooth, linear, ease_in_out_sine, there_and_back) or callable mapping [0, 1] to [0, 1]. Per-item easing preserves stagger timing.",
     "value": "Value to assign; the supported range depends on the property.",
     "text": "Text to display.",
     "font_size": "Font size in pixels at a 1080-pixel image height.",
@@ -270,12 +285,12 @@
     "args": "Exception information supplied by the context manager.",
     "fstop": "Lens f-number. Lower values produce a shallower depth of field. Must be positive.",
     "blender": "Optional Blender executable path. Otherwise use PROTEINMOTION_BLENDER, PATH or a standard Windows/macOS installation.",
-    "samples": "Number of view directions to test.",
+    "samples": "Samples per density-slice axis; preferred over legacy resolution.",
     "supersampling": "Spatial resolution multiplier of at least 1. Output is downsampled to the requested size.",
     "max_blur": "Maximum depth-of-field blur size in output pixels.",
     "max_opacity_layers": "Maximum distinct positive opacity levels per frame. Rendering cost grows with this count.",
     "timeout": "Seconds allowed for Blender startup or one frame before an error is raised.",
-    "eevee": "Optional EEVEEOptions instance; requires renderer=\"eevee\".",
+    "eevee": "EEVEEOptions for the EEVEE renderer. None inherits scene options.",
     "executable": "Optional Blender executable name or path.",
     "vmin": "Finite lower limit of the fixed color scale.",
     "vmax": "Finite upper limit, greater than vmin.",
@@ -325,10 +340,10 @@
     "shape": "\"cone\" for a window that faces the camera, or \"tunnel\" for a depth tunnel fixed to the molecule.",
     "wall": "Tunnel wall opacity.",
     "rings": "Tunnel ring spacing in Å, measured from where the tunnel meets open space.",
-    "settle": "Final fraction of the clip in which the protein fades in and the wires fade out.",
+    "settle": "Final fraction of the clip for the wire-to-protein crossfade. Applies only to wire mode.",
     "swirl": "Strength of the corkscrew around each flight path; 0 gives smooth arcs.",
     "head": "Radius of the wire's tip, as a multiple of the wire radius.",
-    "glow": "Halo radius around each wire tip, as a multiple of the wire radius; 0 turns the glow off.",
+    "glow": "Halo radius around each leading terminus, as a multiple of radius; 0 turns the glow off.",
     "glow_color": "Halo color; None blends each chain's color with warm white.",
     "glow_brightness": "Halo intensity multiplier.",
     "stagger": "Delay between chains, as a fraction of the threading time, in chain order.",
@@ -336,7 +351,78 @@
     "objects": "Proteins whose atoms can block the view; defaults to the region's protein.",
     "max_elevation": "Largest camera elevation to consider, in radians.",
     "turn_penalty": "Fractional cost per radian of camera turn, which favors nearby views.",
-    "strength": "Target fog strength; 0 disables distance fog."
+    "strength": "Target fog strength; 0 disables distance fog.",
+    "scope": "Opacity scope: object for a Protein by default, residues for a Region; explicit residues affects all per-atom opacities of a Protein.",
+    "delay_seconds": "Delay between successive residue, chain, or glyph starts, in seconds. Choose one delay option.",
+    "stagger_fraction": "Total clip fraction reserved for staggered starts, in [0, 1).",
+    "residue_range": "Inclusive author residue-number range, e.g. (23, 34); do not also pass residues.",
+    "element": "Element symbol or collection of symbols, e.g. C or [N, O].",
+    "secondary": "Secondary-structure code or collection: H (helix), E (sheet), C (coil).",
+    "polymer": "True selects polymer atoms, False selects non-polymers, None does not filter.",
+    "icode": "Author insertion code or collection; an empty string selects no insertion code.",
+    "required": "Raise if nothing matches; False returns None for an optional static selection.",
+    "updating": "Re-evaluate membership on access. False (default) freezes membership.",
+    "allow_empty": "Allow an empty Region, as used internally by set operations.",
+    "criteria": "Protein selection keyword filters to apply within this region.",
+    "screen_position": "Normalized subject position; (0, 0) is top-left and (1, 1) bottom-right.",
+    "look": "StudioLook for the Studio renderer. None inherits the scene look.",
+    "close_after": "Optional preview timeout in seconds, for smoke testing.",
+    "lighting": "Lighting preset: studio, soft, dramatic, or flat.",
+    "material": "Material preset: rough, medium, or glossy.",
+    "effects": "Effects recipe: clean, subtle, film, or dreamy. None retains lighting-dependent defaults.",
+    "key": "Key-light intensity override.",
+    "key_color": "Key-light RGB triple or hex color.",
+    "key_direction": "Key-light direction in camera right/up/toward-camera coordinates.",
+    "fill": "Fill-light intensity override.",
+    "fill_color": "Fill-light RGB triple or hex color.",
+    "fill_direction": "Fill-light direction in camera coordinates.",
+    "rim": "Rim-light intensity, or a cutaway rim RGB/hex color for Reveal.",
+    "rim_color": "Rim-light RGB triple or hex color.",
+    "rim_direction": "Rim-light direction in camera coordinates.",
+    "ambient": "Ambient illumination intensity.",
+    "sky": "Hemisphere sky RGB triple or hex color.",
+    "ground": "Hemisphere ground RGB triple or hex color.",
+    "roughness": "Surface roughness in [0.02, 1]; larger values broaden highlights.",
+    "specular": "Specular reflection strength.",
+    "clearcoat": "Clearcoat reflection strength.",
+    "clearcoat_roughness": "Clearcoat roughness in [0.02, 1].",
+    "ambient_occlusion": "Screen-space ambient-occlusion strength in [0, 1].",
+    "bloom": "Bloom preset or numeric strength; zero disables it.",
+    "bloom_threshold": "Brightness threshold for bloom.",
+    "bloom_radius": "Bloom spread multiplier.",
+    "grain": "Luminance-based monochrome grain preset or strength; zero disables it.",
+    "grain_size": "Grain size in 1080p design pixels.",
+    "grain_fps": "Grain temporal refresh frequency, independent of output FPS.",
+    "grain_seed": "Deterministic unsigned 32-bit grain seed.",
+    "halation": "Halation preset or numeric strength; zero disables it.",
+    "halation_threshold": "Brightness threshold for halation.",
+    "halation_radius": "Halation radius in 1080p design pixels.",
+    "halation_color": "Halation RGB triple or hex color.",
+    "knee": "Highlight compression knee in [0, 0.999].",
+    "vignette": "Vignette strength in [0, 1].",
+    "surface_mode": "molecular uses VDW/SAS/SES meshes; density uses artistic density surfaces.",
+    "surface_inflation": "Additional atom radius in Å, for density surface mode only.",
+    "surface_blobbiness": "Density-surface falloff control, for density mode only.",
+    "surface_voxels": "Maximum density-surface voxel count.",
+    "cartoon_style": "classic uses helix bands, sheet arrows, and loop tubes; legacy retains the older sweep.",
+    "changes": "Named presets or explicit field overrides for a derived StudioLook.",
+    "time_unit": "Physical timestamp unit label, e.g. ps or ns. Does not rescale supplied times.",
+    "durations": "One positive duration in seconds per action; None uses natural durations.",
+    "seconds": "Positive animation duration in seconds.",
+    "delay": "Nonnegative animation start delay in seconds.",
+    "between": "Two Regions: retain only interactions crossing between the selections.",
+    "display_region": "Restrict plotted residues; preferred over the legacy region name.",
+    "highlight_region": "Highlight these residues inside a plot; preferred over legacy selection.",
+    "grid_spacing": "Surface grid spacing in Å. Smaller values add detail; preferred over legacy resolution.",
+    "max_width": "Maximum text line width in 1080p design pixels; None disables wrapping.",
+    "texts": "Text objects to arrange as one caption.",
+    "gap": "Vertical text gap in 1080p design pixels.",
+    "wire_options": "Legacy wire-only settings: settle, head, resolution. Requires mode=wire.",
+    "include_water": "Retain crystallographic waters; default False.",
+    "include_hydrogens": "Retain explicit hydrogen/deuterium atoms; default False. Enable for side-chain and nucleotide hydrogen-bond analysis.",
+    "surface_keep": "Fraction of the inner kept region for the cutaway surface, in [0, 1].",
+    "options": "Keyword options forwarded to the requested representation or plot.",
+    "pairs": "Pairs of source and target author residue identities: ((chain, number, insertion), (chain, number, insertion)); insertion codes may be omitted."
   },
   "members": {
     "construct": {
@@ -523,10 +609,7 @@
       "returns": "The annotation or animation builder."
     },
     "text_progress": "Current reveal progress for glyphs and annotation lines.",
-    "set_text": {
-      "description": "Replace text and rebuild its shaped glyphs before adding it to the scene.",
-      "returns": "The Text object."
-    },
+    "set_text": "Change text immediately, or at the midpoint when used through animate.",
     "glyph_count": "Number of shaped glyphs used for writing animation.",
     "to_corner": {
       "description": "Place text near an image corner.",
@@ -647,13 +730,29 @@
       "parameters": {
         "style": "slabs, rings, sticks, ladder, or none."
       }
-    }
+    },
+    "during": "Set this animation duration and start delay in seconds.",
+    "freeze": "Capture current selection membership.",
+    "filter": "Filter within this region.",
+    "with_presets": "Derive a look while preserving explicit overrides.",
+    "representation": "Add a representation transition to this animation chain.",
+    "set_style": "Apply a reusable molecular representation style.",
+    "reset_style": "Clear atom appearance overrides and reset cartoon thickness.",
+    "summary": "Describe available molecular selections.",
+    "atom_indices": "Current selected atom indices.",
+    "residue_indices": "Current topology residue indices.",
+    "from_residues": "Build correspondence from author residue identities.",
+    "lens_focus": "Set lens focus without changing framing.",
+    "diagnostics": "Report analysis prerequisites and missing hydrogen donors.",
+    "requires_linear_timeline": "Whether the animation preserves a linear clip clock for staggered item timing.",
+    "show_atoms": "Show ball-and-stick detail over the active representation. Chained animations may also change color, opacity, or transforms.",
+    "hide_atoms": "Hide ball-and-stick detail while retaining the active representation."
   },
   "entries": {
     "scene.ProteinScene": {
       "description": "Define a protein animation as a sequence of play() and wait() calls.",
       "example": "motion",
-      "notes": "Subclass ProteinScene and implement construct(). Configure initial geometry, styles, and camera pose before the first play() or wait(). Concurrent animations can change separate properties.",
+      "notes": "Subclass and implement construct(). Direct setters are recorded at the current authoring time. Use play() to interpolate. Define renderer and look on the scene class or constructor so CLI, preview, stills and movies agree.",
       "attributes": {
         "camera": "Camera used by the scene.",
         "duration": "Total timeline duration in seconds.",
@@ -665,7 +764,7 @@
           "description": "Export the timeline to a video file.",
           "returns": "Dictionary containing frames, seconds, fps, platform, adapter, codec, and output. Here fps is render throughput; platform, adapter and codec describe the runtime selection.",
           "parameters": {
-            "renderer": "\"native\" (default) or \"eevee\"."
+            "renderer": "native, studio, or eevee; None inherits the scene setting. render_frame also accepts a renderer instance."
           }
         },
         "focus": {
@@ -675,7 +774,7 @@
         "render_frame": {
           "description": "Render one point on the timeline to an image.",
           "parameters": {
-            "renderer": "\"native\", \"eevee\", an existing renderer instance, or None for native."
+            "renderer": "native, studio, or eevee; None inherits the scene setting. render_frame also accepts a renderer instance."
           },
           "returns": "RGBA uint8 image array."
         }
@@ -838,12 +937,9 @@
     "animation.Representation": {
       "description": "Transition between cartoon, ribbon, ball-and-stick and surface, with optional nucleotide base styles.",
       "example": "representations",
-      "forward_parameters": [
-        "animation.Animation",
-        [
-          "rate_func"
-        ]
-      ]
+      "parameters": {
+        "options": "Representation options such as kind, grid_spacing, atom_scale, bond_radius, color, or width. These are applied when the transition begins."
+      }
     },
     "animation.Reveal": {
       "description": "Open a view-dependent cutaway onto a region: geometry in front of it fades inside a window that follows the camera.",
@@ -882,12 +978,15 @@
         "styling._AppearanceAnimation",
         [
           "residue_delay",
+          "delay_seconds",
+          "stagger",
           "reverse",
           "easing"
         ]
       ],
       "parameters": {
-        "target": "Protein or Region to style."
+        "target": "Protein or Region to style.",
+        "stagger": "Total fraction of the clip reserved for residue starts, in [0, 1)."
       },
       "notes": "Residues start in topology order from N to C. run_time must exceed (residue count − 1) × residue_delay. Use easing for each residue transition; the clip clock stays linear. Disjoint atom selections can animate together."
     },
@@ -898,14 +997,17 @@
         "styling._AppearanceAnimation",
         [
           "residue_delay",
+          "delay_seconds",
+          "stagger",
           "reverse",
           "easing"
         ]
       ],
       "parameters": {
-        "target": "Protein or Region to style."
+        "target": "Protein or Region to style.",
+        "stagger": "Total fraction of the clip reserved for residue starts, in [0, 1)."
       },
-      "notes": "Residues start in topology order from N to C. run_time must exceed (residue count − 1) × residue_delay. Use easing for each residue transition; the clip clock stays linear. Disjoint atom selections can animate together."
+      "notes": "Protein targets change global opacity, matching Protein.set_opacity(). Region targets change per-atom opacity. Use scope=residues for legacy whole-protein per-atom styling and staggered opacity."
     },
     "styling.ShowAtoms": {
       "description": "Grow atoms in as ball-and-stick detail over a cartoon, ribbon, or surface.",
@@ -914,12 +1016,15 @@
         "styling._AppearanceAnimation",
         [
           "residue_delay",
+          "delay_seconds",
+          "stagger",
           "reverse",
           "easing"
         ]
       ],
       "parameters": {
-        "target": "Protein or Region whose atoms to show."
+        "target": "Protein or Region whose atoms to show.",
+        "stagger": "Total fraction of the clip reserved for residue starts, in [0, 1)."
       },
       "notes": "Detail atoms use the protein's atom_scale and bond_radius, element colors, and carbons in the structure palette. A bond appears once both of its atoms are visible. Residue staggering and run_time limits match SetOpacity."
     },
@@ -971,20 +1076,23 @@
       ]
     },
     "thread.Thread": {
-      "description": "Fly a wire in along a curved path and thread each chain from its C to N terminus, then fade the protein in.",
+      "description": "Thread the actual cartoon or atoms and bonds into view with eased travel over the full clip.",
       "example": "gallery-thread-hemoglobin",
       "parameters": {
-        "protein": "Protein with at least one traced chain; hidden while its wires thread.",
-        "camera": "Scene camera, so each wire starts just outside the frame; None starts wires at a fixed distance."
+        "protein": "Protein with at least one traced chain. Cartoon, ribbon and ball-and-stick are supported; surface raises ValueError.",
+        "camera": "Scene camera for off-screen entry; None uses a starting distance based on the molecule size.",
+        "mode": "geometry transports the current representation; wire retains the original wire-and-crossfade effect.",
+        "aspect": "Scene width divided by height for entry positioning; defaults to 16/9.",
+        "easing": "Travel easing returning a value in [0, 1]. None selects quintic smooth for geometry or ease_in_out_sine for wire mode."
       },
-      "notes": "Each traced chain segment gets a wire that enters from its own side of the screen and lands on the cartoon's centerline. Flight paths are seeded illustrations, not physical motion. The glow renders in both the native renderer and EEVEE."
+      "notes": "Geometry follows a route through the C terminus toward the N terminus. Residues and ligands move as rigid groups; inter-residue bonds may stretch. Final coordinates restore exactly. Flight paths illustrate an entrance, not physical folding. Do not combine with concurrent coordinate or representation animations. Mode wire preserves the original crossfade effect."
     },
     "thread.Unthread": {
-      "description": "Fade the protein into its wires, then pull them out along curved paths off-screen.",
+      "description": "Reverse Thread, pulling actual molecular geometry out of view along curved paths.",
       "example": "gallery-thread-hemoglobin",
       "parameters": {
         "protein": "Protein to take out of view.",
-        "camera": "Scene camera, so wires leave past the frame edges."
+        "camera": "Scene camera for departure past the frame edges."
       },
       "notes": "Takes the same options as Thread; the motion is its exact reverse, so with stagger the last chain leaves first."
     },
@@ -1000,7 +1108,8 @@
       "description": "Draw shaped vector text over the protein image.",
       "example": "writing",
       "parameters": {
-        "align": "Horizontal alignment: \"left\", \"center\", or \"right\"."
+        "align": "Horizontal alignment: \"left\", \"center\", or \"right\".",
+        "style": "Reusable TextStyle; explicit typography keywords override it."
       },
       "notes": "Positions use normalized image coordinates. Font sizes use pixels at a 1080-pixel image height and scale with the rendered height. Text supports Unicode, ligatures, and TTF/OTF fonts."
     },
@@ -1094,7 +1203,7 @@
         "atom_indices": "Read-only, sorted atom indices.",
         "residue_indices": "Read-only topology residue indices represented in the selection."
       },
-      "notes": "Create selections with protein.select(). Combine regions from the same protein with the | operator. Residue numbers in select() use PDB author numbering; atom_indices are zero-based.",
+      "notes": "Use Protein.select(). Combine static selections with |, &, -, and ~. Use residue_range for inclusive author ranges. Updating queries re-evaluate membership; freeze() captures it. optional static queries use required=False.",
       "members": {
         "highlight": {
           "description": "Create a sphere, box, or atom highlight around the selection.",
@@ -1102,7 +1211,7 @@
         },
         "animate": {
           "description": "Create a builder for residue color and opacity animations.",
-          "returns": "RegionAnimate"
+          "returns": "Animate"
         }
       }
     },
@@ -1135,6 +1244,12 @@
         "frame": {
           "description": "Read a single coordinate frame.",
           "returns": "float32 array with shape (atoms, 3), in ångströms."
+        },
+        "aligned": {
+          "description": "Return an aligned trajectory, preserving physical timestamps.",
+          "parameters": {
+            "selection": "Region with at least three anchor atoms matching this trajectory topology; use instead of indices."
+          }
         }
       }
     },
@@ -1372,8 +1487,11 @@
       "notes": "Without a protein, the cursor uses scene seconds. With a protein, it follows forward, reverse, and eased playback. Supplied samples remain fixed.",
       "members": {
         "distance": {
-          "description": "Read a trajectory and trace distances between two selection centroids, in ångströms before scene transforms.",
-          "notes": "The marker measures the current interpolated coordinates; the line connects the supplied state measurements. Omitted times use state indices."
+          "description": "Trace distances with the same backbone/CA/centroid anchor policy as Distance.",
+          "parameters": {
+            "anchor": "backbone (default), ca, or centroid, matching Distance endpoints.",
+            "trajectory": "Explicit trajectory to measure and follow; defaults to the regions parent trajectory."
+          }
         },
         "current_value": {
           "description": "Live measurement, or linear interpolation of supplied samples at the current cursor."
@@ -1542,6 +1660,28 @@
         ]
       ],
       "notes": "Use inside scene.play(..., run_time=seconds). Coloring, residue opacity and backbone geometry use independent tracks."
+    },
+    "looks.StudioLook": {
+      "description": "Studio lighting, material, and global effects presets with explicit per-setting overrides.",
+      "notes": "Derive looks with with_presets() or dataclasses.replace(). Preset-derived fields are re-resolved, explicit overrides remain. Colors accept hex or RGB. Create a new renderer after changing shader or geometry settings; post effects use live uniforms."
+    },
+    "styles.MolecularStyle": {
+      "description": "Reusable representation name and keyword options for Protein.set_style() and Representation().",
+      "parameters": {
+        "options": "Keyword options accepted by the named Protein representation method."
+      }
+    },
+    "styles.TextStyle": {
+      "description": "Reusable typography for Text(style=...). Sizes use 1080p design pixels."
+    },
+    "annotations.TextGroup": {
+      "description": "Vertically arrange Text objects and animate a caption as one object. Child positions are ignored."
+    },
+    "timeline.AnimationGroup": {
+      "description": "Compose actions with independent durations and start offsets in seconds. Animation.during(seconds, delay=...) is shorthand.",
+      "parameters": {
+        "offsets": "One nonnegative start offset in seconds per animation."
+      }
     }
   }
 }

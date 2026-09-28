@@ -28,8 +28,8 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def snippet(identifier):
-    text = SOURCE.read_text()
+def snippet(identifier, source=SOURCE):
+    text = source.read_text()
     match = re.search(
         rf"^[ \t]*# docs:start {re.escape(identifier)}\n(.*?)^[ \t]*# docs:end {re.escape(identifier)}$",
         text,
@@ -44,17 +44,28 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--only", nargs="+", help="Example IDs to refresh")
     args = parser.parse_args()
-    spec = importlib.util.spec_from_file_location("docs_examples", SOURCE)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    entries = [
-        (key, cls.__name__, title, caption, poster, SOURCE)
-        for key, cls, title, caption, poster in module.EXAMPLES
-    ]
+    entries = []
+    for source in (SOURCE, ROOT / "examples/studio_examples.py"):
+        spec = importlib.util.spec_from_file_location(source.stem, source)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+        inputs = getattr(module, "INPUTS", [ROOT / "examples/data/1ubq.cif", ROOT / "examples/data/2k39.cif"])
+        entries.extend(
+            (key, cls.__name__, title, caption, poster, source, [source, *inputs])
+            for key, cls, title, caption, poster in module.EXAMPLES
+        )
     starter = ROOT / "skills/proteinmotion-movies/assets/film.py"
     entries.append(
-        ("starter", "ProteinMovie", "Starter video", "The scene created by proteinmotion init.", 6, starter)
+        (
+            "starter",
+            "ProteinMovie",
+            "Starter video",
+            "The scene created by proteinmotion init.",
+            6,
+            starter,
+            [starter, starter.with_name("1ubq.cif")],
+        )
     )
     unknown = set(args.only or []) - {entry[0] for entry in entries}
     if unknown:
@@ -62,7 +73,7 @@ def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
     manifest_path = OUTPUT / "manifest.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
-    for key, cls, title, caption, poster_time, source in entries:
+    for key, cls, title, caption, poster_time, source, dependencies in entries:
         if args.only and key not in args.only:
             continue
         scene = load_scene(source, cls, width=1280, height=720, fps=60).build()
@@ -78,11 +89,6 @@ def main():
                 if frame_count == poster_index + 1:
                     frame.to_image().save(OUTPUT / f"{key}.jpg", quality=92)
         assert frame_count == result["frames"]
-        dependencies = (
-            [source, ROOT / "examples/data/1ubq.cif", ROOT / "examples/data/2k39.cif"]
-            if source == SOURCE
-            else [source, starter.with_name("1ubq.cif")]
-        )
         data = {
             "title": title,
             "caption": caption,
@@ -100,8 +106,8 @@ def main():
             "poster_sha256": digest(OUTPUT / f"{key}.jpg"),
             "dependencies": {str(p.relative_to(ROOT)): digest(p) for p in dependencies},
         }
-        if source == SOURCE:
-            data["code"], data["line"] = snippet(key)
+        if source != starter:
+            data["code"], data["line"] = snippet(key, source)
         manifest[key] = data
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
         print(

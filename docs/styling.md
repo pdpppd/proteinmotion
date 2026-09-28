@@ -65,7 +65,7 @@ self.play(SetOpacity(helix, 1), run_time=1.5)
 self.wait(0.5)
 ```
 
-`SetOpacity` uses the same delay, order, and easing options as `Colorize`. It changes the opacity of selected atoms. `p.set_opacity()` and `p.animate.set_opacity()` apply a separate multiplier to the whole protein. The final opacity combines both settings and any morph fades. Use `SetOpacity(region, 1)` to restore a local fade.
+`SetOpacity(region, ...)` uses the same delay, order, and easing options as `Colorize`. For a whole Protein, `SetOpacity(p, ...)`, `p.set_opacity()`, and `p.animate.set_opacity()` consistently change the global multiplier. Use `SetOpacity(p, 1, scope="residues")` to reset all local opacity overrides. The final opacity combines both settings and any morph fades. Use `SetOpacity(region, 1)` to restore a local fade.
 
 Fades use weighted blended transparency with approximate depth ordering. Bonds use the lower opacity of their two atoms, so hiding either atom hides the bond. Labels fade with their selection unless you set `follow_opacity=False`.
 

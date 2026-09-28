@@ -142,8 +142,12 @@ def test_gpu_residue_color_opacity_all_representations(protein, representation):
 
 
 @pytest.mark.gpu
-def test_gpu_surface_deformation_cached_mesh_and_resurfacing(protein):
+@pytest.mark.parametrize("backend", ["native", "studio"])
+def test_gpu_surface_deformation_cached_mesh_and_resurfacing(protein, backend):
     from proteinmotion.renderer import Renderer
+    from proteinmotion.studio import StudioRenderer
+
+    renderer_class = Renderer if backend == "native" else StudioRenderer
 
     protein.surface(resolution=1, update="deform")
     scene = Scene(width=256, height=256)
@@ -151,7 +155,7 @@ def test_gpu_surface_deformation_cached_mesh_and_resurfacing(protein):
     scene.camera.frame(protein, aspect=1)
     frames = np.array([protein.positions, protein.positions * np.array([1.15, 0.85, 1.1])])
     scene.play(PlayTrajectory(protein, Trajectory(frames)), run_time=2)
-    with Renderer(256, 256) as renderer:
+    with renderer_class(256, 256) as renderer:
         first = scene.render_frame(0, renderer=renderer)
         mesh = renderer._molecules[protein].surface
         buffer = mesh.vertices
@@ -160,7 +164,7 @@ def test_gpu_surface_deformation_cached_mesh_and_resurfacing(protein):
         assert np.abs(first.astype(int) - last.astype(int)).sum() > 5000
         np.testing.assert_array_equal(scene.render_frame(0, renderer=renderer), first)
     protein.surface(resolution=1, update="rebuild")
-    with Renderer(256, 256) as renderer:
+    with renderer_class(256, 256) as renderer:
         renderer.render([protein], scene.camera, scene.background)
         original = renderer._molecules[protein].surface.mesh
         protein.set_positions(frames[1])
