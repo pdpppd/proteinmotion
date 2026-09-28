@@ -2,7 +2,7 @@
 
 A cutaway shows a selection that other parts of the molecule hide. `Reveal` opens a window onto the selection; `Conceal` closes it. No atoms move: geometry in front of the selection fades for display only. A tunnel also shows how deep the selection lies, with a ring every 5 Å.
 
-Cutaways, tunnels, and the depth-cue animation work in the native renderer and in EEVEE. EEVEE fades cut faces in eighths of their opacity, so the edge of a window is slightly stepped.
+Cutaways, tunnels, and the depth-cue animation work in the native renderer, Studio, and EEVEE. EEVEE fades cut faces in eighths of their opacity, so the edge of a window is slightly stepped.
 
 ## Example and output
 
@@ -39,7 +39,7 @@ A second `Reveal` on the same selection changes the window size smoothly, for ex
 ## Show depth with a tunnel
 
 ```python
-self.play(Reveal(self.camera, site, window=1.3, shape="tunnel"), run_time=2)
+self.play(Reveal(self.camera, site, window=1.3, shape="tunnel", rings=5), run_time=2)
 depth = self.camera.cutaway_geometry()[3]     # Å from the selection's center to open space
 ```
 

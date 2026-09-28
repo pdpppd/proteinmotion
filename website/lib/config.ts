@@ -290,7 +290,7 @@ export const demos: Demo[] = [
     file: "docs/studio-cutaway",
     label: "STUDIO \u00b7 AUTHORING",
     detail:
-      "Switch from cartoon to a solvent-excluded surface, open a cutaway onto bound ribose RIP A272, and return to cartoon. Uses a 0.6 \u00c5 surface grid and dramatic lighting.",
+      "Switch from cartoon to a solvent-excluded surface, open a tunnel onto bound ribose RIP A272 with depth rings every 5 Å, and return to cartoon. Uses a 0.6 \u00c5 surface grid and dramatic lighting.",
     source: "examples/studio_examples.py",
     scene: "BuriedLigand",
     duration: "9.5 s",

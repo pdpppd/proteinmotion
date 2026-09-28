@@ -81,7 +81,9 @@ class AtomThreading(ProteinScene):
 ### Open a buried pocket
 
 Switch representation with its settings in the same call. The cutaway exposes
-bound ribose (RIP A272) in 2DRI. The surface uses a voxel approximation of SES;
+bound ribose (RIP A272) in 2DRI. `shape="tunnel", rings=5` draws depth rings every
+5 Å, with brighter marks every 10 Å. The tunnel stays fixed to the protein as the
+camera moves. The surface uses a voxel approximation of SES;
 cutting the display does not change the deposited atomic coordinates.
 
 ```python output=studio-cutaway
@@ -107,8 +109,8 @@ class BuriedLigand(ProteinScene):
             run_time=1.5,
         )
         self.play(
-            Reveal(self.camera, ligand, window=1.6, shape="cone", padding=2, surface_keep=0.15),
-            caption.animate.set_text("Cutaway · RIP A272"),
+            Reveal(self.camera, ligand, window=1.6, shape="tunnel", rings=5, padding=2, surface_keep=0.15),
+            caption.animate.set_text("RIP A272 · Depth rings every 5 Å"),
             run_time=2,
         )
         self.play(self.camera.animate.orbit(0.25), run_time=2)

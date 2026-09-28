@@ -777,10 +777,10 @@
     "video": "media/docs/studio-threading.mp4",
     "poster": "media/docs/studio-threading.jpg",
     "poster_time": 7.0,
-    "video_sha256": "fcb7604051462e79509484a5ebeee08cf40ecbdf81700003230e04f90605442e",
+    "video_sha256": "42b185086a1eddda84e7c0b26aee573ac4f7b5a2cea714db51ee9148c351cfc2",
     "poster_sha256": "5a431b0ad8eb326beee793721802d532fb97b95b20a681b9c547f4cc718cab7a",
     "dependencies": {
-      "examples/studio_examples.py": "26ae18a05351de03a7260f96c6d61eee7ab29b85b49c0b8d331a252bde6d5264",
+      "examples/studio_examples.py": "8e7256c5487f2de3fd97374f1dfe95031b265f7d2b301f915db5bd4a7cf0e876",
       "examples/data/2dri.cif": "e10e8bb4c75d762b657111f5cc7230cc7a0282a823c909459293a0815456fa16",
       "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
     },
@@ -800,10 +800,10 @@
     "video": "media/docs/studio-atoms.mp4",
     "poster": "media/docs/studio-atoms.jpg",
     "poster_time": 7.0,
-    "video_sha256": "1141227b68f1545ee43d88c7cd5c0f7bf94a95b070f1d517c795df6f2ce14bc4",
-    "poster_sha256": "5b675deebb475d8a2977225a7c4e952eda5e0a8f91fb9a05cbcee27ae30c6250",
+    "video_sha256": "d94b312d45dd77c8aed74a59ce12f45404ab4e88f5228a0172811c49cde89db3",
+    "poster_sha256": "c3d3e9a2aca5299085353b4f6c92b5c966c4d2683c95567d119daf0a10defe2f",
     "dependencies": {
-      "examples/studio_examples.py": "26ae18a05351de03a7260f96c6d61eee7ab29b85b49c0b8d331a252bde6d5264",
+      "examples/studio_examples.py": "8e7256c5487f2de3fd97374f1dfe95031b265f7d2b301f915db5bd4a7cf0e876",
       "examples/data/2dri.cif": "e10e8bb4c75d762b657111f5cc7230cc7a0282a823c909459293a0815456fa16",
       "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
     },
@@ -812,7 +812,7 @@
   },
   "studio-cutaway": {
     "title": "A buried-ligand cutaway",
-    "caption": "A solvent-excluded surface opens onto RIP A272 in 2DRI, then returns to cartoon.",
+    "caption": "A solvent-excluded surface opens a tunnel onto RIP A272 in 2DRI, with depth rings every 5 \u00c5, then returns to cartoon.",
     "source": "examples/studio_examples.py",
     "scene": "BuriedLigand",
     "duration": 9.5,
@@ -823,14 +823,14 @@
     "video": "media/docs/studio-cutaway.mp4",
     "poster": "media/docs/studio-cutaway.jpg",
     "poster_time": 5.0,
-    "video_sha256": "dc097d52ac1805ea16c34e967c98629df4631214b7020818e336960685c2b9db",
-    "poster_sha256": "144cbcff32755122d2d46a5aed6b5d6be3ce6c09260717cb93f7bb03d8aab5d7",
+    "video_sha256": "70a01cd7909bc007fd091b185d0221484df7de2f04386eb1c6a1b85e53420003",
+    "poster_sha256": "2138cf3ab26bf4c5c71466ad47ef68c414dc534db847c9bbf9e1e4f7e4d38367",
     "dependencies": {
-      "examples/studio_examples.py": "26ae18a05351de03a7260f96c6d61eee7ab29b85b49c0b8d331a252bde6d5264",
+      "examples/studio_examples.py": "8e7256c5487f2de3fd97374f1dfe95031b265f7d2b301f915db5bd4a7cf0e876",
       "examples/data/2dri.cif": "e10e8bb4c75d762b657111f5cc7230cc7a0282a823c909459293a0815456fa16",
       "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
     },
-    "code": "class BuriedLigand(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"dramatic\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"2dri.cif\", chains=\"A\").center()\n        protein.cartoon(color=\"#8fe3c0\", atom_scale=0.3, bond_radius=0.12)\n        ligand = protein.select(chain=\"A\", resname=\"RIP\", residues=272)\n        ligand.filter(element=\"C\").set_color(\"#ffc46b\")\n        self.camera.theta, self.camera.phi = 1.5, 0.25\n        self.camera.frame(protein, margin=1.1, screen_position=(0.63, 0.53))\n        self.add(protein)\n        self.add(Text(\"Buried ribose\", position=(0.05, 0.09), font_size=48))\n        caption = Text(\"2DRI \u00b7 Cartoon\", position=(0.05, 0.16), font_size=26)\n        self.add(caption)\n        self.wait(1)\n        self.play(\n            Representation(protein, \"surface\", kind=\"ses\", grid_spacing=0.6),\n            caption.animate.set_text(\"Solvent-excluded surface\"),\n            run_time=1.5,\n        )\n        self.play(\n            Reveal(self.camera, ligand, window=1.6, shape=\"cone\", padding=2, surface_keep=0.15),\n            caption.animate.set_text(\"Cutaway \u00b7 RIP A272\"),\n            run_time=2,\n        )\n        self.play(self.camera.animate.orbit(0.25), run_time=2)\n        self.play(Conceal(self.camera), Representation(protein, \"cartoon\"), run_time=1.5)\n        self.play(caption.animate.set_text(\"2DRI \u00b7 Cartoon\"), run_time=0.5)\n        self.wait(1)",
+    "code": "class BuriedLigand(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"dramatic\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"2dri.cif\", chains=\"A\").center()\n        protein.cartoon(color=\"#8fe3c0\", atom_scale=0.3, bond_radius=0.12)\n        ligand = protein.select(chain=\"A\", resname=\"RIP\", residues=272)\n        ligand.filter(element=\"C\").set_color(\"#ffc46b\")\n        self.camera.theta, self.camera.phi = 1.5, 0.25\n        self.camera.frame(protein, margin=1.1, screen_position=(0.63, 0.53))\n        self.add(protein)\n        self.add(Text(\"Buried ribose\", position=(0.05, 0.09), font_size=48))\n        caption = Text(\"2DRI \u00b7 Cartoon\", position=(0.05, 0.16), font_size=26)\n        self.add(caption)\n        self.wait(1)\n        self.play(\n            Representation(protein, \"surface\", kind=\"ses\", grid_spacing=0.6),\n            caption.animate.set_text(\"Solvent-excluded surface\"),\n            run_time=1.5,\n        )\n        self.play(\n            Reveal(self.camera, ligand, window=1.6, shape=\"tunnel\", rings=5, padding=2, surface_keep=0.15),\n            caption.animate.set_text(\"RIP A272 \u00b7 Depth rings every 5 \u00c5\"),\n            run_time=2,\n        )\n        self.play(self.camera.animate.orbit(0.25), run_time=2)\n        self.play(Conceal(self.camera), Representation(protein, \"cartoon\"), run_time=1.5)\n        self.play(caption.animate.set_text(\"2DRI \u00b7 Cartoon\"), run_time=0.5)\n        self.wait(1)",
     "line": 72
   },
   "readable-timing": {
@@ -846,10 +846,10 @@
     "video": "media/docs/readable-timing.mp4",
     "poster": "media/docs/readable-timing.jpg",
     "poster_time": 4.0,
-    "video_sha256": "f0a30b01c22521be9ead811d29ae9dad9b25e05c957c35a1f56feb5163177cf9",
+    "video_sha256": "e77fe04a6ea02d83eaed6b9d33b957713f8569e95fa1d5ea71080a4365ae8af3",
     "poster_sha256": "9ba89714d159320f08b5564231e2834b5fe17a707760267c68bd9bdb83f31d57",
     "dependencies": {
-      "examples/studio_examples.py": "26ae18a05351de03a7260f96c6d61eee7ab29b85b49c0b8d331a252bde6d5264",
+      "examples/studio_examples.py": "8e7256c5487f2de3fd97374f1dfe95031b265f7d2b301f915db5bd4a7cf0e876",
       "examples/data/2dri.cif": "e10e8bb4c75d762b657111f5cc7230cc7a0282a823c909459293a0815456fa16",
       "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
     },

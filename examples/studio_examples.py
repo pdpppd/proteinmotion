@@ -91,8 +91,8 @@ class BuriedLigand(ProteinScene):
             run_time=1.5,
         )
         self.play(
-            Reveal(self.camera, ligand, window=1.6, shape="cone", padding=2, surface_keep=0.15),
-            caption.animate.set_text("Cutaway · RIP A272"),
+            Reveal(self.camera, ligand, window=1.6, shape="tunnel", rings=5, padding=2, surface_keep=0.15),
+            caption.animate.set_text("RIP A272 · Depth rings every 5 Å"),
             run_time=2,
         )
         self.play(self.camera.animate.orbit(0.25), run_time=2)
@@ -151,7 +151,7 @@ EXAMPLES = [
         "studio-cutaway",
         BuriedLigand,
         "A buried-ligand cutaway",
-        "A solvent-excluded surface opens onto RIP A272 in 2DRI, then returns to cartoon.",
+        "A solvent-excluded surface opens a tunnel onto RIP A272 in 2DRI, with depth rings every 5 Å, then returns to cartoon.",
         5,
     ),
     (
