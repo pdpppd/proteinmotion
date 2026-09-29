@@ -75,6 +75,30 @@ class MyMovie(ProteinScene):
 
 Use a structure file and residue selection that match your protein. Residue ranges use inclusive PDB author numbers. Coordinates are in ångströms; angles are in radians. Animations in one `play()` call run together. Successive calls run in sequence.
 
+## Render with Studio
+
+Studio is included in version 0.13.0 and later. It adds classic cartoons, molecular
+surfaces, four lighting presets, three materials, ambient occlusion, and film effects.
+
+```bash
+proteinmotion render my-movie/film.py ProteinMovie --renderer studio \
+  --lighting soft --material medium --effects film --fps 60 -o studio.mp4
+```
+
+Store settings on a scene with `renderer = "studio"` and
+`look = StudioLook(lighting="soft", material="medium", effects="clean")` to share
+them across interactive preview, stills, and video. The native renderer remains
+the default. See the [Studio guide and rendered examples](https://pdpppd.github.io/proteinmotion/docs/studio/).
+
+### Upgrading to 0.13
+
+- `Thread` and `Unthread` now move the actual cartoon, ribbon, or ball-and-stick geometry. Pass `mode="wire"` to keep the earlier glowing-wire entrance. Surface threading raises an error.
+- `SetOpacity(protein, value)` now changes the global object opacity. Use `scope="residues"` to change all local opacity multipliers as in earlier versions.
+- Distance plots now use backbone anchors by default, matching distance rulers. Pass `anchor="centroid"` for the earlier plot behavior.
+
+The [readable-authoring guide](https://pdpppd.github.io/proteinmotion/docs/readable-authoring/)
+covers reusable styles, selection filters, independent timing, and migration details.
+
 ## Render with Blender EEVEE
 
 EEVEE adds depth of field with focus on a protein, residue, or selected region. Install [Blender 4.5 or later](https://www.blender.org/download/) separately. EEVEE is included in Blender. The default native renderer uses the Python dependencies installed above.
@@ -105,9 +129,9 @@ The selected atoms define the focus point and follow the protein during motion. 
 - **Plots:** distance traces, live contact maps, sequence strips, and color legends synchronized with the movie.
 - **Density:** MRC/CCP4 maps, animated contours, and moving slices, with map coordinates preserved.
 - **Labels:** text writing and erasing, amino acid and nucleotide names, and callout lines that connect labels to selected regions.
-- **Rendering:** native GPU rendering or Blender EEVEE with depth of field.
+- **Rendering:** native GPU rendering, Studio lighting/materials/film effects, or Blender EEVEE with depth of field.
 - **Cutaways and depth tunnels:** open a window onto a hidden selection that follows the camera, or drill a tunnel with a ring every 5 Å to show how deep it lies.
-- **Threading:** wires fly in, trace each chain from C to N terminus with glowing tips, and fade into the protein.
+- **Threading:** eased entrances of actual cartoon, ribbon, or ball-and-stick geometry, with the earlier glowing-wire mode available explicitly.
 - **Region tools:** camera focus, 3D sphere, box, or atom highlights, and selection by ligand, ion, residue name, or distance.
 - **Measurements:** distance labels, hydrogen-bond detection, and screened Coulomb estimates with imported charges.
 - **States and trajectories:** multi-model PDB/mmCIF, NumPy arrays, and MDAnalysis readers for XTC, DCD, TRR, and other formats.
@@ -139,6 +163,7 @@ These scripts and their input structures are in the repository:
 
 | Example | Source |
 |---|---|
+| Studio threading, buried-ribose depth rings, and independent animation timing | [studio_examples.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/studio_examples.py) |
 | DNA morphs with C1′ matching and delayed nucleotide motion | [dna_morph.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/dna_morph.py) |
 | DNA base styles, strand transparency, and surfaces | [dna_styles.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/dna_styles.py) |
 | tRNA regions, modified bases, and B-factor surfaces | [rna_styles.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/rna_styles.py) |

@@ -28,11 +28,11 @@ These 720p/60 fps clips use the scene's own renderer and look settings. Download
 [the runnable scenes](studio_examples.py), [2DRI](data/2dri.cif),
 and [1UBQ](data/1ubq.cif). Put the structures in a `data/` directory
 beside the script; `DATA = Path(__file__).parent / "data"` in the examples below.
-Studio is available in the current repository; the published 0.12.0 package predates it.
-Install the development version before running these examples:
+Studio is included in ProteinMotion 0.13.0 and later. Install or upgrade before
+running these examples:
 
 ```sh
-python -m pip install "git+https://github.com/pdpppd/proteinmotion.git"
+python -m pip install --upgrade "proteinmotion>=0.13.0"
 ```
 
 ### Thread the cartoon

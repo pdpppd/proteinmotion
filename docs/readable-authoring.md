@@ -9,8 +9,8 @@ durations. A shared style configures the cartoon; the scene stores its Studio lo
 Download [the script](studio_examples.py) and place
 [1UBQ](data/1ubq.cif) in `data/` beside it. The script defines
 `DATA = Path(__file__).parent / "data"` and includes the imports.
-These authoring improvements are available in the current repository; the published
-0.12.0 package predates them.
+These authoring improvements require ProteinMotion 0.13.0 or later. Upgrade with
+`python -m pip install --upgrade "proteinmotion>=0.13.0"`.
 
 ```python output=readable-timing
 class ReadableTiming(ProteinScene):

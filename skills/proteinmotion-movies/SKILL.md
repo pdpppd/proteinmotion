@@ -13,13 +13,13 @@ Use the task's existing Python environment if it contains ProteinMotion. Otherwi
 
 ```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install "proteinmotion>=0.12.0"
+.venv/bin/python -m pip install "proteinmotion>=0.13.0"
 .venv/bin/proteinmotion doctor
 ```
 
 On Windows, use `py -3 -m venv .venv`, `.venv\Scripts\python.exe`, and `.venv\Scripts\proteinmotion.exe`. Windows/NVIDIA support requires version 0.10.1 or later, 64-bit Python, and a current NVIDIA driver. `doctor --check-encoders` should identify a Vulkan adapter and usable `h264_nvenc` encoder. On Apple silicon, use native arm64 Python; the corresponding backend and encoder are Metal and `h264_videotoolbox`.
 
-PyAV supplies the FFmpeg libraries. Add extras as needed: `"proteinmotion[md,preview]>=0.12.0"`. `md` adds trajectory readers; `preview` adds an interactive GPU window. For an existing global command installed with pipx, use that command to render scenes; install the package in the task's environment when importing it into another Python process.
+PyAV supplies the FFmpeg libraries. Add extras as needed: `"proteinmotion[md,preview]>=0.13.0"`. `md` adds trajectory readers; `preview` adds an interactive GPU window. For an existing global command installed with pipx, use that command to render scenes; install the package in the task's environment when importing it into another Python process.
 
 If hardware rendering fails, diagnose the reported adapter and encoder before changing renderers. `--codec libx264` selects CPU encoding; molecular rendering still needs a GPU.
 

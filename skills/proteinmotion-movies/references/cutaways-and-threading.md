@@ -1,6 +1,6 @@
 # Cutaways, depth tunnels, and threading
 
-Requires ProteinMotion 0.12.0 or later. Cutaways, tunnels, fog, and wire glow render in both the native renderer and EEVEE.
+Requires ProteinMotion 0.13.0 or later. Cutaways, tunnels, fog, and wire glow render in the native renderer, Studio, and EEVEE.
 
 ## Reveal a hidden selection
 
@@ -16,7 +16,7 @@ Geometry between the camera and the selection fades inside the window; no atoms 
 ## Show depth with a tunnel
 
 ```python
-self.play(Reveal(self.camera, site, window=1.3, shape="tunnel"), run_time=2)
+self.play(Reveal(self.camera, site, window=1.3, shape="tunnel", rings=5), run_time=2)
 depth = self.camera.cutaway_geometry()[3]  # Å from the selection center to open space.
 ```
 
@@ -25,7 +25,7 @@ The tunnel is drilled along the current view and then fixed to the molecule, wit
 Depth reads best with:
 
 - small orbits near the tunnel axis (large orbits hide a tunnel inside opaque protein);
-- a side view with the rest faded: `rest = Region(p, np.setdiff1d(np.arange(len(p.topology.atoms)), keep.atom_indices))`, then `SetOpacity(rest, 0.18)` and a highlight sphere on the target;
+- a side view with the rest faded: `rest = ~keep`, then `SetOpacity(rest, 0.18)` and a highlight sphere on the target;
 - a fly-down: orbit to face the tunnel axis, `Focus` on the target, then `self.camera.animate.zoom(3)`;
 - stronger fog in close shots: `self.camera.animate.orbit(0.3).depth_cue(0.7)`.
 
@@ -41,7 +41,7 @@ self.play(Unthread(p, self.camera, stagger=0.16), run_time=5)
 
 By default the actual cartoon, ribbon, or atoms and bonds follow a route through the C terminus toward the N terminus. Geometry travel uses quintic `smooth` easing over the full clip. Try `swirl=0.25` and an eight-second entrance. Surface representation raises `ValueError`. Residues and ligands move as rigid groups, but inter-residue bonds may stretch. Coordinates restore exactly at the end. Do not combine with concurrent coordinate or representation animations.
 
-Pass the scene camera and `aspect=self.width/self.height` for off-screen entry. Options include `easing`, `stagger` (per-chain delay as a fraction of the clip), `swirl`, `seed`, and the optional halo `glow` (size relative to `radius`; 0 disables), `glow_color`, `glow_brightness`. Plan 5–8 s and frame the resting protein first. Describe these animations as illustrations, never as folding or physical motion.
+Threading inherits the scene camera and aspect for off-screen entry; explicit camera and aspect overrides remain available. Options include `easing`, `stagger` (per-chain delay as a fraction of the clip), `swirl`, `seed`, and the optional halo `glow` (size relative to `radius`; 0 disables), `glow_color`, `glow_brightness`. Plan 5–8 s and frame the resting protein first. Describe these animations as illustrations, never as folding or physical motion.
 
 `mode="wire"` preserves the original wire-to-protein fade, with sine easing by default and `settle` controlling the crossfade in wire mode only. Wire colors follow cartoon tints, `radius` and `head` size the wire. `examples/studio_threading.py` renders actual geometry in cartoon and ball-and-stick; the hemoglobin example explicitly selects wire mode.
 

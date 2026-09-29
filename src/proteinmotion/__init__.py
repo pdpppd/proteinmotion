@@ -35,7 +35,7 @@ from .thread import Thread, Unthread
 from .timeline import AnimationGroup
 from .trajectory import Trajectory
 
-__version__ = "0.12.0"
+__version__ = "0.13.0"
 __all__ = [
     "AnimationGroup",
     "MolecularStyle",

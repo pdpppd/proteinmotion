@@ -24,7 +24,7 @@ export default function Gallery() {
         settings used for its preview.
       </p>
       <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
-        The Studio examples use the current development version. Follow the{" "}
+        The Studio examples require ProteinMotion 0.13.0 or later. Follow the{" "}
         <Link href="/docs/studio/" className="text-accent underline">
           Studio setup guide
         </Link>{" "}
