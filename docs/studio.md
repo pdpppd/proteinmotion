@@ -313,8 +313,17 @@ backbones retain their tube dimensions. Classic mode uses denser sweep tessellat
 (20 subdivisions per segment, 24 around the cross-section).
 
 Cartoons follow the structure's helix/sheet assignments; files without those
-annotations render as coils unless you provide `with_secondary_structure()`
-assignments. Smoothing moves only the display curve, not atomic coordinates,
+annotations are assigned with DSSP. Cross-sections and sheet arrows blend when
+the assignment changes, for example during `SetTorsions`.
+
+In every renderer, ribbons and cartoons are oriented by the Cα trace: by the
+local helix axis in helices and by the curvature of strands and loops, with the
+carbonyl direction used only where the trace is straight. The orientation depends
+only on nearby residues, so cartoons turn smoothly as atoms move in morphs,
+trajectories, and torsion animations. Between two residues whose relative turn is
+ambiguous (a few segments per structure, mostly in loops and at helix kinks), the
+ribbon makes that turn through a short round section rather than picking a side,
+so it cannot flip from one frame to the next. Smoothing moves only the display curve, not atomic coordinates,
 side-chain geometry, interaction endpoints, or analysis data. This is a familiar
 molecular cartoon style, not a reproduction of another program's renderer.
 Choose the style when constructing a renderer, as with lighting and materials.

@@ -107,6 +107,14 @@ class Topology:
         categories = self.residue_categories
         return np.array([categories[a.residue_index] != "polymer" for a in self.atoms], bool)
 
+    @cached_property
+    def residue_atoms(self):
+        """Atom indices by name for each residue; legacy ``*`` primes read as ``'``."""
+        names = tuple({} for _ in self.residues)
+        for i, atom in enumerate(self.atoms):
+            names[atom.residue_index].setdefault(atom.name.replace("*", "'"), i)
+        return names
+
 
 def coordinates(value, n_atoms=None):
     a = np.array(value, dtype=np.float32, copy=True, order="C")
@@ -213,13 +221,30 @@ def make_chains(residues, xyz, atoms=()):
     return tuple(runs)
 
 
-def load_structure(path, *, chains=None, include_water=False, include_hydrogens=False):
+def load_structure(
+    path, *, chains=None, include_water=False, include_hydrogens=False, secondary="auto", assembly=None
+):
+    """Topology and coordinate frames from PDB/mmCIF.
+
+    ``secondary`` is "auto" (the file's helix/sheet records, or DSSP when it has
+    none), "file" (records only) or "dssp" (always computed from the first model).
+    ``assembly`` builds a biological assembly (for example "1") from the deposited
+    chains; generated copies get new single-letter chain IDs.
+    """
+    if secondary not in ("auto", "file", "dssp"):
+        raise ValueError("secondary must be 'auto', 'file' or 'dssp'")
     path = Path(path)
     if not path.is_file():
         raise FileNotFoundError(path)
     st = gemmi.read_structure(str(path))
     if not len(st):
         raise ValueError("Structure contains no models")
+    if assembly is not None:
+        st.setup_entities()
+        names = [a.name for a in st.assemblies]
+        if str(assembly) not in names:
+            raise ValueError(f"Assembly {assembly!r} not found; the file defines {names or 'none'}")
+        st.transform_to_assembly(str(assembly), gemmi.HowToNameCopiedChain.Short)
     allowed = None if chains is None else ({chains} if isinstance(chains, str) else set(chains))
     parents = {
         (m.chain_name, m.res_id.seqid.num, m.res_id.seqid.icode.strip()): m.parent_comp_id
@@ -232,7 +257,7 @@ def load_structure(path, *, chains=None, include_water=False, include_hydrogens=
         for strand in sheet.strands:
             ranges.append((strand.start, strand.end, "E"))
 
-    def secondary(chain, res):
+    def annotated(chain, res):
         key = (res.seqid.num, res.seqid.icode.strip())
         for start, end, kind in ranges:
             if start.chain_name == chain == end.chain_name:
@@ -284,7 +309,7 @@ def load_structure(path, *, chains=None, include_water=False, include_hydrogens=
                         res.name,
                         names,
                         atoms,
-                        secondary(chain.name, res),
+                        annotated(chain.name, res),
                         parents.get((chain.name, res.seqid.num, res.seqid.icode.strip())),
                     )
                 )
@@ -301,11 +326,24 @@ def load_structure(path, *, chains=None, include_water=False, include_hydrogens=
         if len(lookup) != len(aa) or set(lookup) != set(keys):
             raise ValueError("All models must contain exactly the same selected atom identities")
         frames.append(coordinates(xx[[lookup[k] for k in keys]]))
-    if not ranges and any(r.ca >= 0 for r in residues):
+    topo = Topology(atoms, residues, infer_bonds(atoms, first), make_chains(residues, first, atoms))
+    if secondary == "dssp" or (secondary == "auto" and not ranges):
+        topo = with_dssp(topo, first)
+    elif not ranges and any(r.ca >= 0 for r in residues):
         warnings.warn(
-            "No helix/sheet annotations found; cartoon uses coils. Supply secondary structure "
-            "with with_secondary_structure() or a file containing assignments.",
+            "No helix/sheet annotations found; cartoon uses coils. Use secondary='auto' to assign "
+            "them with DSSP, or supply them with with_secondary_structure().",
             stacklevel=2,
         )
-    topo = Topology(atoms, residues, infer_bonds(atoms, first), make_chains(residues, first, atoms))
     return topo, frames
+
+
+def with_dssp(topology, xyz):
+    """The topology with residue secondary structure assigned by DSSP from coordinates."""
+    from dataclasses import replace
+
+    from .secondary import assign
+
+    states = assign(topology, xyz)
+    residues = tuple(replace(r, secondary=c) for r, c in zip(topology.residues, states))
+    return Topology(topology.atoms, residues, topology.bonds, topology.chains)

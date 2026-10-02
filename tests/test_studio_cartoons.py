@@ -118,3 +118,21 @@ def test_nucleotide_geometry_and_uniform_ribbon_are_preserved(structure_path):
                 images.append(r.render([molecule], camera, (0, 0, 0)))
         # The profile is unchanged; denser Studio tessellation slightly changes edge pixels.
         assert np.mean(np.abs(images[0].astype(int) - images[1])) < 2
+
+
+@pytest.mark.gpu
+def test_per_atom_fades_converge_to_the_solid_image():
+    from proteinmotion import SetOpacity
+
+    p = strand("CCEEEECCEEEECC")
+    images = {}
+    for opacity in (1.0, 0.999, 0.9):
+        q = p.copy()
+        scene = ProteinScene(width=256, height=128, renderer="studio", look=StudioLook(effects="clean"))
+        scene.add(q)
+        scene.camera.frame(q, aspect=2)
+        scene.play(SetOpacity(q.select(residues=(1, 7)), opacity), run_time=1)
+        images[opacity] = scene.render_frame(1).astype(int)
+    # Nearly opaque atoms look solid, so a fade ends without a jump.
+    assert np.abs(images[0.999] - images[1.0]).mean() < 0.05
+    assert np.abs(images[0.9] - images[1.0]).mean() > np.abs(images[0.999] - images[1.0]).mean()

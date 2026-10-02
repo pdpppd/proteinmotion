@@ -10,6 +10,8 @@ Residue color and opacity apply across representations. A separate pass draws te
 
 The renderer uses 4× multisample antialiasing (MSAA) to smooth geometry edges. Sphere silhouettes use analytical intersections and receive partial antialiasing. Current rendering limits include shadows, screen-space ambient occlusion, ray tracing, and refractive materials.
 
+Stills and movies up to 1920 × 1080 are also supersampled: the native and Studio renderers draw each frame at twice the width and height and average each 2 × 2 block of pixels in linear light. This smooths edges that MSAA cannot, such as thin loop tubes and callout lines, specular highlights, and the edges of Studio's ambient occlusion. Text, line widths, and effects keep their size because they are defined in 1080p design pixels. Set `ProteinScene(supersampling=1)` or `--supersampling 1` to turn it off, or 3 or 4 for still finer edges at a higher GPU cost; larger outputs default to 1. The interactive preview does not supersample.
+
 ## Studio GPU rendering
 
 Use `renderer="studio"` with a `StudioLook` for four lighting presets, three material
@@ -104,6 +106,8 @@ ProteinMotion exports images and videos as a standalone package. Use the exporte
 The package uses the MIT license. Manim animation timing and bundled Source Sans 3 fonts retain their upstream [licenses and attribution](https://github.com/pdpppd/proteinmotion/blob/main/THIRD_PARTY.md).
 
 The example data include RCSB mmCIF files for [1UBQ](https://www.rcsb.org/structure/1UBQ) (ubiquitin), [1CLL](https://www.rcsb.org/structure/1CLL) and [1CFC](https://www.rcsb.org/structure/1CFC) (calmodulin), [1NCX](https://www.rcsb.org/structure/1NCX) (troponin C), [1AON](https://www.rcsb.org/structure/1AON) (GroEL/GroES), and [2K39](https://www.rcsb.org/structure/2K39) (ubiquitin NMR ensemble).
+
+The structure morphs use human hemoglobin [2DN2](https://www.rcsb.org/structure/2DN2) (deoxy) and [2DN1](https://www.rcsb.org/structure/2DN1) (oxy, expanded to its biological assembly), and *E. coli* adenylate kinase [4AKE](https://www.rcsb.org/structure/4AKE) (open) and [1AKE](https://www.rcsb.org/structure/1AKE) (closed with Ap5A). The torsion examples use [1PGA](https://www.rcsb.org/structure/1PGA) (protein G B1 domain) for the β-hairpin angles. The confidence example uses the [AlphaFold DB model of calmodulin](https://alphafold.ebi.ac.uk/entry/P0DP23) (AF-P0DP23-F1, version 6, CC BY 4.0) and its PAE file, and the conservation example uses the [Pfam PF00240](https://www.ebi.ac.uk/interpro/entry/pfam/PF00240/) seed alignment.
 
 The DNA and RNA examples use [1BNA](https://www.rcsb.org/structure/1BNA), a B-DNA dodecamer, and [1EHZ](https://www.rcsb.org/structure/1EHZ), yeast phenylalanine tRNA. These examples animate the camera and representation around deposited coordinates.
 

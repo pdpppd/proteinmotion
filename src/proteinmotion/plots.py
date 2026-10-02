@@ -25,7 +25,7 @@ def _ticks(lo, hi, count=4):
 
 
 class _Plot(Annotation):
-    """Vector drawing helpers. The scene itself supplies the background."""
+    """Vector drawing helpers. The scene supplies the background unless a panel is set."""
 
     def __init__(self, position, size, title):
         super().__init__()
@@ -34,6 +34,34 @@ class _Plot(Annotation):
             raise ValueError("Plot size must be positive")
         self.title = str(title)
         self._texts = {}
+        self.panel = None
+
+    def with_panel(self, color="#0b1220", opacity=1.0, padding=18):
+        """Draw a rounded backing panel so molecules passing behind the plot stay out of view.
+
+        ``padding`` is in 1080p design pixels around the plot's position and size.
+        """
+        if not np.isfinite(opacity) or not 0 <= opacity <= 1 or not np.isfinite(padding) or padding < 0:
+            raise ValueError("Panel opacity must be in [0, 1] and padding nonnegative")
+        self.panel = (parse_color(color), float(opacity), float(padding))
+        return self
+
+    def _backing(self):
+        rgb, opacity, padding = self.panel
+        pad, radius = padding * self._pixel_scale, 14 * self._pixel_scale
+        lo, hi = self._origin - pad, self._origin + self._extent + pad
+        corners = ((hi[0] - radius, hi[1] - radius, 0), (lo[0] + radius, hi[1] - radius, 0.5))
+        corners += ((lo[0] + radius, lo[1] + radius, 1.0), (hi[0] - radius, lo[1] + radius, 1.5))
+        outline = [
+            (cx + radius * np.cos(np.pi * (start + t / 2)), cy + radius * np.sin(np.pi * (start + t / 2)))
+            for cx, cy, start in corners
+            for t in np.linspace(0, 1, 7)
+        ]
+        points = np.array(outline)
+        center = points.mean(0)
+        triangles = np.stack((np.broadcast_to(center, points.shape), points, np.roll(points, -1, 0)), 1)
+        rgba = np.broadcast_to(np.r_[rgb, opacity], (triangles.size // 2, 4))
+        self._fills.append(np.column_stack((triangles.reshape(-1, 2), rgba)))
 
     def snapshot(self):
         # Plot data, cached text and protein references are shared; only authoring
@@ -45,6 +73,7 @@ class _Plot(Annotation):
             _lag_ratio=self._lag_ratio,
             _stroke_width=self._stroke_width,
             _reverse=self._reverse,
+            panel=getattr(self, "panel", None),
         )
 
     @property
@@ -57,6 +86,8 @@ class _Plot(Annotation):
         self._pixel_scale = height / 1080
         self._origin = self.position * [width, height]
         self._extent = self.size * [width, height]
+        if getattr(self, "panel", None) is not None:
+            self._backing()
 
     def _text(self, key, value, xy, *, size=24, tint="#cdd6e3", align="left"):
         if key not in self._texts or self._texts[key].font_size != size:
@@ -102,13 +133,20 @@ class _Plot(Annotation):
 
 
 class ColorLegend(_Plot):
-    """A horizontal color scale with numeric limits and an optional measurement unit."""
+    """A horizontal color scale with numeric limits and an optional measurement unit.
 
-    def __init__(self, scale, *, title="", unit="", position=(0.06, 0.82), size=(0.3, 0.12)):
+    Pass ResidueValues instead of a ColorScale to use their preset scale, name and unit.
+    """
+
+    def __init__(self, scale, *, title=None, unit=None, position=(0.06, 0.82), size=(0.3, 0.12)):
+        if isinstance(scale, ResidueValues):
+            title = scale.name if title is None else title
+            unit = scale.unit if unit is None else unit
+            scale = scale.scale
         if not isinstance(scale, ColorScale):
-            raise TypeError("scale must be a ColorScale")
-        super().__init__(position, size, title)
-        self.color_scale, self.unit = scale, str(unit)
+            raise TypeError("scale must be a ColorScale or ResidueValues")
+        super().__init__(position, size, "" if title is None else title)
+        self.color_scale, self.unit = scale, "" if unit is None else str(unit)
 
     def layout(self, camera, width, height):
         self._begin(width, height)
@@ -127,15 +165,21 @@ class ColorLegend(_Plot):
             )
         )
         self._rects(boxes, self.color_scale.map(values))
-        for i, a in enumerate((0, 0.5, 1)):
-            value = self.color_scale.vmin + a * (self.color_scale.vmax - self.color_scale.vmin)
+        lo, hi = self.color_scale.vmin, self.color_scale.vmax
+        stops = [
+            lo,
+            *(self.color_scale.boundaries if self.color_scale.boundaries is not None else [(lo + hi) / 2]),
+            hi,
+        ]
+        for i, value in enumerate(stops):
+            a = (value - lo) / (hi - lo)
             self._line([[xx + a * ww, yy + 12 * s], [xx + a * ww, yy + 17 * s]], width=1)
             self._text(
                 f"tick{i}",
-                f"{value:.3g}",
+                f"{value:.3g}".replace("-", "−"),
                 [xx + a * ww, yy + 23 * s],
                 size=22,
-                align=("left", "center", "right")[i],
+                align="left" if i == 0 else "right" if i == len(stops) - 1 else "center",
             )
         return self._finish()
 
@@ -571,4 +615,369 @@ class ContactMap(_Plot):
             self._line([[axis_x - 4 * s, py], [axis_x, py]], width=1)
             self._text(f"x{j}", label, [px, axis_y + 11 * s], size=21, align="center")
             self._text(f"y{j}", label, [axis_x - 13 * s, py - 12 * s], size=21, align="right")
+        return self._finish()
+
+
+def _residue_list(protein, value):
+    if value is None:
+        return np.array([i for i, r in enumerate(protein.topology.residues) if r.trace_atom >= 0], dtype=int)
+    if isinstance(value, Region):
+        return np.array(sorted(_selection(protein, value)), dtype=int)
+    ids = np.asarray(value, dtype=int)
+    if ids.ndim != 1 or (len(ids) and (ids.min() < 0 or ids.max() >= len(protein.topology.residues))):
+        raise ValueError("rows and columns need topology residue indices or a Region")
+    return ids
+
+
+def _blocks(count, limit):
+    """Index groups that average a long axis down to at most ``limit`` cells."""
+    return np.array_split(np.arange(count), min(count, limit))
+
+
+class Heatmap(_Plot):
+    """A matrix of colored cells with a color bar; rows and columns can be residues.
+
+    ``values`` is a 2D array, or a function returning one that is called whenever
+    the frame changes, so live matrices follow moving coordinates. Matrices with
+    more than ``max_cells`` rows or columns are averaged into blocks. With
+    ``protein``, ``rows`` and ``columns`` (topology residue indices or Regions)
+    label the axes with residue numbers and mark chain boundaries, and
+    ``highlight`` marks a Region's rows and columns. Use Heatmap.pae() for
+    AlphaFold predicted aligned error and Heatmap.distances() for residue distances.
+    """
+
+    def __init__(
+        self,
+        values,
+        *,
+        protein=None,
+        rows=None,
+        columns=None,
+        scale=None,
+        title="",
+        unit="",
+        xlabel="",
+        ylabel="",
+        position=(0.64, 0.1),
+        size=(0.32, 0.56),
+        highlight=None,
+        highlight_color="#f5d477",
+        max_cells=160,
+        colorbar=True,
+    ):
+        super().__init__(position, size, title)
+        if not isinstance(max_cells, int) or max_cells < 2:
+            raise ValueError("max_cells must be an integer of at least 2")
+        self._function = values if callable(values) else None
+        initial = np.asarray(values() if callable(values) else values, dtype=float)
+        if initial.ndim != 2 or not initial.size or np.isinf(initial).any():
+            raise ValueError("Heatmap values must be a nonempty 2D array of finite values or NaN")
+        if not np.isfinite(initial).any():
+            raise ValueError("Heatmap values need at least one finite value")
+        self._static = None if callable(values) else initial
+        self.shape = initial.shape
+        self.protein = protein
+        if protein is not None:
+            self.rows = _residue_list(protein, rows)
+            self.columns = self.rows if columns is None else _residue_list(protein, columns)
+            if (len(self.rows), len(self.columns)) != self.shape:
+                raise ValueError(
+                    f"Matrix shape {self.shape} does not match {len(self.rows)}×{len(self.columns)} residues"
+                )
+            _selection(protein, highlight)
+        elif rows is not None or columns is not None or highlight is not None:
+            raise ValueError("Residue rows, columns and highlights need protein=")
+        else:
+            self.rows = self.columns = None
+        self.highlight = highlight
+        self.color_scale = ColorScale.from_values(initial) if scale is None else scale
+        if not isinstance(self.color_scale, ColorScale):
+            raise TypeError("scale must be a ColorScale")
+        self.unit, self.xlabel, self.ylabel = str(unit), str(xlabel), str(ylabel)
+        self.highlight_color = parse_color(highlight_color)
+        self.max_cells, self.colorbar = max_cells, bool(colorbar)
+        self._row_blocks, self._col_blocks = (
+            _blocks(self.shape[0], max_cells),
+            _blocks(self.shape[1], max_cells),
+        )
+        self._cache_key, self._cache = None, None
+
+    @classmethod
+    def pae(cls, protein, source, *, title="Predicted aligned error", **kwargs):
+        """AlphaFold predicted aligned error (Å) from a JSON or .npy file, or an array.
+
+        Rows are the residue each prediction is aligned on and columns the residue
+        whose position error is shown, as on AlphaFold DB pages. The matrix must
+        match the protein's polymer residues; AlphaFold 3 ligand tokens are averaged.
+        """
+        from .confidence import pae_for
+
+        matrix, ids, maximum = pae_for(protein, source)
+        kwargs.setdefault("scale", ColorScale.pae(maximum))
+        kwargs.setdefault("unit", "Å")
+        kwargs.setdefault("xlabel", "Scored residue")
+        kwargs.setdefault("ylabel", "Aligned residue")
+        return cls(matrix, protein=protein, rows=ids, columns=ids, title=title, **kwargs)
+
+    @classmethod
+    def distances(
+        cls,
+        protein,
+        *,
+        region=None,
+        anchor="backbone",
+        reference=None,
+        max_distance=None,
+        max_residues=600,
+        title=None,
+        **kwargs,
+    ):
+        """Live residue–residue distances in Å (Cα for amino acids, C4′ for nucleotides).
+
+        ``anchor="centroid"`` uses residue centroids. With ``reference`` (a Protein
+        with the same residues, or coordinates in this protein's atom order) the
+        plot shows the change from that structure: positive where residues moved apart.
+        """
+        if anchor not in ("backbone", "centroid"):
+            raise ValueError("anchor must be backbone or centroid")
+        ids = _residue_list(protein, region)
+        if not 1 <= len(ids) <= max_residues:
+            raise ValueError("Select between 1 and max_residues polymer residues")
+        topology = protein.topology
+        if anchor == "backbone":
+            groups = [[topology.residues[i].trace_atom] for i in ids]
+        else:
+            owners = np.array([a.residue_index for a in topology.atoms])
+            groups = [np.flatnonzero(owners == i) for i in ids]
+
+        def points(xyz):
+            return np.array([xyz[g].mean(0) for g in groups])
+
+        base = None
+        if reference is not None:
+            if hasattr(reference, "topology"):
+                lookup = {(r.chain, r.resid, r.icode): i for i, r in enumerate(reference.topology.residues)}
+                keys = [
+                    (topology.residues[i].chain, topology.residues[i].resid, topology.residues[i].icode)
+                    for i in ids
+                ]
+                missing = [k for k in keys if k not in lookup]
+                if missing:
+                    raise ValueError(f"Reference lacks residues {missing[:3]}")
+                other = reference.topology
+                if anchor == "backbone":
+                    ref_groups = [[other.residues[lookup[k]].trace_atom] for k in keys]
+                else:
+                    owners = np.array([a.residue_index for a in other.atoms])
+                    ref_groups = [np.flatnonzero(owners == lookup[k]) for k in keys]
+                ref_xyz = reference.positions
+                base = cdist(*(2 * [np.array([ref_xyz[g].mean(0) for g in ref_groups])]))
+            else:
+                xyz = np.asarray(reference, dtype=float)
+                if xyz.shape != (len(topology.atoms), 3):
+                    raise ValueError("Reference coordinates must follow this protein's atom order")
+                base = cdist(points(xyz), points(xyz))
+
+        def current():
+            matrix = cdist(points(protein.positions), points(protein.positions))
+            return matrix if base is None else matrix - base
+
+        initial = current()
+        if base is None:
+            limit = max_distance or float(np.ceil(np.nanmax(initial) / 10) * 10)
+            kwargs.setdefault("scale", ColorScale.distance(limit))
+            kwargs.setdefault("unit", "Å")
+            title = (
+                ("Cα distances" if anchor == "backbone" else "Residue distances") if title is None else title
+            )
+        else:
+            limit = max_distance or max(2.0, float(np.ceil(np.nanmax(abs(initial)) / 2) * 2))
+            kwargs.setdefault("scale", ColorScale.difference(limit))
+            kwargs.setdefault("unit", "Å")
+            title = "Change in distance" if title is None else title
+        return cls(current, protein=protein, rows=ids, columns=ids, title=title, **kwargs)
+
+    @property
+    def matrix(self):
+        """The current full-resolution matrix."""
+        if self._function is None:
+            return self._static
+        p = self.protein
+        key = None if p is None else (p._key_a, p._key_b, p._mix, id(p._controls))
+        if key is None or key != self._cache_key:
+            self._cache = np.asarray(self._function(), dtype=float)
+            if self._cache.shape != self.shape:
+                raise ValueError("A live heatmap must keep the same matrix shape")
+            self._cache_key = key
+        return self._cache
+
+    def _binned(self):
+        matrix = self.matrix
+        if len(self._row_blocks) == self.shape[0] and len(self._col_blocks) == self.shape[1]:
+            return matrix
+        finite = np.isfinite(matrix)
+        filled = np.where(finite, matrix, 0)
+        starts_r = [b[0] for b in self._row_blocks]
+        starts_c = [b[0] for b in self._col_blocks]
+        sums = np.add.reduceat(np.add.reduceat(filled, starts_r, 0), starts_c, 1)
+        counts = np.add.reduceat(np.add.reduceat(finite.astype(float), starts_r, 0), starts_c, 1)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            return np.where(counts > 0, sums / counts, np.nan)
+
+    def _label(self, index):
+        r = self.protein.topology.residues[index]
+        return f"{r.chain}:{r.resid}{r.icode}"
+
+    def layout(self, camera, width, height):
+        self._begin(width, height)
+        x, y = self._origin
+        w, h = self._extent
+        s = self._pixel_scale
+        self._text("title", self.title, [x, y], size=28, tint="#edf3fc")
+        bar = 64 * s if self.colorbar else 0
+        left, top = x + 60 * s, y + 70 * s
+        values = self._binned()
+        rows, cols = values.shape
+        cell = max(0.5, min((w - 66 * s - bar) / cols, (h - 136 * s) / rows))
+        width_px, height_px = cell * cols, cell * rows
+        r_index, c_index = np.meshgrid(np.arange(rows), np.arange(cols), indexing="ij")
+        boxes = np.column_stack(
+            (
+                left + c_index.ravel() * cell,
+                top + r_index.ravel() * cell,
+                np.full(rows * cols, cell + 0.3),
+                np.full(rows * cols, cell + 0.3),
+            )
+        )
+        self._rects(boxes, self.color_scale.map(values.ravel()))
+        self._line(
+            [
+                [left, top],
+                [left + width_px, top],
+                [left + width_px, top + height_px],
+                [left, top + height_px],
+                [left, top],
+            ],
+            "#7d8fa8",
+            width=1.0,
+        )
+        if self.ylabel:
+            self._text("ylabel", f"{self.ylabel} ↓", [left, top - 30 * s], size=20, tint="#a9b6c9")
+        if self.xlabel:
+            self._text(
+                "xlabel",
+                f"{self.xlabel} →",
+                [left + width_px / 2, top + height_px + 36 * s],
+                size=20,
+                align="center",
+                tint="#a9b6c9",
+            )
+        if self.protein is not None:
+
+            def position(blocks, k):
+                # Center of the cell holding residue k of the full matrix.
+                cell_index = next(j for j, block in enumerate(blocks) if block[0] <= k <= block[-1])
+                return (cell_index + 0.5) * cell
+
+            for axis, ids, blocks in (
+                ("x", self.columns, self._col_blocks),
+                ("y", self.rows, self._row_blocks),
+            ):
+                chains = [self.protein.topology.residues[i].chain for i in ids]
+                for k in range(1, len(ids)):
+                    if chains[k] != chains[k - 1]:
+                        offset = position(blocks, k) - cell / 2
+                        if axis == "x":
+                            self._line(
+                                [[left + offset, top], [left + offset, top + height_px]],
+                                "#edf3fc",
+                                width=1.2,
+                                opacity=0.6,
+                            )
+                        else:
+                            self._line(
+                                [[left, top + offset], [left + width_px, top + offset]],
+                                "#edf3fc",
+                                width=1.2,
+                                opacity=0.6,
+                            )
+                for j in sorted({0, len(ids) // 2, len(ids) - 1}):
+                    offset = position(blocks, j)
+                    label = self._label(ids[j])
+                    if axis == "x":
+                        self._line(
+                            [[left + offset, top + height_px], [left + offset, top + height_px + 4 * s]],
+                            width=1,
+                        )
+                        self._text(
+                            f"x{j}",
+                            label,
+                            [left + offset, top + height_px + 7 * s],
+                            size=19,
+                            align="center",
+                            tint="#a9b6c9",
+                        )
+                    else:
+                        self._line([[left - 4 * s, top + offset], [left, top + offset]], width=1)
+                        self._text(
+                            f"y{j}",
+                            label,
+                            [left - 8 * s, top + offset - 11 * s],
+                            size=19,
+                            align="right",
+                            tint="#a9b6c9",
+                        )
+            selected = _selection(self.protein, self.highlight)
+            for axis, ids, blocks in (
+                ("x", self.columns, self._col_blocks),
+                ("y", self.rows, self._row_blocks),
+            ):
+                owner = np.concatenate([np.full(len(block), j) for j, block in enumerate(blocks)])
+                cells = np.unique(owner[[k for k, i in enumerate(ids) if i in selected]]).astype(int)
+                # One mark per run of consecutive highlighted cells.
+                for run in np.split(cells, np.flatnonzero(np.diff(cells) > 1) + 1) if len(cells) else ():
+                    start, stop = run[0] * cell, (run[-1] + 1) * cell
+                    if axis == "x":
+                        points = [[left + start, top - 5 * s], [left + stop, top - 5 * s]]
+                    else:
+                        points = [
+                            [left + width_px + 5 * s, top + start],
+                            [left + width_px + 5 * s, top + stop],
+                        ]
+                    self._line(points, self.highlight_color, width=3)
+        if self.colorbar:
+            bx, by, bh = left + width_px + 22 * s, top + height_px * 0.08, height_px * 0.84
+            steps = 96
+            levels = np.linspace(self.color_scale.vmax, self.color_scale.vmin, steps)
+            boxes = np.column_stack(
+                (
+                    np.full(steps, bx),
+                    by + np.arange(steps) * bh / steps,
+                    np.full(steps, 10 * s),
+                    np.full(steps, bh / steps + 0.3),
+                )
+            )
+            self._rects(boxes, self.color_scale.map(levels))
+            lo, hi = self.color_scale.vmin, self.color_scale.vmax
+            stops = [
+                hi,
+                *(
+                    (self.color_scale.boundaries[::-1])
+                    if self.color_scale.boundaries is not None
+                    else [(lo + hi) / 2]
+                ),
+                lo,
+            ]
+            for k, value in enumerate(stops):
+                yy = by + (hi - value) / (hi - lo) * bh
+                self._line([[bx + 10 * s, yy], [bx + 14 * s, yy]], width=1)
+                self._text(
+                    f"bar{k}",
+                    f"{value:.3g}".replace("-", "−"),
+                    [bx + 17 * s, yy - 11 * s],
+                    size=19,
+                    tint="#a9b6c9",
+                )
+            if self.unit:
+                self._text("unit", self.unit, [bx, by - 30 * s], size=20, tint="#a9b6c9")
         return self._finish()

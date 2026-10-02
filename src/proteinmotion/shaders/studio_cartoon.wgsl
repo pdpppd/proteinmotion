@@ -10,10 +10,10 @@ fn cartoon_tangent(a:vec3f,b:vec3f,c:vec3f,d:vec3f,t:f32) -> vec3f {
     return safe_normal(-u*u*a+(3.0*t*t-4.0*t)*b+(-3.0*t*t+2.0*t+1.0)*c+t*t*d);
 }
 fn cartoon_exponent(ss:f32) -> f32 {
-    // Superellipses: circles for loops, rounded flat faces for helices/sheets.
-    if ss>1.5 { return 0.33; }
-    if ss>0.5 { return 0.5; }
-    return 1.0;
+    // Superellipses: circles for loops (0), rounded flat faces for helices (1) and
+    // sheets (2). Codes are continuous so the profile blends as structure changes.
+    if ss>1.0 { return mix(0.5,0.33,clamp(ss-1.0,0.0,1.0)); }
+    return mix(1.0,0.5,clamp(ss,0.0,1.0));
 }
 struct CartoonFrame {
     center:vec3f,
@@ -27,26 +27,35 @@ fn cartoon_frame(s:Segment,t:f32) -> CartoonFrame {
     let c=position(s.atoms.z); let d=position(s.atoms.w);
     let center=cartoon_curve(a,b,c,d,t);
     let direction=cartoon_tangent(a,b,c,d,t);
-    let g=cartoon_curve(guide(s.atoms.x),guide(s.atoms.y),guide(s.atoms.z),guide(s.atoms.w),t);
-    let width_axis=safe_normal(g-direction*dot(g,direction));
+    let frame=segment_guide(s,t,1.0);
+    let width_axis=safe_normal(frame.xyz-direction*dot(frame.xyz,direction));
     let height_axis=safe_normal(cross(direction,width_axis));
     let blend=smoothstep(0.0,1.0,t);
     var size=mix(s.shape.xz,s.shape.yw,blend);
     var exponent=mix(cartoon_exponent(s.color_a.w),cartoon_exponent(s.color_b.w),blend);
-    if s.caps.z>0.5 {
+    let arrow=clamp(s.caps.z,0.0,1.0);
+    if arrow>0.0 {
         // A short shoulder followed by a long taper makes a real sheet arrow,
-        // rather than widening the last residue of an elliptical ribbon.
-        let body=select(s.shape.x,s.shape.y,s.color_a.w<1.5);
-        let tip=select(s.shape.y,body*0.15,s.color_b.w>0.5);
+        // rather than widening the last residue of an elliptical ribbon. The arrow
+        // weight grows and shrinks with the strand during secondary-structure changes.
+        let body=mix(s.shape.y,s.shape.x,clamp(s.color_a.w-1.0,0.0,1.0));
+        let ordered=smoothstep(0.25,0.75,s.color_b.w);
+        let tip=mix(s.shape.y,body*0.15,ordered);
         let shoulder=mix(body,body*1.75,smoothstep(0.08,0.16,t));
-        size.x=mix(shoulder,tip,clamp((t-0.16)/0.84,0.0,1.0));
-        size.y=mix(s.shape.z,s.shape.w,smoothstep(0.85,1.0,t));
-        exponent=mix(0.33,cartoon_exponent(s.color_b.w),smoothstep(0.85,1.0,t));
+        var head=size;
+        head.x=mix(shoulder,tip,clamp((t-0.16)/0.84,0.0,1.0));
+        head.y=mix(s.shape.z,s.shape.w,smoothstep(0.85,1.0,t));
+        let head_exponent=mix(0.33,cartoon_exponent(s.color_b.w),smoothstep(0.85,1.0,t));
         // Direct sheet-to-helix boundaries connect through a short neck.
-        if s.color_b.w>0.5 && s.caps.y<0.5 {
-            size.x=mix(size.x,s.shape.y,smoothstep(0.85,1.0,t));
+        if s.caps.y<0.5 {
+            head.x=mix(head.x,mix(head.x,s.shape.y,smoothstep(0.85,1.0,t)),ordered);
         }
+        size=mix(size,head,arrow);
+        exponent=mix(exponent,head_exponent,arrow);
     }
+    // Round, rather than flip, where the twist to the next residue is ambiguous.
+    size.x=mix(size.y,size.x,frame.w);
+    exponent=mix(1.0,exponent,frame.w);
     var cap=1.0;
     if s.caps.x>0.5 { cap*=smoothstep(0.0,0.1,t); }
     if s.caps.y>0.5 { cap*=smoothstep(0.0,0.1,1.0-t); }

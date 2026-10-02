@@ -17,6 +17,7 @@
     "TimeSeriesPlot",
     "SequenceTrack",
     "ContactMap",
+    "Heatmap",
     "Electrostatics",
     "HydrogenBonds",
     "Interaction",
@@ -36,6 +37,11 @@
     "Write",
     "Unwrite",
     "BackboneMorph",
+    "StructureMorph",
+    "StructureMatch",
+    "match_structures",
+    "domain_motion",
+    "DomainMotion",
     "ContactMatch",
     "match_backbones",
     "ProteinScene",
@@ -59,6 +65,12 @@
     "Conceal",
     "Thread",
     "Unthread",
+    "SetTorsions",
+    "RotateTorsions",
+    "TorsionAngles",
+    "TorsionMarker",
+    "RamachandranPlot",
+    "SecondaryStructure",
     "rates",
     "smooth",
     "linear",
@@ -203,6 +215,24 @@
       "title": "Animation groups",
       "description": "Animation groups for readable molecular movies.",
       "guide": "readable-authoring"
+    },
+    {
+      "id": "torsions",
+      "title": "Torsions",
+      "description": "Measure, set, and animate backbone and side-chain torsion angles in degrees.",
+      "guide": "torsions"
+    },
+    {
+      "id": "ramachandran",
+      "title": "Ramachandran plots",
+      "description": "Plot φ and ψ over favored and allowed regions from high-resolution structures.",
+      "guide": "torsions"
+    },
+    {
+      "id": "conformations",
+      "title": "Structure morphs",
+      "description": "Match two experimental structures of one protein, morph between them, and measure domain motions.",
+      "guide": "morphing"
     }
   ],
   "symbols": [
@@ -215,7 +245,7 @@
       "description": "Define a protein animation as a sequence of play() and wait() calls.",
       "notes": "Subclass and implement construct(). Direct setters are recorded at the current authoring time. Use play() to interpolate. Define renderer and look on the scene class or constructor so CLI, preview, stills and movies agree.",
       "import_path": "proteinmotion",
-      "signature": "ProteinScene(\n    *,\n    width=1920,\n    height=1080,\n    fps=30,\n    background='#0b1220',\n    msaa=4,\n    renderer=None,\n    look=None,\n    eevee=None,\n)",
+      "signature": "ProteinScene(\n    *,\n    width=1920,\n    height=1080,\n    fps=30,\n    background='#0b1220',\n    msaa=4,\n    supersampling=None,\n    renderer=None,\n    look=None,\n    eevee=None,\n)",
       "parameters": [
         {
           "name": "width",
@@ -256,6 +286,14 @@
           "default": "4",
           "kind": "keyword only",
           "description": "Multisample count: 1 or 4."
+        },
+        {
+          "name": "supersampling",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Native and Studio renderers draw each frame at this multiple of the width and height (1, 2, 3, or 4) and average down in linear light. None uses 2 for outputs up to 1920 × 1080 and 1 for larger ones; EEVEE uses EEVEEOptions.supersampling instead."
         },
         {
           "name": "renderer",
@@ -307,7 +345,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
-          "line": 79
+          "line": 83
         },
         {
           "name": "add",
@@ -328,7 +366,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
-          "line": 82
+          "line": 86
         },
         {
           "name": "play",
@@ -373,7 +411,7 @@
           "returns": "The scene.",
           "notes": "Animations that write the same object property concurrently raise ValueError. Create a new animation object for each play() call.",
           "source": "src/proteinmotion/scene.py",
-          "line": 92
+          "line": 96
         },
         {
           "name": "focus",
@@ -435,7 +473,7 @@
           "returns": "The scene.",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
-          "line": 149
+          "line": 153
         },
         {
           "name": "wait",
@@ -457,7 +495,7 @@
           "returns": "The scene.",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
-          "line": 168
+          "line": 172
         },
         {
           "name": "build",
@@ -470,7 +508,7 @@
           "returns": "The scene.",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
-          "line": 177
+          "line": 181
         },
         {
           "name": "seek",
@@ -492,7 +530,7 @@
           "returns": "List of visible objects.",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
-          "line": 189
+          "line": 193
         },
         {
           "name": "render_frame",
@@ -546,7 +584,7 @@
           "returns": "RGBA uint8 image array.",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
-          "line": 217
+          "line": 227
         },
         {
           "name": "render",
@@ -616,7 +654,7 @@
           "returns": "Dictionary containing frames, seconds, fps, platform, adapter, codec, and output. Here fps is render throughput; platform, adapter and codec describe the runtime selection.",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
-          "line": 257
+          "line": 269
         },
         {
           "name": "preview",
@@ -654,7 +692,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
-          "line": 354
+          "line": 373
         }
       ],
       "extra_parameters": []
@@ -668,7 +706,7 @@
       "description": "Alias for ProteinScene.",
       "notes": "",
       "import_path": "proteinmotion",
-      "signature": "Scene(\n    *,\n    width=1920,\n    height=1080,\n    fps=30,\n    background='#0b1220',\n    msaa=4,\n    renderer=None,\n    look=None,\n    eevee=None,\n)",
+      "signature": "Scene(\n    *,\n    width=1920,\n    height=1080,\n    fps=30,\n    background='#0b1220',\n    msaa=4,\n    supersampling=None,\n    renderer=None,\n    look=None,\n    eevee=None,\n)",
       "parameters": [
         {
           "name": "width",
@@ -709,6 +747,14 @@
           "default": "4",
           "kind": "keyword only",
           "description": "Multisample count: 1 or 4."
+        },
+        {
+          "name": "supersampling",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Spatial resolution multiplier of at least 1. Output is downsampled to the requested size."
         },
         {
           "name": "renderer",
@@ -939,7 +985,208 @@
           "returns": "Region",
           "notes": "A residue tuple is an inclusive range. A list selects individual numbers. Empty selections raise ValueError.",
           "source": "src/proteinmotion/protein.py",
-          "line": 54
+          "line": 61
+        },
+        {
+          "name": "build",
+          "kind": "class method",
+          "owner": "protein.Protein",
+          "inherited": false,
+          "signature": "Protein.build(\n    sequence,\n    conformation='extended',\n    *,\n    phi=None,\n    psi=None,\n    omega=180.0,\n    chain='A',\n    first=1,\n    hydrogens=False,\n)",
+          "parameters": [
+            {
+              "name": "sequence",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "One-letter codes for the 20 standard amino acids, or a list of residue names."
+            },
+            {
+              "name": "conformation",
+              "type": "",
+              "annotation": false,
+              "default": "'extended'",
+              "kind": "positional or keyword",
+              "description": "helix, alpha, 310, pi, strand, beta, parallel, antiparallel, ppii, extended, or left."
+            },
+            {
+              "name": "phi",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "φ in degrees, one value or one per residue; overrides the conformation."
+            },
+            {
+              "name": "psi",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "ψ in degrees, one value or one per residue; overrides the conformation."
+            },
+            {
+              "name": "omega",
+              "type": "",
+              "annotation": false,
+              "default": "180.0",
+              "kind": "keyword only",
+              "description": "ω in degrees, one value or one per residue."
+            },
+            {
+              "name": "chain",
+              "type": "",
+              "annotation": false,
+              "default": "'A'",
+              "kind": "keyword only",
+              "description": "Chain ID."
+            },
+            {
+              "name": "first",
+              "type": "",
+              "annotation": false,
+              "default": "1",
+              "kind": "keyword only",
+              "description": "Number of the first residue."
+            },
+            {
+              "name": "hydrogens",
+              "type": "",
+              "annotation": false,
+              "default": "False",
+              "kind": "keyword only",
+              "description": "Add amide H atoms."
+            }
+          ],
+          "description": "Build an ideal peptide with every heavy atom from one-letter codes and torsion angles.",
+          "returns": "The scene.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 111
+        },
+        {
+          "name": "secondary_structure",
+          "kind": "property",
+          "owner": "protein.Protein",
+          "inherited": false,
+          "signature": "Protein.secondary_structure",
+          "parameters": [],
+          "description": "Current H/E/C state of each residue, as the cartoon draws it.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 145
+        },
+        {
+          "name": "set_secondary_structure",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": false,
+          "signature": "Protein.set_secondary_structure(assignments)",
+          "parameters": [
+            {
+              "name": "assignments",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "One H, E, or C per topology residue."
+            }
+          ],
+          "description": "Set one H/E/C state per residue for drawing; can change between animations.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 151
+        },
+        {
+          "name": "assign_secondary_structure",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": false,
+          "signature": "Protein.assign_secondary_structure()",
+          "parameters": [],
+          "description": "Assign helix, strand and coil with DSSP from the current coordinates.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 160
+        },
+        {
+          "name": "torsions",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": false,
+          "signature": "Protein.torsions(*, chain=None, residues=None)",
+          "parameters": [
+            {
+              "name": "chain",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author chain ID or IDs; None selects all chains."
+            },
+            {
+              "name": "residues",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author residue number, list, or inclusive (first, last) range."
+            }
+          ],
+          "description": "Measure φ, ψ, ω and χ1–χ5 in degrees for all residues, or a selection.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 166
+        },
+        {
+          "name": "set_torsions",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": false,
+          "signature": "Protein.set_torsions(*, conformation=None, anchor='center', secondary='auto', **angles)",
+          "parameters": [
+            {
+              "name": "conformation",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Sets φ and ψ together, as in SetTorsions."
+            },
+            {
+              "name": "anchor",
+              "type": "",
+              "annotation": false,
+              "default": "'center'",
+              "kind": "keyword only",
+              "description": "Part that stays still, as in SetTorsions."
+            },
+            {
+              "name": "secondary",
+              "type": "",
+              "annotation": false,
+              "default": "'auto'",
+              "kind": "keyword only",
+              "description": "\"auto\" updates the cartoon to the new DSSP states; \"keep\" leaves it unchanged."
+            },
+            {
+              "name": "angles",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "phi, psi, omega, or chi1–chi5 in degrees, as in SetTorsions."
+            }
+          ],
+          "description": "Set torsions in degrees immediately, for every residue; see SetTorsions.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 174
         },
         {
           "name": "summary",
@@ -952,7 +1199,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 103
+          "line": 181
         },
         {
           "name": "set_style",
@@ -974,7 +1221,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 116
+          "line": 194
         },
         {
           "name": "reset_style",
@@ -987,7 +1234,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 120
+          "line": 198
         },
         {
           "name": "show_atoms",
@@ -1000,7 +1247,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 131
+          "line": 209
         },
         {
           "name": "hide_atoms",
@@ -1013,7 +1260,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 137
+          "line": 215
         },
         {
           "name": "label_residues",
@@ -1098,7 +1345,7 @@
           "returns": "ResidueLabels",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 143
+          "line": 221
         },
         {
           "name": "hydrogen_bonds",
@@ -1160,7 +1407,7 @@
           "returns": "HydrogenBonds",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 170
+          "line": 248
         },
         {
           "name": "electrostatics",
@@ -1230,14 +1477,14 @@
           "returns": "Electrostatics",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 192
+          "line": 270
         },
         {
           "name": "from_file",
           "kind": "class method",
           "owner": "protein.Protein",
           "inherited": false,
-          "signature": "Protein.from_file(path, *, chains=None, include_water=False, include_hydrogens=False)",
+          "signature": "Protein.from_file(\n    path,\n    *,\n    chains=None,\n    include_water=False,\n    include_hydrogens=False,\n    secondary='auto',\n    assembly=None,\n)",
           "parameters": [
             {
               "name": "path",
@@ -1270,13 +1517,66 @@
               "default": "False",
               "kind": "keyword only",
               "description": "Retain explicit hydrogen/deuterium atoms; default False. Enable for side-chain and nucleotide hydrogen-bond analysis."
+            },
+            {
+              "name": "secondary",
+              "type": "",
+              "annotation": false,
+              "default": "'auto'",
+              "kind": "keyword only",
+              "description": "\"auto\" uses the file's helix and sheet records, or DSSP when it has none; \"dssp\" always computes; \"file\" uses records only."
+            },
+            {
+              "name": "assembly",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Biological assembly to build from the deposited chains, such as \"1\"; None keeps the deposited chains."
             }
           ],
           "description": "Load PDB or mmCIF coordinates and retain all models with matching atom identities.",
           "returns": "Protein",
           "notes": "Keyword options: chains=None, include_water=False, include_hydrogens=False. Other hetero atoms are retained.",
           "source": "src/proteinmotion/protein.py",
-          "line": 217
+          "line": 295
+        },
+        {
+          "name": "fetch",
+          "kind": "class method",
+          "owner": "protein.Protein",
+          "inherited": false,
+          "signature": "Protein.fetch(identifier, *, cache=None, **options)",
+          "parameters": [
+            {
+              "name": "identifier",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Four-character PDB ID such as \"4HHB\", or AlphaFold DB ID such as \"AF-P0DP23-F1\"."
+            },
+            {
+              "name": "cache",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Download folder; None uses PROTEINMOTION_CACHE or ~/.cache/proteinmotion."
+            },
+            {
+              "name": "options",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "from_file() options, such as assembly=\"1\" or chains=\"A\"."
+            }
+          ],
+          "description": "Download a PDB entry or AlphaFold DB model once, keep it in the cache, and load it.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 320
         },
         {
           "name": "from_trajectory",
@@ -1298,7 +1598,7 @@
           "returns": "Protein",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 224
+          "line": 331
         },
         {
           "name": "positions",
@@ -1311,7 +1611,7 @@
           "returns": "Array with shape (selected atoms, 3), in ångströms.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 230
+          "line": 337
         },
         {
           "name": "atom_progress",
@@ -1324,7 +1624,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 235
+          "line": 342
         },
         {
           "name": "atom_opacities",
@@ -1337,7 +1637,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 244
+          "line": 351
         },
         {
           "name": "set_positions",
@@ -1359,7 +1659,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 257
+          "line": 364
         },
         {
           "name": "copy",
@@ -1372,7 +1672,7 @@
           "returns": "Protein",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 262
+          "line": 369
         },
         {
           "name": "center",
@@ -1385,7 +1685,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 267
+          "line": 374
         },
         {
           "name": "shift",
@@ -1407,7 +1707,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 271
+          "line": 378
         },
         {
           "name": "rotate",
@@ -1437,7 +1737,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 278
+          "line": 385
         },
         {
           "name": "scale",
@@ -1459,7 +1759,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 286
+          "line": 393
         },
         {
           "name": "set_opacity",
@@ -1481,7 +1781,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 294
+          "line": 401
         },
         {
           "name": "set_color",
@@ -1503,7 +1803,7 @@
           "returns": "The object or a Colorize animation.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 300
+          "line": 407
         },
         {
           "name": "color_by",
@@ -1541,7 +1841,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 305
+          "line": 412
         },
         {
           "name": "color_residues",
@@ -1579,7 +1879,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 311
+          "line": 418
         },
         {
           "name": "set_residue_opacity",
@@ -1617,7 +1917,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 315
+          "line": 422
         },
         {
           "name": "surface",
@@ -1687,7 +1987,7 @@
           "returns": "The protein.",
           "notes": "Additional option: max_voxels=8000000 limits the grid size. Configure surface settings before the first play() call. The ses surface is a voxel approximation.",
           "source": "src/proteinmotion/protein.py",
-          "line": 319
+          "line": 426
         },
         {
           "name": "cartoon",
@@ -1757,7 +2057,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 348
+          "line": 455
         },
         {
           "name": "ribbon",
@@ -1795,7 +2095,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 377
+          "line": 484
         },
         {
           "name": "set_bases",
@@ -1841,7 +2141,7 @@
           "returns": "The molecule.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 386
+          "line": 493
         },
         {
           "name": "ball_and_stick",
@@ -1879,7 +2179,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 403
+          "line": 510
         },
         {
           "name": "with_secondary_structure",
@@ -1901,7 +2201,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 412
+          "line": 519
         },
         {
           "name": "animate",
@@ -1914,7 +2214,7 @@
           "returns": "Animate",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 421
+          "line": 536
         },
         {
           "name": "model_matrix",
@@ -1927,7 +2227,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 427
+          "line": 542
         },
         {
           "name": "snapshot",
@@ -1940,7 +2240,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 433
+          "line": 548
         },
         {
           "name": "restore",
@@ -1962,7 +2262,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 467
+          "line": 584
         }
       ],
       "extra_parameters": []
@@ -2326,6 +2626,36 @@
           "line": 192
         },
         {
+          "name": "look_along",
+          "kind": "method",
+          "owner": "camera.Camera",
+          "inherited": false,
+          "signature": "Camera.look_along(axis, protein=None)",
+          "parameters": [
+            {
+              "name": "axis",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Direction in world coordinates, or in the protein's model frame when protein is given."
+            },
+            {
+              "name": "protein",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "positional or keyword",
+              "description": "Protein whose orientation converts a model-frame axis, such as a DomainMotion axis."
+            }
+          ],
+          "description": "Turn the view to look down an axis, which then points toward the viewer.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/camera.py",
+          "line": 200
+        },
+        {
           "name": "orbit",
           "kind": "method",
           "owner": "camera.Camera",
@@ -2353,7 +2683,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 200
+          "line": 218
         },
         {
           "name": "zoom",
@@ -2375,7 +2705,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 205
+          "line": 223
         },
         {
           "name": "eye",
@@ -2388,7 +2718,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 212
+          "line": 230
         },
         {
           "name": "matrix",
@@ -2410,7 +2740,7 @@
           "returns": "4 × 4 array.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 217
+          "line": 235
         },
         {
           "name": "animate",
@@ -2423,7 +2753,7 @@
           "returns": "Animate",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 223
+          "line": 241
         },
         {
           "name": "snapshot",
@@ -2436,7 +2766,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 228
+          "line": 246
         },
         {
           "name": "restore",
@@ -2458,7 +2788,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 231
+          "line": 249
         }
       ],
       "extra_parameters": []
@@ -2615,7 +2945,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 466,
+      "line": 500,
       "bases": [
         "animation.Animation"
       ],
@@ -2635,7 +2965,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 483
+          "line": 517
         },
         {
           "name": "shift",
@@ -2657,7 +2987,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 512
+          "line": 546
         },
         {
           "name": "rotate",
@@ -2687,7 +3017,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 515
+          "line": 549
         },
         {
           "name": "scale",
@@ -2709,7 +3039,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 519
+          "line": 553
         },
         {
           "name": "set_opacity",
@@ -2738,7 +3068,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 524
+          "line": 558
         },
         {
           "name": "orbit",
@@ -2768,7 +3098,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 533
+          "line": 567
         },
         {
           "name": "zoom",
@@ -2790,7 +3120,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 536
+          "line": 570
         },
         {
           "name": "depth_cue",
@@ -2812,7 +3142,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 541
+          "line": 575
         },
         {
           "name": "set_color",
@@ -2841,7 +3171,7 @@
           "returns": "The object or a Colorize animation.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 547
+          "line": 581
         },
         {
           "name": "show_atoms",
@@ -2862,7 +3192,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 552
+          "line": 586
         },
         {
           "name": "hide_atoms",
@@ -2883,7 +3213,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 557
+          "line": 591
         },
         {
           "name": "representation",
@@ -2912,7 +3242,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 562
+          "line": 596
         },
         {
           "name": "focus",
@@ -2966,7 +3296,7 @@
           "returns": "The camera, scene, or Focus animation.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 565
+          "line": 599
         },
         {
           "name": "frame",
@@ -2995,7 +3325,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 577
+          "line": 611
         },
         {
           "name": "set_focus",
@@ -3024,7 +3354,7 @@
           "returns": "FocusPull",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 581
+          "line": 615
         },
         {
           "name": "lens_focus",
@@ -3053,7 +3383,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 585
+          "line": 619
         },
         {
           "name": "bind",
@@ -3066,7 +3396,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 588
+          "line": 622
         },
         {
           "name": "apply",
@@ -3088,7 +3418,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 598
+          "line": 632
         },
         {
           "name": "during",
@@ -8585,7 +8915,7 @@
           "returns": "Array with shape (selected atoms, 3), in ångströms.",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 186
+          "line": 187
         },
         {
           "name": "model_matrix",
@@ -8598,7 +8928,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 191
+          "line": 192
         },
         {
           "name": "position",
@@ -8611,7 +8941,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 195
+          "line": 196
         },
         {
           "name": "world_positions",
@@ -8624,7 +8954,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 199
+          "line": 200
         },
         {
           "name": "__or__",
@@ -8646,7 +8976,7 @@
           "returns": "Region",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 208
+          "line": 209
         },
         {
           "name": "highlight",
@@ -8700,7 +9030,7 @@
           "returns": "RegionHighlight",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 224
+          "line": 225
         },
         {
           "name": "set_color",
@@ -8722,7 +9052,7 @@
           "returns": "The object or a Colorize animation.",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 229
+          "line": 230
         },
         {
           "name": "set_opacity",
@@ -8744,7 +9074,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 234
+          "line": 235
         },
         {
           "name": "show_atoms",
@@ -8757,7 +9087,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 239
+          "line": 240
         },
         {
           "name": "hide_atoms",
@@ -8770,7 +9100,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 245
+          "line": 246
         },
         {
           "name": "side_chains",
@@ -8783,7 +9113,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 251
+          "line": 252
         },
         {
           "name": "animate",
@@ -8796,7 +9126,7 @@
           "returns": "Animate",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 258
+          "line": 259
         },
         {
           "name": "distance_to",
@@ -8825,7 +9155,94 @@
           "returns": "Distance",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 263
+          "line": 264
+        },
+        {
+          "name": "torsions",
+          "kind": "method",
+          "owner": "regions.Region",
+          "inherited": false,
+          "signature": "Region.torsions()",
+          "parameters": [],
+          "description": "Measure φ, ψ, ω and χ1–χ5 in degrees for this region's residues.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/regions.py",
+          "line": 269
+        },
+        {
+          "name": "set_torsions",
+          "kind": "method",
+          "owner": "regions.Region",
+          "inherited": false,
+          "signature": "Region.set_torsions(*, conformation=None, anchor='center', secondary='auto', **angles)",
+          "parameters": [
+            {
+              "name": "conformation",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Sets φ and ψ together, as in SetTorsions."
+            },
+            {
+              "name": "anchor",
+              "type": "",
+              "annotation": false,
+              "default": "'center'",
+              "kind": "keyword only",
+              "description": "Part that stays still, as in SetTorsions."
+            },
+            {
+              "name": "secondary",
+              "type": "",
+              "annotation": false,
+              "default": "'auto'",
+              "kind": "keyword only",
+              "description": "\"auto\" updates the cartoon to the new DSSP states; \"keep\" leaves it unchanged."
+            },
+            {
+              "name": "angles",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "phi, psi, omega, or chi1–chi5 in degrees, as in SetTorsions."
+            }
+          ],
+          "description": "Set this region's torsions in degrees immediately; see SetTorsions.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/regions.py",
+          "line": 276
+        },
+        {
+          "name": "torsion_marker",
+          "kind": "method",
+          "owner": "regions.Region",
+          "inherited": false,
+          "signature": "Region.torsion_marker(torsion='phi', **kwargs)",
+          "parameters": [
+            {
+              "name": "torsion",
+              "type": "",
+              "annotation": false,
+              "default": "'phi'",
+              "kind": "positional or keyword",
+              "description": "phi, psi, omega, or chi1–chi5."
+            },
+            {
+              "name": "kwargs",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "TorsionMarker options."
+            }
+          ],
+          "description": "A live protractor showing one torsion of this single-residue region.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/regions.py",
+          "line": 282
         },
         {
           "name": "callout",
@@ -8854,7 +9271,7 @@
           "returns": "Callout",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 268
+          "line": 288
         },
         {
           "name": "label",
@@ -8883,7 +9300,7 @@
           "returns": "ResidueLabel",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 274
+          "line": 294
         }
       ],
       "extra_parameters": []
@@ -8950,7 +9367,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/regions.py",
-      "line": 305,
+      "line": 325,
       "bases": [
         "protein.Protein"
       ],
@@ -8970,7 +9387,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 376
+          "line": 396
         },
         {
           "name": "select",
@@ -9112,7 +9529,208 @@
           "returns": "Region",
           "notes": "A residue tuple is an inclusive range. A list selects individual numbers. Empty selections raise ValueError.",
           "source": "src/proteinmotion/protein.py",
-          "line": 54
+          "line": 61
+        },
+        {
+          "name": "build",
+          "kind": "class method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "RegionHighlight.build(\n    sequence,\n    conformation='extended',\n    *,\n    phi=None,\n    psi=None,\n    omega=180.0,\n    chain='A',\n    first=1,\n    hydrogens=False,\n)",
+          "parameters": [
+            {
+              "name": "sequence",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "One-letter codes for the 20 standard amino acids, or a list of residue names."
+            },
+            {
+              "name": "conformation",
+              "type": "",
+              "annotation": false,
+              "default": "'extended'",
+              "kind": "positional or keyword",
+              "description": "helix, alpha, 310, pi, strand, beta, parallel, antiparallel, ppii, extended, or left."
+            },
+            {
+              "name": "phi",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "φ in degrees, one value or one per residue; overrides the conformation."
+            },
+            {
+              "name": "psi",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "ψ in degrees, one value or one per residue; overrides the conformation."
+            },
+            {
+              "name": "omega",
+              "type": "",
+              "annotation": false,
+              "default": "180.0",
+              "kind": "keyword only",
+              "description": "ω in degrees, one value or one per residue."
+            },
+            {
+              "name": "chain",
+              "type": "",
+              "annotation": false,
+              "default": "'A'",
+              "kind": "keyword only",
+              "description": "Chain ID."
+            },
+            {
+              "name": "first",
+              "type": "",
+              "annotation": false,
+              "default": "1",
+              "kind": "keyword only",
+              "description": "Number of the first residue."
+            },
+            {
+              "name": "hydrogens",
+              "type": "",
+              "annotation": false,
+              "default": "False",
+              "kind": "keyword only",
+              "description": "Add amide H atoms."
+            }
+          ],
+          "description": "Build an ideal peptide with every heavy atom from one-letter codes and torsion angles.",
+          "returns": "The scene.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 111
+        },
+        {
+          "name": "secondary_structure",
+          "kind": "property",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "RegionHighlight.secondary_structure",
+          "parameters": [],
+          "description": "Current H/E/C state of each residue, as the cartoon draws it.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 145
+        },
+        {
+          "name": "set_secondary_structure",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "RegionHighlight.set_secondary_structure(assignments)",
+          "parameters": [
+            {
+              "name": "assignments",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "One H, E, or C per topology residue."
+            }
+          ],
+          "description": "Set one H/E/C state per residue for drawing; can change between animations.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 151
+        },
+        {
+          "name": "assign_secondary_structure",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "RegionHighlight.assign_secondary_structure()",
+          "parameters": [],
+          "description": "Assign helix, strand and coil with DSSP from the current coordinates.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 160
+        },
+        {
+          "name": "torsions",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "RegionHighlight.torsions(*, chain=None, residues=None)",
+          "parameters": [
+            {
+              "name": "chain",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author chain ID or IDs; None selects all chains."
+            },
+            {
+              "name": "residues",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author residue number, list, or inclusive (first, last) range."
+            }
+          ],
+          "description": "Measure φ, ψ, ω and χ1–χ5 in degrees for all residues, or a selection.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 166
+        },
+        {
+          "name": "set_torsions",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "RegionHighlight.set_torsions(\n    *,\n    conformation=None,\n    anchor='center',\n    secondary='auto',\n    **angles,\n)",
+          "parameters": [
+            {
+              "name": "conformation",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Sets φ and ψ together, as in SetTorsions."
+            },
+            {
+              "name": "anchor",
+              "type": "",
+              "annotation": false,
+              "default": "'center'",
+              "kind": "keyword only",
+              "description": "Part that stays still, as in SetTorsions."
+            },
+            {
+              "name": "secondary",
+              "type": "",
+              "annotation": false,
+              "default": "'auto'",
+              "kind": "keyword only",
+              "description": "\"auto\" updates the cartoon to the new DSSP states; \"keep\" leaves it unchanged."
+            },
+            {
+              "name": "angles",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "phi, psi, omega, or chi1–chi5 in degrees, as in SetTorsions."
+            }
+          ],
+          "description": "Set torsions in degrees immediately, for every residue; see SetTorsions.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 174
         },
         {
           "name": "summary",
@@ -9125,7 +9743,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 103
+          "line": 181
         },
         {
           "name": "set_style",
@@ -9147,7 +9765,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 116
+          "line": 194
         },
         {
           "name": "reset_style",
@@ -9160,7 +9778,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 120
+          "line": 198
         },
         {
           "name": "show_atoms",
@@ -9173,7 +9791,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 131
+          "line": 209
         },
         {
           "name": "hide_atoms",
@@ -9186,7 +9804,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 137
+          "line": 215
         },
         {
           "name": "label_residues",
@@ -9271,7 +9889,7 @@
           "returns": "ResidueLabels",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 143
+          "line": 221
         },
         {
           "name": "hydrogen_bonds",
@@ -9333,7 +9951,7 @@
           "returns": "HydrogenBonds",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 170
+          "line": 248
         },
         {
           "name": "electrostatics",
@@ -9403,14 +10021,14 @@
           "returns": "Electrostatics",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 192
+          "line": 270
         },
         {
           "name": "from_file",
           "kind": "class method",
           "owner": "protein.Protein",
           "inherited": true,
-          "signature": "RegionHighlight.from_file(\n    path,\n    *,\n    chains=None,\n    include_water=False,\n    include_hydrogens=False,\n)",
+          "signature": "RegionHighlight.from_file(\n    path,\n    *,\n    chains=None,\n    include_water=False,\n    include_hydrogens=False,\n    secondary='auto',\n    assembly=None,\n)",
           "parameters": [
             {
               "name": "path",
@@ -9443,13 +10061,66 @@
               "default": "False",
               "kind": "keyword only",
               "description": "Retain explicit hydrogen/deuterium atoms; default False. Enable for side-chain and nucleotide hydrogen-bond analysis."
+            },
+            {
+              "name": "secondary",
+              "type": "",
+              "annotation": false,
+              "default": "'auto'",
+              "kind": "keyword only",
+              "description": "\"auto\" uses the file's helix and sheet records, or DSSP when it has none; \"dssp\" always computes; \"file\" uses records only."
+            },
+            {
+              "name": "assembly",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Biological assembly to build from the deposited chains, such as \"1\"; None keeps the deposited chains."
             }
           ],
           "description": "Load PDB or mmCIF coordinates and retain all models with matching atom identities.",
           "returns": "Protein",
           "notes": "Keyword options: chains=None, include_water=False, include_hydrogens=False. Other hetero atoms are retained.",
           "source": "src/proteinmotion/protein.py",
-          "line": 217
+          "line": 295
+        },
+        {
+          "name": "fetch",
+          "kind": "class method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "RegionHighlight.fetch(identifier, *, cache=None, **options)",
+          "parameters": [
+            {
+              "name": "identifier",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Four-character PDB ID such as \"4HHB\", or AlphaFold DB ID such as \"AF-P0DP23-F1\"."
+            },
+            {
+              "name": "cache",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Download folder; None uses PROTEINMOTION_CACHE or ~/.cache/proteinmotion."
+            },
+            {
+              "name": "options",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "from_file() options, such as assembly=\"1\" or chains=\"A\"."
+            }
+          ],
+          "description": "Download a PDB entry or AlphaFold DB model once, keep it in the cache, and load it.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 320
         },
         {
           "name": "from_trajectory",
@@ -9471,7 +10142,7 @@
           "returns": "Protein",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 224
+          "line": 331
         },
         {
           "name": "positions",
@@ -9484,7 +10155,7 @@
           "returns": "Array with shape (selected atoms, 3), in ångströms.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 230
+          "line": 337
         },
         {
           "name": "atom_progress",
@@ -9497,7 +10168,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 235
+          "line": 342
         },
         {
           "name": "atom_opacities",
@@ -9510,7 +10181,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 244
+          "line": 351
         },
         {
           "name": "set_positions",
@@ -9532,7 +10203,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 257
+          "line": 364
         },
         {
           "name": "center",
@@ -9545,7 +10216,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 267
+          "line": 374
         },
         {
           "name": "shift",
@@ -9567,7 +10238,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 271
+          "line": 378
         },
         {
           "name": "rotate",
@@ -9597,7 +10268,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 278
+          "line": 385
         },
         {
           "name": "scale",
@@ -9619,7 +10290,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 286
+          "line": 393
         },
         {
           "name": "set_opacity",
@@ -9641,7 +10312,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 294
+          "line": 401
         },
         {
           "name": "set_color",
@@ -9663,7 +10334,7 @@
           "returns": "The object or a Colorize animation.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 300
+          "line": 407
         },
         {
           "name": "color_by",
@@ -9701,7 +10372,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 305
+          "line": 412
         },
         {
           "name": "color_residues",
@@ -9739,7 +10410,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 311
+          "line": 418
         },
         {
           "name": "set_residue_opacity",
@@ -9777,7 +10448,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 315
+          "line": 422
         },
         {
           "name": "surface",
@@ -9847,7 +10518,7 @@
           "returns": "The protein.",
           "notes": "Additional option: max_voxels=8000000 limits the grid size. Configure surface settings before the first play() call. The ses surface is a voxel approximation.",
           "source": "src/proteinmotion/protein.py",
-          "line": 319
+          "line": 426
         },
         {
           "name": "cartoon",
@@ -9917,7 +10588,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 348
+          "line": 455
         },
         {
           "name": "ribbon",
@@ -9955,7 +10626,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 377
+          "line": 484
         },
         {
           "name": "set_bases",
@@ -10001,7 +10672,7 @@
           "returns": "The molecule.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 386
+          "line": 493
         },
         {
           "name": "ball_and_stick",
@@ -10039,7 +10710,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 403
+          "line": 510
         },
         {
           "name": "with_secondary_structure",
@@ -10061,7 +10732,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 412
+          "line": 519
         },
         {
           "name": "animate",
@@ -10074,7 +10745,7 @@
           "returns": "Animate",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 421
+          "line": 536
         },
         {
           "name": "model_matrix",
@@ -10087,7 +10758,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 427
+          "line": 542
         },
         {
           "name": "snapshot",
@@ -10100,7 +10771,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 433
+          "line": 548
         },
         {
           "name": "restore",
@@ -10122,7 +10793,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 467
+          "line": 584
         }
       ],
       "extra_parameters": []
@@ -10375,7 +11046,7 @@
           "returns": "Trajectory",
           "notes": "",
           "source": "src/proteinmotion/trajectory.py",
-          "line": 118
+          "line": 120
         }
       ],
       "extra_parameters": []
@@ -12256,7 +12927,7 @@
       "description": "Render protein and annotation objects with a reusable GPU renderer.",
       "notes": "Use a with block to release resources. draw() submits GPU work without readback. render() returns one completed frame. enqueue() and drain() overlap GPU rendering and CPU encoding.",
       "import_path": "proteinmotion.renderer",
-      "signature": "Renderer(\n    width=1920,\n    height=1080,\n    *,\n    msaa=4,\n    require_metal=None,\n    readback_format='rgba',\n    backend=None,\n    adapter_name=None,\n)",
+      "signature": "Renderer(\n    width=1920,\n    height=1080,\n    *,\n    msaa=4,\n    supersampling=1,\n    require_metal=None,\n    readback_format='rgba',\n    backend=None,\n    adapter_name=None,\n)",
       "parameters": [
         {
           "name": "width",
@@ -12281,6 +12952,14 @@
           "default": "4",
           "kind": "keyword only",
           "description": "Multisample count: 1 or 4."
+        },
+        {
+          "name": "supersampling",
+          "type": "",
+          "annotation": false,
+          "default": "1",
+          "kind": "keyword only",
+          "description": "Spatial resolution multiplier of at least 1. Output is downsampled to the requested size."
         },
         {
           "name": "require_metal",
@@ -12317,7 +12996,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/renderer.py",
-      "line": 175,
+      "line": 188,
       "bases": [],
       "attributes": {
         "adapter_info": "GPU adapter and backend information."
@@ -12362,7 +13041,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 713
+          "line": 781
         },
         {
           "name": "enqueue",
@@ -12400,7 +13079,7 @@
           "returns": "Frame array, or None while the readback pipeline fills.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 717
+          "line": 785
         },
         {
           "name": "drain",
@@ -12413,7 +13092,7 @@
           "returns": "Iterator of frame arrays.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 761
+          "line": 832
         },
         {
           "name": "render",
@@ -12451,7 +13130,7 @@
           "returns": "RGBA uint8 array or NV12 array, according to readback_format.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 765
+          "line": 836
         },
         {
           "name": "close",
@@ -12464,7 +13143,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 771
+          "line": 842
         },
         {
           "name": "__enter__",
@@ -12477,7 +13156,7 @@
           "returns": "The renderer.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 799
+          "line": 871
         },
         {
           "name": "__exit__",
@@ -12498,7 +13177,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 802
+          "line": 874
         }
       ],
       "extra_parameters": []
@@ -12947,7 +13626,7 @@
       "description": "A fixed linear scale mapping scalar values to RGB colors.",
       "notes": "Values outside the limits use endpoint colors. NaN uses the missing color. Intermediate colors interpolate between equally spaced stops.",
       "import_path": "proteinmotion",
-      "signature": "ColorScale(vmin, vmax, *, colors=('#355f9e', '#56c5bd', '#f5d477'), missing='#87909c')",
+      "signature": "ColorScale(\n    vmin,\n    vmax,\n    *,\n    colors=('#355f9e', '#56c5bd', '#f5d477'),\n    missing='#87909c',\n    boundaries=None,\n)",
       "parameters": [
         {
           "name": "vmin",
@@ -12980,17 +13659,156 @@
           "default": "'#87909c'",
           "kind": "keyword only",
           "description": "Color for missing values (NaN)."
+        },
+        {
+          "name": "boundaries",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Increasing values that split the scale into bands, one fewer than colors; None interpolates."
         }
       ],
       "returns": "",
       "source": "src/proteinmotion/properties.py",
-      "line": 9,
+      "line": 27,
       "bases": [],
       "attributes": {},
       "guide": "numerical-properties",
       "example": "numerical-properties",
       "alias": null,
       "members": [
+        {
+          "name": "hydropathy",
+          "kind": "class method",
+          "owner": "properties.ColorScale",
+          "inherited": false,
+          "signature": "ColorScale.hydropathy(scale='kyte-doolittle')",
+          "parameters": [
+            {
+              "name": "scale",
+              "type": "",
+              "annotation": false,
+              "default": "'kyte-doolittle'",
+              "kind": "positional or keyword",
+              "description": "\"kyte-doolittle\" or \"eisenberg\"."
+            }
+          ],
+          "description": "Hydrophilic blue, neutral near-white, hydrophobic orange; symmetric about 0.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/properties.py",
+          "line": 59
+        },
+        {
+          "name": "conservation",
+          "kind": "class method",
+          "owner": "properties.ColorScale",
+          "inherited": false,
+          "signature": "ColorScale.conservation(vmin=0.0, vmax=1.0)",
+          "parameters": [
+            {
+              "name": "vmin",
+              "type": "",
+              "annotation": false,
+              "default": "0.0",
+              "kind": "positional or keyword",
+              "description": "Score drawn turquoise (variable)."
+            },
+            {
+              "name": "vmax",
+              "type": "",
+              "annotation": false,
+              "default": "1.0",
+              "kind": "positional or keyword",
+              "description": "Score drawn maroon (conserved)."
+            }
+          ],
+          "description": "ConSurf's palette from variable (turquoise) through white to conserved (maroon).",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/properties.py",
+          "line": 67
+        },
+        {
+          "name": "plddt",
+          "kind": "class method",
+          "owner": "properties.ColorScale",
+          "inherited": false,
+          "signature": "ColorScale.plddt()",
+          "parameters": [],
+          "description": "AlphaFold's four confidence bands, split at pLDDT 50, 70 and 90.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/properties.py",
+          "line": 72
+        },
+        {
+          "name": "pae",
+          "kind": "class method",
+          "owner": "properties.ColorScale",
+          "inherited": false,
+          "signature": "ColorScale.pae(max_error=31.75)",
+          "parameters": [
+            {
+              "name": "max_error",
+              "type": "",
+              "annotation": false,
+              "default": "31.75",
+              "kind": "positional or keyword",
+              "description": "Error in ångströms drawn near white."
+            }
+          ],
+          "description": "Predicted aligned error in Å: confident dark green to uncertain near-white.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/properties.py",
+          "line": 77
+        },
+        {
+          "name": "distance",
+          "kind": "class method",
+          "owner": "properties.ColorScale",
+          "inherited": false,
+          "signature": "ColorScale.distance(max_distance=40.0)",
+          "parameters": [
+            {
+              "name": "max_distance",
+              "type": "",
+              "annotation": false,
+              "default": "40.0",
+              "kind": "positional or keyword",
+              "description": "Distance in ångströms drawn darkest."
+            }
+          ],
+          "description": "Current endpoint distance in ångströms, regardless of the label unit.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/properties.py",
+          "line": 82
+        },
+        {
+          "name": "difference",
+          "kind": "class method",
+          "owner": "properties.ColorScale",
+          "inherited": false,
+          "signature": "ColorScale.difference(limit=10.0)",
+          "parameters": [
+            {
+              "name": "limit",
+              "type": "",
+              "annotation": false,
+              "default": "10.0",
+              "kind": "positional or keyword",
+              "description": "Change in ångströms at either end of the symmetric scale."
+            }
+          ],
+          "description": "A signed change in Å: closer in blue, unchanged near-white, farther in red.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/properties.py",
+          "line": 87
+        },
         {
           "name": "from_values",
           "kind": "class method",
@@ -13018,7 +13836,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/properties.py",
-          "line": 27
+          "line": 92
         },
         {
           "name": "normalize",
@@ -13040,7 +13858,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/properties.py",
-          "line": 38
+          "line": 103
         },
         {
           "name": "map",
@@ -13062,7 +13880,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/properties.py",
-          "line": 42
+          "line": 107
         }
       ],
       "extra_parameters": []
@@ -13076,7 +13894,7 @@
       "description": "One measurement per topology residue, with identity checks and optional units.",
       "notes": "",
       "import_path": "proteinmotion",
-      "signature": "ResidueValues(protein, values, *, name='Value', unit='')",
+      "signature": "ResidueValues(protein, values, *, name='Value', unit='', scale=None)",
       "parameters": [
         {
           "name": "protein",
@@ -13109,22 +13927,44 @@
           "default": "''",
           "kind": "keyword only",
           "description": "Displayed distance unit: \"Å\", \"nm\", or an empty suffix. The distance property uses ångströms."
+        },
+        {
+          "name": "scale",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Preset ColorScale used by color_by, ColorByProperty, and ColorLegend when they get no scale."
         }
       ],
       "returns": "",
       "source": "src/proteinmotion/properties.py",
-      "line": 52,
+      "line": 125,
       "bases": [],
       "attributes": {
         "values": "Read-only array of per-residue values.",
         "keys": "Chain, author residue number, insertion code, and residue name in topology order.",
         "name": "Measurement name.",
-        "unit": "Measurement unit."
+        "unit": "Measurement unit.",
+        "scale": "Preset ColorScale, or one fitted to the values."
       },
       "guide": "numerical-properties",
       "example": "numerical-properties",
       "alias": null,
       "members": [
+        {
+          "name": "scale",
+          "kind": "property",
+          "owner": "properties.ResidueValues",
+          "inherited": false,
+          "signature": "ResidueValues.scale",
+          "parameters": [],
+          "description": "Scale around the molecular centroid.",
+          "returns": "The protein or animation builder.",
+          "notes": "",
+          "source": "src/proteinmotion/properties.py",
+          "line": 144
+        },
         {
           "name": "from_mapping",
           "kind": "class method",
@@ -13169,7 +14009,121 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/properties.py",
-          "line": 73
+          "line": 154
+        },
+        {
+          "name": "hydropathy",
+          "kind": "class method",
+          "owner": "properties.ResidueValues",
+          "inherited": false,
+          "signature": "ResidueValues.hydropathy(protein, scale='kyte-doolittle')",
+          "parameters": [
+            {
+              "name": "protein",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Protein object to read or animate."
+            },
+            {
+              "name": "scale",
+              "type": "",
+              "annotation": false,
+              "default": "'kyte-doolittle'",
+              "kind": "positional or keyword",
+              "description": "\"kyte-doolittle\" (default) or \"eisenberg\"."
+            }
+          ],
+          "description": "Residue hydropathy (positive = hydrophobic); NaN for non-amino acids.\n\nScales: \"kyte-doolittle\" (default) or \"eisenberg\". Modified residues use\ntheir parent amino acid where the structure records one.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/properties.py",
+          "line": 168
+        },
+        {
+          "name": "conservation",
+          "kind": "class method",
+          "owner": "properties.ResidueValues",
+          "inherited": false,
+          "signature": "ResidueValues.conservation(protein, alignment, *, chain=None, query=None, weighting=True)",
+          "parameters": [
+            {
+              "name": "protein",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Protein object to read or animate."
+            },
+            {
+              "name": "alignment",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "FASTA, A3M, Stockholm, or Clustal file, or a list of aligned sequences."
+            },
+            {
+              "name": "chain",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Chains to map; None maps every chain the query matches."
+            },
+            {
+              "name": "query",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Name or index of the query sequence; None picks the sequence most similar to the structure."
+            },
+            {
+              "name": "weighting",
+              "type": "",
+              "annotation": false,
+              "default": "True",
+              "kind": "keyword only",
+              "description": "Weight sequences by the Henikoff method."
+            }
+          ],
+          "description": "Sequence conservation from 0 (variable) to 1 (invariant) for each residue.\n\n``alignment`` is a FASTA, A3M, Stockholm or Clustal file, or a list of\naligned sequences. The query (``query`` by name or index, by default the\nsequence most similar to the structure) is aligned to every protein chain\nit matches (``chain`` restricts this). The score is 1 − H/ln 20, where H is\nthe Shannon entropy of the column's amino acids with Henikoff sequence\nweights, scaled by the fraction of sequences without a gap there. The\npreset color scale spans the 5th–95th percentile of this protein's scores.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/properties.py",
+          "line": 194
+        },
+        {
+          "name": "plddt",
+          "kind": "class method",
+          "owner": "properties.ResidueValues",
+          "inherited": false,
+          "signature": "ResidueValues.plddt(protein, source=None)",
+          "parameters": [
+            {
+              "name": "protein",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Protein object to read or animate."
+            },
+            {
+              "name": "source",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "positional or keyword",
+              "description": "AlphaFold DB confidence or ColabFold scores JSON; None reads the B-factor column."
+            }
+          ],
+          "description": "AlphaFold pLDDT per residue, read from the B-factor field or a confidence JSON file.\n\nAlphaFold models store pLDDT in the B-factor column; ``source`` may instead\nbe an AlphaFold DB ``confidence_v*.json`` file or a ColabFold scores file.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/properties.py",
+          "line": 214
         },
         {
           "name": "b_factors",
@@ -13215,7 +14169,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/properties.py",
-          "line": 87
+          "line": 229
         },
         {
           "name": "rmsf",
@@ -13277,7 +14231,7 @@
           "returns": "",
           "notes": "Default alignment uses Cα/C4′/P anchors. Unwrap periodic MD coordinates before analysis. NMR RMSF describes variation across deposited models.",
           "source": "src/proteinmotion/properties.py",
-          "line": 114
+          "line": 256
         }
       ],
       "extra_parameters": []
@@ -13368,7 +14322,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/properties.py",
-      "line": 198,
+      "line": 350,
       "bases": [],
       "attributes": {},
       "guide": "numerical-properties",
@@ -13386,7 +14340,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/properties.py",
-          "line": 229
+          "line": 381
         },
         {
           "name": "apply",
@@ -13408,7 +14362,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/properties.py",
-          "line": 233
+          "line": 385
         },
         {
           "name": "during",
@@ -13465,7 +14419,7 @@
       "description": "A horizontal color bar with numeric limits and measurement units.",
       "notes": "",
       "import_path": "proteinmotion",
-      "signature": "ColorLegend(scale, *, title='', unit='', position=(0.06, 0.82), size=(0.3, 0.12))",
+      "signature": "ColorLegend(scale, *, title=None, unit=None, position=(0.06, 0.82), size=(0.3, 0.12))",
       "parameters": [
         {
           "name": "scale",
@@ -13473,13 +14427,13 @@
           "annotation": false,
           "default": null,
           "kind": "positional or keyword",
-          "description": "ColorScale shared by the structure, plots, and legend. None derives limits from finite values."
+          "description": "ColorScale, or ResidueValues to use their preset scale, name, and unit."
         },
         {
           "name": "title",
           "type": "",
           "annotation": false,
-          "default": "''",
+          "default": "None",
           "kind": "keyword only",
           "description": "Text displayed above the plot or color bar."
         },
@@ -13487,7 +14441,7 @@
           "name": "unit",
           "type": "",
           "annotation": false,
-          "default": "''",
+          "default": "None",
           "kind": "keyword only",
           "description": "Displayed distance unit: \"Å\", \"nm\", or an empty suffix. The distance property uses ångströms."
         },
@@ -13510,7 +14464,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/plots.py",
-      "line": 104,
+      "line": 135,
       "bases": [],
       "attributes": {},
       "guide": "numerical-properties",
@@ -13553,7 +14507,45 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 113
+          "line": 151
+        },
+        {
+          "name": "with_panel",
+          "kind": "method",
+          "owner": "plots._Plot",
+          "inherited": true,
+          "signature": "ColorLegend.with_panel(color='#0b1220', opacity=1.0, padding=18)",
+          "parameters": [
+            {
+              "name": "color",
+              "type": "",
+              "annotation": false,
+              "default": "'#0b1220'",
+              "kind": "positional or keyword",
+              "description": "Card color."
+            },
+            {
+              "name": "opacity",
+              "type": "",
+              "annotation": false,
+              "default": "1.0",
+              "kind": "positional or keyword",
+              "description": "Card opacity in [0, 1]."
+            },
+            {
+              "name": "padding",
+              "type": "",
+              "annotation": false,
+              "default": "18",
+              "kind": "positional or keyword",
+              "description": "Margin around the plot in design pixels at 1080p."
+            }
+          ],
+          "description": "Draw a rounded card behind the plot so molecules passing behind it stay hidden.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/plots.py",
+          "line": 39
         },
         {
           "name": "snapshot",
@@ -13566,7 +14558,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 38
+          "line": 66
         },
         {
           "name": "glyph_count",
@@ -13579,7 +14571,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 51
+          "line": 80
         },
         {
           "name": "set_opacity",
@@ -13832,7 +14824,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/plots.py",
-      "line": 143,
+      "line": 187,
       "bases": [],
       "attributes": {},
       "guide": "synchronized-plots",
@@ -13898,7 +14890,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 215
+          "line": 259
         },
         {
           "name": "current_value",
@@ -13911,7 +14903,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 265
+          "line": 309
         },
         {
           "name": "layout",
@@ -13949,7 +14941,45 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 274
+          "line": 318
+        },
+        {
+          "name": "with_panel",
+          "kind": "method",
+          "owner": "plots._Plot",
+          "inherited": true,
+          "signature": "TimeSeriesPlot.with_panel(color='#0b1220', opacity=1.0, padding=18)",
+          "parameters": [
+            {
+              "name": "color",
+              "type": "",
+              "annotation": false,
+              "default": "'#0b1220'",
+              "kind": "positional or keyword",
+              "description": "Card color."
+            },
+            {
+              "name": "opacity",
+              "type": "",
+              "annotation": false,
+              "default": "1.0",
+              "kind": "positional or keyword",
+              "description": "Card opacity in [0, 1]."
+            },
+            {
+              "name": "padding",
+              "type": "",
+              "annotation": false,
+              "default": "18",
+              "kind": "positional or keyword",
+              "description": "Margin around the plot in design pixels at 1080p."
+            }
+          ],
+          "description": "Draw a rounded card behind the plot so molecules passing behind it stay hidden.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/plots.py",
+          "line": 39
         },
         {
           "name": "snapshot",
@@ -13962,7 +14992,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 38
+          "line": 66
         },
         {
           "name": "glyph_count",
@@ -13975,7 +15005,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 51
+          "line": 80
         },
         {
           "name": "set_opacity",
@@ -14196,7 +15226,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/plots.py",
-      "line": 367,
+      "line": 411,
       "bases": [],
       "attributes": {},
       "guide": "synchronized-plots",
@@ -14239,7 +15269,45 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 415
+          "line": 459
+        },
+        {
+          "name": "with_panel",
+          "kind": "method",
+          "owner": "plots._Plot",
+          "inherited": true,
+          "signature": "SequenceTrack.with_panel(color='#0b1220', opacity=1.0, padding=18)",
+          "parameters": [
+            {
+              "name": "color",
+              "type": "",
+              "annotation": false,
+              "default": "'#0b1220'",
+              "kind": "positional or keyword",
+              "description": "Card color."
+            },
+            {
+              "name": "opacity",
+              "type": "",
+              "annotation": false,
+              "default": "1.0",
+              "kind": "positional or keyword",
+              "description": "Card opacity in [0, 1]."
+            },
+            {
+              "name": "padding",
+              "type": "",
+              "annotation": false,
+              "default": "18",
+              "kind": "positional or keyword",
+              "description": "Margin around the plot in design pixels at 1080p."
+            }
+          ],
+          "description": "Draw a rounded card behind the plot so molecules passing behind it stay hidden.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/plots.py",
+          "line": 39
         },
         {
           "name": "snapshot",
@@ -14252,7 +15320,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 38
+          "line": 66
         },
         {
           "name": "glyph_count",
@@ -14265,7 +15333,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 51
+          "line": 80
         },
         {
           "name": "set_opacity",
@@ -14502,7 +15570,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/plots.py",
-      "line": 471,
+      "line": 515,
       "bases": [],
       "attributes": {},
       "guide": "synchronized-plots",
@@ -14520,7 +15588,7 @@
           "returns": "4 × 4 array.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 522
+          "line": 566
         },
         {
           "name": "layout",
@@ -14558,7 +15626,45 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 533
+          "line": 577
+        },
+        {
+          "name": "with_panel",
+          "kind": "method",
+          "owner": "plots._Plot",
+          "inherited": true,
+          "signature": "ContactMap.with_panel(color='#0b1220', opacity=1.0, padding=18)",
+          "parameters": [
+            {
+              "name": "color",
+              "type": "",
+              "annotation": false,
+              "default": "'#0b1220'",
+              "kind": "positional or keyword",
+              "description": "Card color."
+            },
+            {
+              "name": "opacity",
+              "type": "",
+              "annotation": false,
+              "default": "1.0",
+              "kind": "positional or keyword",
+              "description": "Card opacity in [0, 1]."
+            },
+            {
+              "name": "padding",
+              "type": "",
+              "annotation": false,
+              "default": "18",
+              "kind": "positional or keyword",
+              "description": "Margin around the plot in design pixels at 1080p."
+            }
+          ],
+          "description": "Draw a rounded card behind the plot so molecules passing behind it stay hidden.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/plots.py",
+          "line": 39
         },
         {
           "name": "snapshot",
@@ -14571,7 +15677,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 38
+          "line": 66
         },
         {
           "name": "glyph_count",
@@ -14584,7 +15690,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 51
+          "line": 80
         },
         {
           "name": "set_opacity",
@@ -15647,7 +16753,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/protein.py",
-      "line": 495,
+      "line": 613,
       "bases": [
         "protein.Protein"
       ],
@@ -15683,7 +16789,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 508
+          "line": 626
         },
         {
           "name": "surface",
@@ -15712,7 +16818,7 @@
           "returns": "The protein.",
           "notes": "Additional option: max_voxels=8000000 limits the grid size. Configure surface settings before the first play() call. The ses surface is a voxel approximation.",
           "source": "src/proteinmotion/protein.py",
-          "line": 511
+          "line": 629
         },
         {
           "name": "select",
@@ -15854,7 +16960,208 @@
           "returns": "Region",
           "notes": "A residue tuple is an inclusive range. A list selects individual numbers. Empty selections raise ValueError.",
           "source": "src/proteinmotion/protein.py",
-          "line": 54
+          "line": 61
+        },
+        {
+          "name": "build",
+          "kind": "class method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.build(\n    sequence,\n    conformation='extended',\n    *,\n    phi=None,\n    psi=None,\n    omega=180.0,\n    chain='A',\n    first=1,\n    hydrogens=False,\n)",
+          "parameters": [
+            {
+              "name": "sequence",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "One-letter codes for the 20 standard amino acids, or a list of residue names."
+            },
+            {
+              "name": "conformation",
+              "type": "",
+              "annotation": false,
+              "default": "'extended'",
+              "kind": "positional or keyword",
+              "description": "helix, alpha, 310, pi, strand, beta, parallel, antiparallel, ppii, extended, or left."
+            },
+            {
+              "name": "phi",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "φ in degrees, one value or one per residue; overrides the conformation."
+            },
+            {
+              "name": "psi",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "ψ in degrees, one value or one per residue; overrides the conformation."
+            },
+            {
+              "name": "omega",
+              "type": "",
+              "annotation": false,
+              "default": "180.0",
+              "kind": "keyword only",
+              "description": "ω in degrees, one value or one per residue."
+            },
+            {
+              "name": "chain",
+              "type": "",
+              "annotation": false,
+              "default": "'A'",
+              "kind": "keyword only",
+              "description": "Chain ID."
+            },
+            {
+              "name": "first",
+              "type": "",
+              "annotation": false,
+              "default": "1",
+              "kind": "keyword only",
+              "description": "Number of the first residue."
+            },
+            {
+              "name": "hydrogens",
+              "type": "",
+              "annotation": false,
+              "default": "False",
+              "kind": "keyword only",
+              "description": "Add amide H atoms."
+            }
+          ],
+          "description": "Build an ideal peptide with every heavy atom from one-letter codes and torsion angles.",
+          "returns": "The scene.",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 111
+        },
+        {
+          "name": "secondary_structure",
+          "kind": "property",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.secondary_structure",
+          "parameters": [],
+          "description": "Current H/E/C state of each residue, as the cartoon draws it.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 145
+        },
+        {
+          "name": "set_secondary_structure",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.set_secondary_structure(assignments)",
+          "parameters": [
+            {
+              "name": "assignments",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "One H, E, or C per topology residue."
+            }
+          ],
+          "description": "Set one H/E/C state per residue for drawing; can change between animations.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 151
+        },
+        {
+          "name": "assign_secondary_structure",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.assign_secondary_structure()",
+          "parameters": [],
+          "description": "Assign helix, strand and coil with DSSP from the current coordinates.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 160
+        },
+        {
+          "name": "torsions",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.torsions(*, chain=None, residues=None)",
+          "parameters": [
+            {
+              "name": "chain",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author chain ID or IDs; None selects all chains."
+            },
+            {
+              "name": "residues",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Author residue number, list, or inclusive (first, last) range."
+            }
+          ],
+          "description": "Measure φ, ψ, ω and χ1–χ5 in degrees for all residues, or a selection.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 166
+        },
+        {
+          "name": "set_torsions",
+          "kind": "method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.set_torsions(\n    *,\n    conformation=None,\n    anchor='center',\n    secondary='auto',\n    **angles,\n)",
+          "parameters": [
+            {
+              "name": "conformation",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Sets φ and ψ together, as in SetTorsions."
+            },
+            {
+              "name": "anchor",
+              "type": "",
+              "annotation": false,
+              "default": "'center'",
+              "kind": "keyword only",
+              "description": "Part that stays still, as in SetTorsions."
+            },
+            {
+              "name": "secondary",
+              "type": "",
+              "annotation": false,
+              "default": "'auto'",
+              "kind": "keyword only",
+              "description": "\"auto\" updates the cartoon to the new DSSP states; \"keep\" leaves it unchanged."
+            },
+            {
+              "name": "angles",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "phi, psi, omega, or chi1–chi5 in degrees, as in SetTorsions."
+            }
+          ],
+          "description": "Set torsions in degrees immediately, for every residue; see SetTorsions.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 174
         },
         {
           "name": "summary",
@@ -15867,7 +17174,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 103
+          "line": 181
         },
         {
           "name": "set_style",
@@ -15889,7 +17196,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 116
+          "line": 194
         },
         {
           "name": "reset_style",
@@ -15902,7 +17209,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 120
+          "line": 198
         },
         {
           "name": "show_atoms",
@@ -15915,7 +17222,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 131
+          "line": 209
         },
         {
           "name": "hide_atoms",
@@ -15928,7 +17235,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 137
+          "line": 215
         },
         {
           "name": "label_residues",
@@ -16013,7 +17320,7 @@
           "returns": "ResidueLabels",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 143
+          "line": 221
         },
         {
           "name": "hydrogen_bonds",
@@ -16075,7 +17382,7 @@
           "returns": "HydrogenBonds",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 170
+          "line": 248
         },
         {
           "name": "electrostatics",
@@ -16145,14 +17452,14 @@
           "returns": "Electrostatics",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 192
+          "line": 270
         },
         {
           "name": "from_file",
           "kind": "class method",
           "owner": "protein.Protein",
           "inherited": true,
-          "signature": "NucleicAcid.from_file(path, *, chains=None, include_water=False, include_hydrogens=False)",
+          "signature": "NucleicAcid.from_file(\n    path,\n    *,\n    chains=None,\n    include_water=False,\n    include_hydrogens=False,\n    secondary='auto',\n    assembly=None,\n)",
           "parameters": [
             {
               "name": "path",
@@ -16185,13 +17492,66 @@
               "default": "False",
               "kind": "keyword only",
               "description": "Retain explicit hydrogen/deuterium atoms; default False. Enable for side-chain and nucleotide hydrogen-bond analysis."
+            },
+            {
+              "name": "secondary",
+              "type": "",
+              "annotation": false,
+              "default": "'auto'",
+              "kind": "keyword only",
+              "description": "\"auto\" uses the file's helix and sheet records, or DSSP when it has none; \"dssp\" always computes; \"file\" uses records only."
+            },
+            {
+              "name": "assembly",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Biological assembly to build from the deposited chains, such as \"1\"; None keeps the deposited chains."
             }
           ],
           "description": "Load PDB or mmCIF coordinates and retain all models with matching atom identities.",
           "returns": "Protein",
           "notes": "Keyword options: chains=None, include_water=False, include_hydrogens=False. Other hetero atoms are retained.",
           "source": "src/proteinmotion/protein.py",
-          "line": 217
+          "line": 295
+        },
+        {
+          "name": "fetch",
+          "kind": "class method",
+          "owner": "protein.Protein",
+          "inherited": true,
+          "signature": "NucleicAcid.fetch(identifier, *, cache=None, **options)",
+          "parameters": [
+            {
+              "name": "identifier",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Four-character PDB ID such as \"4HHB\", or AlphaFold DB ID such as \"AF-P0DP23-F1\"."
+            },
+            {
+              "name": "cache",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Download folder; None uses PROTEINMOTION_CACHE or ~/.cache/proteinmotion."
+            },
+            {
+              "name": "options",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "from_file() options, such as assembly=\"1\" or chains=\"A\"."
+            }
+          ],
+          "description": "Download a PDB entry or AlphaFold DB model once, keep it in the cache, and load it.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/protein.py",
+          "line": 320
         },
         {
           "name": "from_trajectory",
@@ -16213,7 +17573,7 @@
           "returns": "Protein",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 224
+          "line": 331
         },
         {
           "name": "positions",
@@ -16226,7 +17586,7 @@
           "returns": "Array with shape (selected atoms, 3), in ångströms.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 230
+          "line": 337
         },
         {
           "name": "atom_progress",
@@ -16239,7 +17599,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 235
+          "line": 342
         },
         {
           "name": "atom_opacities",
@@ -16252,7 +17612,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 244
+          "line": 351
         },
         {
           "name": "set_positions",
@@ -16274,7 +17634,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 257
+          "line": 364
         },
         {
           "name": "copy",
@@ -16287,7 +17647,7 @@
           "returns": "Protein",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 262
+          "line": 369
         },
         {
           "name": "center",
@@ -16300,7 +17660,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 267
+          "line": 374
         },
         {
           "name": "shift",
@@ -16322,7 +17682,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 271
+          "line": 378
         },
         {
           "name": "rotate",
@@ -16352,7 +17712,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 278
+          "line": 385
         },
         {
           "name": "scale",
@@ -16374,7 +17734,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 286
+          "line": 393
         },
         {
           "name": "set_opacity",
@@ -16396,7 +17756,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 294
+          "line": 401
         },
         {
           "name": "set_color",
@@ -16418,7 +17778,7 @@
           "returns": "The object or a Colorize animation.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 300
+          "line": 407
         },
         {
           "name": "color_by",
@@ -16456,7 +17816,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 305
+          "line": 412
         },
         {
           "name": "color_residues",
@@ -16494,7 +17854,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 311
+          "line": 418
         },
         {
           "name": "set_residue_opacity",
@@ -16532,7 +17892,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 315
+          "line": 422
         },
         {
           "name": "ribbon",
@@ -16570,7 +17930,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 377
+          "line": 484
         },
         {
           "name": "set_bases",
@@ -16616,7 +17976,7 @@
           "returns": "The molecule.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 386
+          "line": 493
         },
         {
           "name": "ball_and_stick",
@@ -16654,7 +18014,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 403
+          "line": 510
         },
         {
           "name": "with_secondary_structure",
@@ -16676,7 +18036,7 @@
           "returns": "The protein.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 412
+          "line": 519
         },
         {
           "name": "animate",
@@ -16689,7 +18049,7 @@
           "returns": "Animate",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 421
+          "line": 536
         },
         {
           "name": "model_matrix",
@@ -16702,7 +18062,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 427
+          "line": 542
         },
         {
           "name": "snapshot",
@@ -16715,7 +18075,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 433
+          "line": 548
         },
         {
           "name": "restore",
@@ -16737,7 +18097,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/protein.py",
-          "line": 467
+          "line": 584
         }
       ],
       "extra_parameters": []
@@ -17757,16 +19117,2348 @@
         }
       ],
       "extra_parameters": []
+    },
+    {
+      "id": "torsions.SetTorsions",
+      "name": "SetTorsions",
+      "module": "torsions",
+      "kind": "class",
+      "href": "/reference/torsions/SetTorsions/",
+      "description": "Animate backbone and side-chain torsions to new values in degrees; atoms rotate about bonds, so bond lengths and angles stay fixed.",
+      "notes": "Torsions in rings, such as proline φ, are skipped and listed by locked. Disulfides and ligands bonded to several residues stretch. The motion illustrates a change of angles, not a folding pathway.",
+      "import_path": "proteinmotion",
+      "signature": "SetTorsions(\n    target,\n    *,\n    phi=None,\n    psi=None,\n    omega=None,\n    chi1=None,\n    chi2=None,\n    chi3=None,\n    chi4=None,\n    chi5=None,\n    conformation=None,\n    anchor='center',\n    secondary='auto',\n    path='allowed',\n    stagger=None,\n    reverse=False,\n    easing='smooth',\n)",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Protein or Region whose amino acids change."
+        },
+        {
+          "name": "phi",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "φ, C(i−1)–N–Cα–C. Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged."
+        },
+        {
+          "name": "psi",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "ψ, N–Cα–C–N(i+1). Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged."
+        },
+        {
+          "name": "omega",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "ω, the peptide bond Cα–C–N(i+1)–Cα(i+1). Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged."
+        },
+        {
+          "name": "chi1",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "χ1 side-chain torsion. Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged."
+        },
+        {
+          "name": "chi2",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "χ2 side-chain torsion. Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged."
+        },
+        {
+          "name": "chi3",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "χ3 side-chain torsion. Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged."
+        },
+        {
+          "name": "chi4",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "χ4 side-chain torsion. Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged."
+        },
+        {
+          "name": "chi5",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "χ5 side-chain torsion. Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged."
+        },
+        {
+          "name": "conformation",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Sets φ and ψ together: helix, alpha, 310, pi, strand, beta, parallel, antiparallel, ppii, extended, or left."
+        },
+        {
+          "name": "anchor",
+          "type": "",
+          "annotation": false,
+          "default": "'center'",
+          "kind": "keyword only",
+          "description": "Part that stays still: \"center\" keeps the middle of each chain in place, \"n\" or \"c\" a terminus; a Region is held in place as a whole."
+        },
+        {
+          "name": "secondary",
+          "type": "",
+          "annotation": false,
+          "default": "'auto'",
+          "kind": "keyword only",
+          "description": "\"auto\" blends the cartoon toward the DSSP assignment of the final conformation; \"keep\" leaves it unchanged."
+        },
+        {
+          "name": "path",
+          "type": "",
+          "annotation": false,
+          "default": "'allowed'",
+          "kind": "keyword only",
+          "description": "\"allowed\" turns φ and ψ the way that keeps each residue in favored and allowed Ramachandran regions; \"shortest\" takes the smaller turn."
+        },
+        {
+          "name": "stagger",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Fraction of the clip, in [0, 1), used to start residues one after another from N to C."
+        },
+        {
+          "name": "reverse",
+          "type": "",
+          "annotation": false,
+          "default": "False",
+          "kind": "keyword only",
+          "description": "Stagger from C to N."
+        },
+        {
+          "name": "easing",
+          "type": "",
+          "annotation": false,
+          "default": "'smooth'",
+          "kind": "keyword only",
+          "description": "Easing of each torsion's change."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/torsions.py",
+      "line": 580,
+      "bases": [
+        "animation.Animation"
+      ],
+      "attributes": {},
+      "guide": "torsions",
+      "example": "torsions",
+      "alias": null,
+      "members": [
+        {
+          "name": "locked",
+          "kind": "property",
+          "owner": "torsions.SetTorsions",
+          "inherited": false,
+          "signature": "SetTorsions.locked",
+          "parameters": [],
+          "description": "(residue index, torsion) pairs that could not rotate because they lie in rings.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/torsions.py",
+          "line": 641
+        },
+        {
+          "name": "bind",
+          "kind": "method",
+          "owner": "torsions.SetTorsions",
+          "inherited": false,
+          "signature": "SetTorsions.bind()",
+          "parameters": [],
+          "description": "Capture starting values when the scene schedules the animation.",
+          "returns": "None",
+          "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
+          "source": "src/proteinmotion/torsions.py",
+          "line": 645
+        },
+        {
+          "name": "apply",
+          "kind": "method",
+          "owner": "torsions.SetTorsions",
+          "inherited": false,
+          "signature": "SetTorsions.apply(alpha)",
+          "parameters": [
+            {
+              "name": "alpha",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Eased animation progress in [0, 1]."
+            }
+          ],
+          "description": "Evaluate the animation at eased progress alpha. Called by the timeline.",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/torsions.py",
+          "line": 683
+        },
+        {
+          "name": "during",
+          "kind": "method",
+          "owner": "animation.Animation",
+          "inherited": true,
+          "signature": "SetTorsions.during(seconds, *, delay=0)",
+          "parameters": [
+            {
+              "name": "seconds",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Positive animation duration in seconds."
+            },
+            {
+              "name": "delay",
+              "type": "",
+              "annotation": false,
+              "default": "0",
+              "kind": "keyword only",
+              "description": "Nonnegative animation start delay in seconds."
+            }
+          ],
+          "description": "Set this animation duration and start delay in seconds.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 18
+        },
+        {
+          "name": "targets",
+          "kind": "property",
+          "owner": "animation.Animation",
+          "inherited": true,
+          "signature": "SetTorsions.targets",
+          "parameters": [],
+          "description": "Objects whose state this animation changes.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 33
+        }
+      ],
+      "extra_parameters": []
+    },
+    {
+      "id": "torsions.RotateTorsions",
+      "name": "RotateTorsions",
+      "module": "torsions",
+      "kind": "class",
+      "href": "/reference/torsions/RotateTorsions/",
+      "description": "Turn torsions by amounts in degrees, for example a full side-chain rotation.",
+      "notes": "",
+      "import_path": "proteinmotion",
+      "signature": "RotateTorsions(\n    target,\n    *,\n    phi=None,\n    psi=None,\n    omega=None,\n    chi1=None,\n    chi2=None,\n    chi3=None,\n    chi4=None,\n    chi5=None,\n    conformation=None,\n    anchor='center',\n    secondary='auto',\n    path='allowed',\n    stagger=None,\n    reverse=False,\n    easing='smooth',\n)",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Protein or Region whose amino acids change."
+        },
+        {
+          "name": "phi",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "φ, C(i−1)–N–Cα–C. Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn."
+        },
+        {
+          "name": "psi",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "ψ, N–Cα–C–N(i+1). Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn."
+        },
+        {
+          "name": "omega",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "ω, the peptide bond Cα–C–N(i+1)–Cα(i+1). Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn."
+        },
+        {
+          "name": "chi1",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "χ1 side-chain torsion. Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn."
+        },
+        {
+          "name": "chi2",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "χ2 side-chain torsion. Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn."
+        },
+        {
+          "name": "chi3",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "χ3 side-chain torsion. Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn."
+        },
+        {
+          "name": "chi4",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "χ4 side-chain torsion. Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn."
+        },
+        {
+          "name": "chi5",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "χ5 side-chain torsion. Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn."
+        },
+        {
+          "name": "conformation",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Sets φ and ψ together: helix, alpha, 310, pi, strand, beta, parallel, antiparallel, ppii, extended, or left."
+        },
+        {
+          "name": "anchor",
+          "type": "",
+          "annotation": false,
+          "default": "'center'",
+          "kind": "keyword only",
+          "description": "Part that stays still: \"center\" keeps the middle of each chain in place, \"n\" or \"c\" a terminus; a Region is held in place as a whole."
+        },
+        {
+          "name": "secondary",
+          "type": "",
+          "annotation": false,
+          "default": "'auto'",
+          "kind": "keyword only",
+          "description": "\"auto\" blends the cartoon toward the DSSP assignment of the final conformation; \"keep\" leaves it unchanged."
+        },
+        {
+          "name": "path",
+          "type": "",
+          "annotation": false,
+          "default": "'allowed'",
+          "kind": "keyword only",
+          "description": "\"allowed\" turns φ and ψ the way that keeps each residue in favored and allowed Ramachandran regions; \"shortest\" takes the smaller turn."
+        },
+        {
+          "name": "stagger",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Fraction of the clip, in [0, 1), used to start residues one after another from N to C."
+        },
+        {
+          "name": "reverse",
+          "type": "",
+          "annotation": false,
+          "default": "False",
+          "kind": "keyword only",
+          "description": "Stagger from C to N."
+        },
+        {
+          "name": "easing",
+          "type": "",
+          "annotation": false,
+          "default": "'smooth'",
+          "kind": "keyword only",
+          "description": "Easing of each torsion's change."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/torsions.py",
+      "line": 701,
+      "bases": [
+        "torsions.SetTorsions"
+      ],
+      "attributes": {},
+      "guide": "torsions",
+      "example": "torsions",
+      "alias": null,
+      "members": [
+        {
+          "name": "locked",
+          "kind": "property",
+          "owner": "torsions.SetTorsions",
+          "inherited": true,
+          "signature": "RotateTorsions.locked",
+          "parameters": [],
+          "description": "(residue index, torsion) pairs that could not rotate because they lie in rings.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/torsions.py",
+          "line": 641
+        },
+        {
+          "name": "bind",
+          "kind": "method",
+          "owner": "torsions.SetTorsions",
+          "inherited": true,
+          "signature": "RotateTorsions.bind()",
+          "parameters": [],
+          "description": "Capture starting values when the scene schedules the animation.",
+          "returns": "None",
+          "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
+          "source": "src/proteinmotion/torsions.py",
+          "line": 645
+        },
+        {
+          "name": "apply",
+          "kind": "method",
+          "owner": "torsions.SetTorsions",
+          "inherited": true,
+          "signature": "RotateTorsions.apply(alpha)",
+          "parameters": [
+            {
+              "name": "alpha",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Eased animation progress in [0, 1]."
+            }
+          ],
+          "description": "Evaluate the animation at eased progress alpha. Called by the timeline.",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/torsions.py",
+          "line": 683
+        },
+        {
+          "name": "during",
+          "kind": "method",
+          "owner": "animation.Animation",
+          "inherited": true,
+          "signature": "RotateTorsions.during(seconds, *, delay=0)",
+          "parameters": [
+            {
+              "name": "seconds",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Positive animation duration in seconds."
+            },
+            {
+              "name": "delay",
+              "type": "",
+              "annotation": false,
+              "default": "0",
+              "kind": "keyword only",
+              "description": "Nonnegative animation start delay in seconds."
+            }
+          ],
+          "description": "Set this animation duration and start delay in seconds.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 18
+        },
+        {
+          "name": "targets",
+          "kind": "property",
+          "owner": "animation.Animation",
+          "inherited": true,
+          "signature": "RotateTorsions.targets",
+          "parameters": [],
+          "description": "Objects whose state this animation changes.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 33
+        }
+      ],
+      "extra_parameters": []
+    },
+    {
+      "id": "torsions.TorsionAngles",
+      "name": "TorsionAngles",
+      "module": "torsions",
+      "kind": "class",
+      "href": "/reference/torsions/TorsionAngles/",
+      "description": "φ, ψ, ω, and χ1–χ5 in degrees for a set of residues; NaN where a residue lacks a torsion.",
+      "notes": "Use protein.torsions() or region.torsions(). Attributes phi, psi, omega, and chi1–chi5 return one value per residue; angles[23] or angles[\"A\", 23] returns one residue's values.",
+      "import_path": "proteinmotion",
+      "signature": "TorsionAngles(protein, residue_indices, values)",
+      "parameters": [
+        {
+          "name": "protein",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Protein that was measured."
+        },
+        {
+          "name": "residue_indices",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Topology residue indices, one per row."
+        },
+        {
+          "name": "values",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Array of shape (residues, 8) in degrees, columns phi, psi, omega, chi1–chi5."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/torsions.py",
+      "line": 149,
+      "bases": [],
+      "attributes": {},
+      "guide": "torsions",
+      "example": "torsions",
+      "alias": null,
+      "members": [
+        {
+          "name": "__len__",
+          "kind": "method",
+          "owner": "torsions.TorsionAngles",
+          "inherited": false,
+          "signature": "TorsionAngles.__len__()",
+          "parameters": [],
+          "description": "Return the number of frames with len(trajectory).",
+          "returns": "int",
+          "notes": "",
+          "source": "src/proteinmotion/torsions.py",
+          "line": 162
+        },
+        {
+          "name": "residue_ids",
+          "kind": "property",
+          "owner": "torsions.TorsionAngles",
+          "inherited": false,
+          "signature": "TorsionAngles.residue_ids",
+          "parameters": [],
+          "description": "Author identities (chain, residue number, insertion code).",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/torsions.py",
+          "line": 171
+        }
+      ],
+      "extra_parameters": []
+    },
+    {
+      "id": "torsions.TorsionMarker",
+      "name": "TorsionMarker",
+      "module": "torsions",
+      "kind": "class",
+      "href": "/reference/torsions/TorsionMarker/",
+      "description": "A live protractor for one torsion: its bond, an arc around the bond, and the current angle.",
+      "notes": "",
+      "import_path": "proteinmotion",
+      "signature": "TorsionMarker(\n    target,\n    torsion='phi',\n    *,\n    radius=1.25,\n    color='#f5d477',\n    font_size=30,\n    precision=0,\n    label=None,\n    show_value=True,\n    line_width=2.6,\n    follow_opacity=True,\n    backing='#0b1220',\n    opacity=1.0,\n)",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Single-residue Region."
+        },
+        {
+          "name": "torsion",
+          "type": "",
+          "annotation": false,
+          "default": "'phi'",
+          "kind": "positional or keyword",
+          "description": "phi, psi, omega, or chi1–chi5."
+        },
+        {
+          "name": "radius",
+          "type": "",
+          "annotation": false,
+          "default": "1.25",
+          "kind": "keyword only",
+          "description": "Arc radius in ångströms."
+        },
+        {
+          "name": "color",
+          "type": "",
+          "annotation": false,
+          "default": "'#f5d477'",
+          "kind": "keyword only",
+          "description": "Line and label color."
+        },
+        {
+          "name": "font_size",
+          "type": "",
+          "annotation": false,
+          "default": "30",
+          "kind": "keyword only",
+          "description": "Font size in pixels at a 1080-pixel image height."
+        },
+        {
+          "name": "precision",
+          "type": "",
+          "annotation": false,
+          "default": "0",
+          "kind": "keyword only",
+          "description": "Decimal places in the angle label, from 0 to 3."
+        },
+        {
+          "name": "label",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Text before the value; None uses the torsion's symbol."
+        },
+        {
+          "name": "show_value",
+          "type": "",
+          "annotation": false,
+          "default": "True",
+          "kind": "keyword only",
+          "description": "Show the angle after the symbol."
+        },
+        {
+          "name": "line_width",
+          "type": "",
+          "annotation": false,
+          "default": "2.6",
+          "kind": "keyword only",
+          "description": "Arc width in design pixels at 1080p."
+        },
+        {
+          "name": "follow_opacity",
+          "type": "",
+          "annotation": false,
+          "default": "True",
+          "kind": "keyword only",
+          "description": "Multiply annotation opacity by its selected atom opacity."
+        },
+        {
+          "name": "backing",
+          "type": "",
+          "annotation": false,
+          "default": "'#0b1220'",
+          "kind": "keyword only",
+          "description": "Color of the translucent card behind the label; None removes it."
+        },
+        {
+          "name": "opacity",
+          "type": "",
+          "annotation": false,
+          "default": "1.0",
+          "kind": "keyword only",
+          "description": "Opacity in [0, 1], from transparent to opaque."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/torsions.py",
+      "line": 716,
+      "bases": [
+        "annotations.Annotation"
+      ],
+      "attributes": {},
+      "guide": "torsions",
+      "example": "torsions",
+      "alias": null,
+      "members": [
+        {
+          "name": "value",
+          "kind": "property",
+          "owner": "torsions.TorsionMarker",
+          "inherited": false,
+          "signature": "TorsionMarker.value",
+          "parameters": [],
+          "description": "The current torsion in degrees.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/torsions.py",
+          "line": 770
+        },
+        {
+          "name": "glyph_count",
+          "kind": "property",
+          "owner": "torsions.TorsionMarker",
+          "inherited": false,
+          "signature": "TorsionMarker.glyph_count",
+          "parameters": [],
+          "description": "Number of shaped glyphs used for writing animation.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/torsions.py",
+          "line": 778
+        },
+        {
+          "name": "text_progress",
+          "kind": "property",
+          "owner": "torsions.TorsionMarker",
+          "inherited": false,
+          "signature": "TorsionMarker.text_progress",
+          "parameters": [],
+          "description": "Current reveal progress for glyphs and annotation lines.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/torsions.py",
+          "line": 782
+        },
+        {
+          "name": "layout",
+          "kind": "method",
+          "owner": "torsions.TorsionMarker",
+          "inherited": false,
+          "signature": "TorsionMarker.layout(camera, width, height)",
+          "parameters": [
+            {
+              "name": "camera",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Camera used to project or frame objects."
+            },
+            {
+              "name": "width",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Image width in pixels."
+            },
+            {
+              "name": "height",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Image height in pixels."
+            }
+          ],
+          "description": "Project text and line geometry for the renderer at the current frame.",
+          "returns": "AnnotationLayout containing glyph placements and line paths.",
+          "notes": "",
+          "source": "src/proteinmotion/torsions.py",
+          "line": 785
+        },
+        {
+          "name": "set_opacity",
+          "kind": "method",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "TorsionMarker.set_opacity(opacity)",
+          "parameters": [
+            {
+              "name": "opacity",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Opacity in [0, 1], from transparent to opaque."
+            }
+          ],
+          "description": "Set or animate opacity in [0, 1].",
+          "returns": "The object or animation builder.",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 78
+        },
+        {
+          "name": "move_to",
+          "kind": "method",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "TorsionMarker.move_to(position)",
+          "parameters": [
+            {
+              "name": "position",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Image coordinates (x, y), with (0, 0) at the top-left and (1, 1) at the bottom-right."
+            }
+          ],
+          "description": "Set or animate text position in normalized image coordinates.",
+          "returns": "The annotation or animation builder.",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 84
+        },
+        {
+          "name": "shift",
+          "kind": "method",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "TorsionMarker.shift(offset)",
+          "parameters": [
+            {
+              "name": "offset",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Offset (x, y) in design pixels at 1080p for residue labels; normalized image units for text shifts."
+            }
+          ],
+          "description": "Translate the object by an offset.",
+          "returns": "The object or animation builder.",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 90
+        },
+        {
+          "name": "snapshot",
+          "kind": "method",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "TorsionMarker.snapshot()",
+          "parameters": [],
+          "description": "Capture the current state for deterministic timeline evaluation.",
+          "returns": "State dictionary.",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 96
+        },
+        {
+          "name": "restore",
+          "kind": "method",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "TorsionMarker.restore(state)",
+          "parameters": [
+            {
+              "name": "state",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "State returned by snapshot()."
+            }
+          ],
+          "description": "Restore a state produced by snapshot().",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 102
+        },
+        {
+          "name": "animate",
+          "kind": "property",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "TorsionMarker.animate",
+          "parameters": [],
+          "description": "Create a builder for fluent animation calls. Pass the result to scene.play().",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 107
+        }
+      ],
+      "extra_parameters": []
+    },
+    {
+      "id": "ramachandran.RamachandranPlot",
+      "name": "RamachandranPlot",
+      "module": "ramachandran",
+      "kind": "class",
+      "href": "/reference/ramachandran/RamachandranPlot/",
+      "description": "A live φ/ψ plot: one point per residue over favored and allowed regions.",
+      "notes": "Glycine is drawn as a triangle and proline as a square. Regions come from one chain per 30% identity cluster of X-ray entries at 1.4 Å or better; scripts/build_ramachandran_reference.py rebuilds them.",
+      "import_path": "proteinmotion",
+      "signature": "RamachandranPlot(\n    protein,\n    *,\n    region=None,\n    highlight=None,\n    labels=True,\n    color=None,\n    title='Ramachandran plot',\n    position=(0.64, 0.1),\n    size=(0.32, 0.56),\n    dot_size=5.5,\n    background='general',\n    region_labels=True,\n    paths=True,\n    highlight_color='#f5d477',\n    favored_color='#2b4566',\n    allowed_color='#1a2b42',\n)",
+      "parameters": [
+        {
+          "name": "protein",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Protein whose residues are plotted."
+        },
+        {
+          "name": "region",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Region limiting the plotted residues; None plots every residue with both φ and ψ."
+        },
+        {
+          "name": "highlight",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Region whose residues are ringed, enlarged, and labeled."
+        },
+        {
+          "name": "labels",
+          "type": "",
+          "annotation": false,
+          "default": "True",
+          "kind": "keyword only",
+          "description": "Label highlighted residues with name and number."
+        },
+        {
+          "name": "color",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "One color for every point; None uses the residue colors drawn in 3D."
+        },
+        {
+          "name": "title",
+          "type": "",
+          "annotation": false,
+          "default": "'Ramachandran plot'",
+          "kind": "keyword only",
+          "description": "Text displayed above the plot."
+        },
+        {
+          "name": "position",
+          "type": "",
+          "annotation": false,
+          "default": "(0.64, 0.1)",
+          "kind": "keyword only",
+          "description": "Image coordinates (x, y), with (0, 0) at the top-left and (1, 1) at the bottom-right."
+        },
+        {
+          "name": "size",
+          "type": "",
+          "annotation": false,
+          "default": "(0.32, 0.56)",
+          "kind": "keyword only",
+          "description": "Plot (width, height) as fractions of the viewport."
+        },
+        {
+          "name": "dot_size",
+          "type": "",
+          "annotation": false,
+          "default": "5.5",
+          "kind": "keyword only",
+          "description": "Point radius in design pixels at 1080p."
+        },
+        {
+          "name": "background",
+          "type": "",
+          "annotation": false,
+          "default": "'general'",
+          "kind": "keyword only",
+          "description": "Reference regions: general, glycine, proline, preproline, or None."
+        },
+        {
+          "name": "region_labels",
+          "type": "",
+          "annotation": false,
+          "default": "True",
+          "kind": "keyword only",
+          "description": "Label the αR, β, and αL regions."
+        },
+        {
+          "name": "paths",
+          "type": "",
+          "annotation": false,
+          "default": "True",
+          "kind": "keyword only",
+          "description": "During SetTorsions, draw each moving residue's path from its start."
+        },
+        {
+          "name": "highlight_color",
+          "type": "",
+          "annotation": false,
+          "default": "'#f5d477'",
+          "kind": "keyword only",
+          "description": "Color marking the selected residues in the plot."
+        },
+        {
+          "name": "favored_color",
+          "type": "",
+          "annotation": false,
+          "default": "'#2b4566'",
+          "kind": "keyword only",
+          "description": "Fill of regions containing 98% of reference residues."
+        },
+        {
+          "name": "allowed_color",
+          "type": "",
+          "annotation": false,
+          "default": "'#1a2b42'",
+          "kind": "keyword only",
+          "description": "Fill of regions containing 99.8% of reference residues."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/ramachandran.py",
+      "line": 73,
+      "bases": [],
+      "attributes": {},
+      "guide": "torsions",
+      "example": "torsions",
+      "alias": null,
+      "members": [
+        {
+          "name": "angles",
+          "kind": "property",
+          "owner": "ramachandran.RamachandranPlot",
+          "inherited": false,
+          "signature": "RamachandranPlot.angles",
+          "parameters": [],
+          "description": "Current (φ, ψ) in degrees for each plotted residue.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/ramachandran.py",
+          "line": 127
+        },
+        {
+          "name": "layout",
+          "kind": "method",
+          "owner": "ramachandran.RamachandranPlot",
+          "inherited": false,
+          "signature": "RamachandranPlot.layout(camera, width, height)",
+          "parameters": [
+            {
+              "name": "camera",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Camera used to project or frame objects."
+            },
+            {
+              "name": "width",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Image width in pixels."
+            },
+            {
+              "name": "height",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Image height in pixels."
+            }
+          ],
+          "description": "Project text and line geometry for the renderer at the current frame.",
+          "returns": "AnnotationLayout containing glyph placements and line paths.",
+          "notes": "",
+          "source": "src/proteinmotion/ramachandran.py",
+          "line": 154
+        },
+        {
+          "name": "with_panel",
+          "kind": "method",
+          "owner": "plots._Plot",
+          "inherited": true,
+          "signature": "RamachandranPlot.with_panel(color='#0b1220', opacity=1.0, padding=18)",
+          "parameters": [
+            {
+              "name": "color",
+              "type": "",
+              "annotation": false,
+              "default": "'#0b1220'",
+              "kind": "positional or keyword",
+              "description": "Card color."
+            },
+            {
+              "name": "opacity",
+              "type": "",
+              "annotation": false,
+              "default": "1.0",
+              "kind": "positional or keyword",
+              "description": "Card opacity in [0, 1]."
+            },
+            {
+              "name": "padding",
+              "type": "",
+              "annotation": false,
+              "default": "18",
+              "kind": "positional or keyword",
+              "description": "Margin around the plot in design pixels at 1080p."
+            }
+          ],
+          "description": "Draw a rounded card behind the plot so molecules passing behind it stay hidden.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/plots.py",
+          "line": 39
+        },
+        {
+          "name": "snapshot",
+          "kind": "method",
+          "owner": "plots._Plot",
+          "inherited": true,
+          "signature": "RamachandranPlot.snapshot()",
+          "parameters": [],
+          "description": "Capture the current state for deterministic timeline evaluation.",
+          "returns": "State dictionary.",
+          "notes": "",
+          "source": "src/proteinmotion/plots.py",
+          "line": 66
+        },
+        {
+          "name": "glyph_count",
+          "kind": "property",
+          "owner": "plots._Plot",
+          "inherited": true,
+          "signature": "RamachandranPlot.glyph_count",
+          "parameters": [],
+          "description": "Number of shaped glyphs used for writing animation.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/plots.py",
+          "line": 80
+        },
+        {
+          "name": "set_opacity",
+          "kind": "method",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "RamachandranPlot.set_opacity(opacity)",
+          "parameters": [
+            {
+              "name": "opacity",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Opacity in [0, 1], from transparent to opaque."
+            }
+          ],
+          "description": "Set or animate opacity in [0, 1].",
+          "returns": "The object or animation builder.",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 78
+        },
+        {
+          "name": "move_to",
+          "kind": "method",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "RamachandranPlot.move_to(position)",
+          "parameters": [
+            {
+              "name": "position",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Image coordinates (x, y), with (0, 0) at the top-left and (1, 1) at the bottom-right."
+            }
+          ],
+          "description": "Set or animate text position in normalized image coordinates.",
+          "returns": "The annotation or animation builder.",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 84
+        },
+        {
+          "name": "shift",
+          "kind": "method",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "RamachandranPlot.shift(offset)",
+          "parameters": [
+            {
+              "name": "offset",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Offset (x, y) in design pixels at 1080p for residue labels; normalized image units for text shifts."
+            }
+          ],
+          "description": "Translate the object by an offset.",
+          "returns": "The object or animation builder.",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 90
+        },
+        {
+          "name": "restore",
+          "kind": "method",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "RamachandranPlot.restore(state)",
+          "parameters": [
+            {
+              "name": "state",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "State returned by snapshot()."
+            }
+          ],
+          "description": "Restore a state produced by snapshot().",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 102
+        },
+        {
+          "name": "animate",
+          "kind": "property",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "RamachandranPlot.animate",
+          "parameters": [],
+          "description": "Create a builder for fluent animation calls. Pass the result to scene.play().",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 107
+        },
+        {
+          "name": "text_progress",
+          "kind": "property",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "RamachandranPlot.text_progress",
+          "parameters": [],
+          "description": "Current reveal progress for glyphs and annotation lines.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 111
+        }
+      ],
+      "extra_parameters": []
+    },
+    {
+      "id": "animation.SecondaryStructure",
+      "name": "SecondaryStructure",
+      "module": "animation",
+      "kind": "class",
+      "href": "/reference/animation/SecondaryStructure/",
+      "description": "Blend the cartoon to new helix, strand, and coil states.",
+      "notes": "",
+      "import_path": "proteinmotion",
+      "signature": "SecondaryStructure(protein, assignments='dssp', **kwargs)",
+      "parameters": [
+        {
+          "name": "protein",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Protein whose cartoon changes."
+        },
+        {
+          "name": "assignments",
+          "type": "",
+          "annotation": false,
+          "default": "'dssp'",
+          "kind": "positional or keyword",
+          "description": "\"dssp\" assigns states from the coordinates when the clip starts; otherwise one H, E, or C per topology residue."
+        },
+        {
+          "name": "kwargs",
+          "type": "",
+          "default": null,
+          "kind": "variadic keyword",
+          "description": "Additional keyword options described below or in the linked constructor."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/animation.py",
+      "line": 466,
+      "bases": [
+        "animation.Animation"
+      ],
+      "attributes": {},
+      "guide": "torsions",
+      "example": "torsions",
+      "alias": null,
+      "members": [
+        {
+          "name": "bind",
+          "kind": "method",
+          "owner": "animation.SecondaryStructure",
+          "inherited": false,
+          "signature": "SecondaryStructure.bind()",
+          "parameters": [],
+          "description": "Capture starting values when the scene schedules the animation.",
+          "returns": "None",
+          "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
+          "source": "src/proteinmotion/animation.py",
+          "line": 486
+        },
+        {
+          "name": "apply",
+          "kind": "method",
+          "owner": "animation.SecondaryStructure",
+          "inherited": false,
+          "signature": "SecondaryStructure.apply(alpha)",
+          "parameters": [
+            {
+              "name": "alpha",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Eased animation progress in [0, 1]."
+            }
+          ],
+          "description": "Evaluate the animation at eased progress alpha. Called by the timeline.",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 494
+        },
+        {
+          "name": "during",
+          "kind": "method",
+          "owner": "animation.Animation",
+          "inherited": true,
+          "signature": "SecondaryStructure.during(seconds, *, delay=0)",
+          "parameters": [
+            {
+              "name": "seconds",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Positive animation duration in seconds."
+            },
+            {
+              "name": "delay",
+              "type": "",
+              "annotation": false,
+              "default": "0",
+              "kind": "keyword only",
+              "description": "Nonnegative animation start delay in seconds."
+            }
+          ],
+          "description": "Set this animation duration and start delay in seconds.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 18
+        },
+        {
+          "name": "targets",
+          "kind": "property",
+          "owner": "animation.Animation",
+          "inherited": true,
+          "signature": "SecondaryStructure.targets",
+          "parameters": [],
+          "description": "Objects whose state this animation changes.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 33
+        }
+      ],
+      "extra_parameters": []
+    },
+    {
+      "id": "plots.Heatmap",
+      "name": "Heatmap",
+      "module": "plots",
+      "kind": "class",
+      "href": "/reference/plots/Heatmap/",
+      "description": "A matrix of colored cells with a color bar; rows and columns can be residues.",
+      "notes": "",
+      "import_path": "proteinmotion",
+      "signature": "Heatmap(\n    values,\n    *,\n    protein=None,\n    rows=None,\n    columns=None,\n    scale=None,\n    title='',\n    unit='',\n    xlabel='',\n    ylabel='',\n    position=(0.64, 0.1),\n    size=(0.32, 0.56),\n    highlight=None,\n    highlight_color='#f5d477',\n    max_cells=160,\n    colorbar=True,\n)",
+      "parameters": [
+        {
+          "name": "values",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "2D array, or a function returning one that is called again when coordinates change."
+        },
+        {
+          "name": "protein",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Protein whose residues label the rows and columns."
+        },
+        {
+          "name": "rows",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Topology residue indices or a Region for the rows; None uses every polymer residue."
+        },
+        {
+          "name": "columns",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Topology residue indices or a Region for the columns; None uses the rows."
+        },
+        {
+          "name": "scale",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "ColorScale shared by the structure, plots, and legend. None derives limits from finite values."
+        },
+        {
+          "name": "title",
+          "type": "",
+          "annotation": false,
+          "default": "''",
+          "kind": "keyword only",
+          "description": "Text displayed above the plot or color bar."
+        },
+        {
+          "name": "unit",
+          "type": "",
+          "annotation": false,
+          "default": "''",
+          "kind": "keyword only",
+          "description": "Unit shown above the color bar."
+        },
+        {
+          "name": "xlabel",
+          "type": "",
+          "annotation": false,
+          "default": "''",
+          "kind": "keyword only",
+          "description": "Horizontal axis label, including units when appropriate."
+        },
+        {
+          "name": "ylabel",
+          "type": "",
+          "annotation": false,
+          "default": "''",
+          "kind": "keyword only",
+          "description": "Vertical axis label, including units when appropriate."
+        },
+        {
+          "name": "position",
+          "type": "",
+          "annotation": false,
+          "default": "(0.64, 0.1)",
+          "kind": "keyword only",
+          "description": "Image coordinates (x, y), with (0, 0) at the top-left and (1, 1) at the bottom-right."
+        },
+        {
+          "name": "size",
+          "type": "",
+          "annotation": false,
+          "default": "(0.32, 0.56)",
+          "kind": "keyword only",
+          "description": "Plot (width, height) as fractions of the viewport."
+        },
+        {
+          "name": "highlight",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Region whose rows and columns are marked at the edges."
+        },
+        {
+          "name": "highlight_color",
+          "type": "",
+          "annotation": false,
+          "default": "'#f5d477'",
+          "kind": "keyword only",
+          "description": "Color marking the selected residues in the plot."
+        },
+        {
+          "name": "max_cells",
+          "type": "",
+          "annotation": false,
+          "default": "160",
+          "kind": "keyword only",
+          "description": "Larger matrices are averaged into at most this many cells per side."
+        },
+        {
+          "name": "colorbar",
+          "type": "",
+          "annotation": false,
+          "default": "True",
+          "kind": "keyword only",
+          "description": "Draw the color bar."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/plots.py",
+      "line": 637,
+      "bases": [],
+      "attributes": {},
+      "guide": "confidence-and-conservation",
+      "example": "confidence-and-conservation",
+      "alias": null,
+      "members": [
+        {
+          "name": "pae",
+          "kind": "class method",
+          "owner": "plots.Heatmap",
+          "inherited": false,
+          "signature": "Heatmap.pae(protein, source, *, title='Predicted aligned error', **kwargs)",
+          "parameters": [
+            {
+              "name": "protein",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Protein object to read or animate."
+            },
+            {
+              "name": "source",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "PAE JSON or .npy file, parsed JSON, or a square array with one row per polymer residue."
+            },
+            {
+              "name": "title",
+              "type": "",
+              "annotation": false,
+              "default": "'Predicted aligned error'",
+              "kind": "keyword only",
+              "description": "Text displayed above the plot."
+            },
+            {
+              "name": "kwargs",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "Additional keyword options described below or in the linked constructor."
+            }
+          ],
+          "description": "AlphaFold predicted aligned error from AlphaFold DB, ColabFold, or AlphaFold 3 files, a .npy file, or an array.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/plots.py",
+          "line": 706
+        },
+        {
+          "name": "distances",
+          "kind": "class method",
+          "owner": "plots.Heatmap",
+          "inherited": false,
+          "signature": "Heatmap.distances(\n    protein,\n    *,\n    region=None,\n    anchor='backbone',\n    reference=None,\n    max_distance=None,\n    max_residues=600,\n    title=None,\n    **kwargs,\n)",
+          "parameters": [
+            {
+              "name": "protein",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Protein object to read or animate."
+            },
+            {
+              "name": "region",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Region limiting the residues; None uses every polymer residue."
+            },
+            {
+              "name": "anchor",
+              "type": "",
+              "annotation": false,
+              "default": "'backbone'",
+              "kind": "keyword only",
+              "description": "\"backbone\" uses Cα (C4′ for nucleotides); \"centroid\" uses residue centroids."
+            },
+            {
+              "name": "reference",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Protein with the same residues, or coordinates in this protein's atom order; the plot shows the change."
+            },
+            {
+              "name": "max_distance",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Upper color limit in ångströms; None rounds the largest initial value up."
+            },
+            {
+              "name": "max_residues",
+              "type": "",
+              "annotation": false,
+              "default": "600",
+              "kind": "keyword only",
+              "description": "Maximum residues in the live quadratic calculation."
+            },
+            {
+              "name": "title",
+              "type": "",
+              "annotation": false,
+              "default": "None",
+              "kind": "keyword only",
+              "description": "Text displayed above the plot."
+            },
+            {
+              "name": "kwargs",
+              "type": "",
+              "default": null,
+              "kind": "variadic keyword",
+              "description": "Additional keyword options described below or in the linked constructor."
+            }
+          ],
+          "description": "Live residue distances in ångströms, or their change from a reference structure.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/plots.py",
+          "line": 723
+        },
+        {
+          "name": "matrix",
+          "kind": "property",
+          "owner": "plots.Heatmap",
+          "inherited": false,
+          "signature": "Heatmap.matrix",
+          "parameters": [],
+          "description": "Compute the view-projection matrix for the given image aspect ratio.",
+          "returns": "4 × 4 array.",
+          "notes": "",
+          "source": "src/proteinmotion/plots.py",
+          "line": 801
+        },
+        {
+          "name": "layout",
+          "kind": "method",
+          "owner": "plots.Heatmap",
+          "inherited": false,
+          "signature": "Heatmap.layout(camera, width, height)",
+          "parameters": [
+            {
+              "name": "camera",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Camera used to project or frame objects."
+            },
+            {
+              "name": "width",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Image width in pixels."
+            },
+            {
+              "name": "height",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Image height in pixels."
+            }
+          ],
+          "description": "Project text and line geometry for the renderer at the current frame.",
+          "returns": "AnnotationLayout containing glyph placements and line paths.",
+          "notes": "",
+          "source": "src/proteinmotion/plots.py",
+          "line": 831
+        },
+        {
+          "name": "with_panel",
+          "kind": "method",
+          "owner": "plots._Plot",
+          "inherited": true,
+          "signature": "Heatmap.with_panel(color='#0b1220', opacity=1.0, padding=18)",
+          "parameters": [
+            {
+              "name": "color",
+              "type": "",
+              "annotation": false,
+              "default": "'#0b1220'",
+              "kind": "positional or keyword",
+              "description": "Card color."
+            },
+            {
+              "name": "opacity",
+              "type": "",
+              "annotation": false,
+              "default": "1.0",
+              "kind": "positional or keyword",
+              "description": "Card opacity in [0, 1]."
+            },
+            {
+              "name": "padding",
+              "type": "",
+              "annotation": false,
+              "default": "18",
+              "kind": "positional or keyword",
+              "description": "Margin around the plot in design pixels at 1080p."
+            }
+          ],
+          "description": "Draw a rounded card behind the plot so molecules passing behind it stay hidden.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/plots.py",
+          "line": 39
+        },
+        {
+          "name": "snapshot",
+          "kind": "method",
+          "owner": "plots._Plot",
+          "inherited": true,
+          "signature": "Heatmap.snapshot()",
+          "parameters": [],
+          "description": "Capture the current state for deterministic timeline evaluation.",
+          "returns": "State dictionary.",
+          "notes": "",
+          "source": "src/proteinmotion/plots.py",
+          "line": 66
+        },
+        {
+          "name": "glyph_count",
+          "kind": "property",
+          "owner": "plots._Plot",
+          "inherited": true,
+          "signature": "Heatmap.glyph_count",
+          "parameters": [],
+          "description": "Number of shaped glyphs used for writing animation.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/plots.py",
+          "line": 80
+        },
+        {
+          "name": "set_opacity",
+          "kind": "method",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "Heatmap.set_opacity(opacity)",
+          "parameters": [
+            {
+              "name": "opacity",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Opacity in [0, 1], from transparent to opaque."
+            }
+          ],
+          "description": "Set or animate opacity in [0, 1].",
+          "returns": "The object or animation builder.",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 78
+        },
+        {
+          "name": "move_to",
+          "kind": "method",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "Heatmap.move_to(position)",
+          "parameters": [
+            {
+              "name": "position",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Image coordinates (x, y), with (0, 0) at the top-left and (1, 1) at the bottom-right."
+            }
+          ],
+          "description": "Set or animate text position in normalized image coordinates.",
+          "returns": "The annotation or animation builder.",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 84
+        },
+        {
+          "name": "shift",
+          "kind": "method",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "Heatmap.shift(offset)",
+          "parameters": [
+            {
+              "name": "offset",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Offset (x, y) in design pixels at 1080p for residue labels; normalized image units for text shifts."
+            }
+          ],
+          "description": "Translate the object by an offset.",
+          "returns": "The object or animation builder.",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 90
+        },
+        {
+          "name": "restore",
+          "kind": "method",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "Heatmap.restore(state)",
+          "parameters": [
+            {
+              "name": "state",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "State returned by snapshot()."
+            }
+          ],
+          "description": "Restore a state produced by snapshot().",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 102
+        },
+        {
+          "name": "animate",
+          "kind": "property",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "Heatmap.animate",
+          "parameters": [],
+          "description": "Create a builder for fluent animation calls. Pass the result to scene.play().",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 107
+        },
+        {
+          "name": "text_progress",
+          "kind": "property",
+          "owner": "annotations.Annotation",
+          "inherited": true,
+          "signature": "Heatmap.text_progress",
+          "parameters": [],
+          "description": "Current reveal progress for glyphs and annotation lines.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/annotations.py",
+          "line": 111
+        }
+      ],
+      "extra_parameters": []
+    },
+    {
+      "id": "conformations.StructureMorph",
+      "name": "StructureMorph",
+      "module": "conformations",
+      "kind": "class",
+      "href": "/reference/conformations/StructureMorph/",
+      "description": "Morph between two experimental structures of the same protein, moving residues along screw paths.",
+      "notes": "Rigid domains rotate along arcs and keep their bond lengths; side chains turn through their χ angles; bond lengths then relax toward interpolated values. The path illustrates the difference between two endpoints, not a calculated pathway.",
+      "import_path": "proteinmotion",
+      "signature": "StructureMorph(\n    source,\n    target,\n    *,\n    align=None,\n    chains=None,\n    match=None,\n    fade_out=(0.0, 0.35),\n    fade_in=(0.65, 1.0),\n    style='source',\n    secondary='auto',\n    easing='smooth',\n)",
+      "parameters": [
+        {
+          "name": "source",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Structure shown before the morph."
+        },
+        {
+          "name": "target",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Structure that replaces the source at the end; chains, residues, ligands, and atoms may differ."
+        },
+        {
+          "name": "align",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Region of the source whose matched Cα/C4′ atoms superpose the target; None uses all matched trace atoms."
+        },
+        {
+          "name": "chains",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Source-to-target chain ID mapping; None pairs chains automatically."
+        },
+        {
+          "name": "match",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "StructureMatch to reuse; None calls match_structures()."
+        },
+        {
+          "name": "fade_out",
+          "type": "",
+          "annotation": false,
+          "default": "(0.0, 0.35)",
+          "kind": "keyword only",
+          "description": "Interval of the clip, as fractions, in which source-only atoms fade out."
+        },
+        {
+          "name": "fade_in",
+          "type": "",
+          "annotation": false,
+          "default": "(0.65, 1.0)",
+          "kind": "keyword only",
+          "description": "Interval of the clip, as fractions, in which target-only atoms fade in."
+        },
+        {
+          "name": "style",
+          "type": "",
+          "annotation": false,
+          "default": "'source'",
+          "kind": "keyword only",
+          "description": "\"source\" gives the target the source's representation and colors; \"target\" keeps its own."
+        },
+        {
+          "name": "secondary",
+          "type": "",
+          "annotation": false,
+          "default": "'auto'",
+          "kind": "keyword only",
+          "description": "\"auto\" blends residues whose DSSP state differs between the structures; \"keep\" leaves the cartoon unchanged."
+        },
+        {
+          "name": "easing",
+          "type": "",
+          "annotation": false,
+          "default": "'smooth'",
+          "kind": "keyword only",
+          "description": "Easing of the whole morph."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/conformations.py",
+      "line": 326,
+      "bases": [
+        "animation.Animation"
+      ],
+      "attributes": {},
+      "guide": "morphing",
+      "example": "gallery-hemoglobin-morph",
+      "alias": null,
+      "members": [
+        {
+          "name": "targets",
+          "kind": "property",
+          "owner": "conformations.StructureMorph",
+          "inherited": false,
+          "signature": "StructureMorph.targets",
+          "parameters": [],
+          "description": "Objects whose state this animation changes.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/conformations.py",
+          "line": 382
+        },
+        {
+          "name": "result",
+          "kind": "property",
+          "owner": "conformations.StructureMorph",
+          "inherited": false,
+          "signature": "StructureMorph.result",
+          "parameters": [],
+          "description": "The target structure, which replaces the source when the morph ends.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/conformations.py",
+          "line": 386
+        },
+        {
+          "name": "bind",
+          "kind": "method",
+          "owner": "conformations.StructureMorph",
+          "inherited": false,
+          "signature": "StructureMorph.bind()",
+          "parameters": [],
+          "description": "Capture starting values when the scene schedules the animation.",
+          "returns": "None",
+          "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
+          "source": "src/proteinmotion/conformations.py",
+          "line": 390
+        },
+        {
+          "name": "apply",
+          "kind": "method",
+          "owner": "conformations.StructureMorph",
+          "inherited": false,
+          "signature": "StructureMorph.apply(alpha)",
+          "parameters": [
+            {
+              "name": "alpha",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Eased animation progress in [0, 1]."
+            }
+          ],
+          "description": "Evaluate the animation at eased progress alpha. Called by the timeline.",
+          "returns": "None",
+          "notes": "",
+          "source": "src/proteinmotion/conformations.py",
+          "line": 578
+        },
+        {
+          "name": "during",
+          "kind": "method",
+          "owner": "animation.Animation",
+          "inherited": true,
+          "signature": "StructureMorph.during(seconds, *, delay=0)",
+          "parameters": [
+            {
+              "name": "seconds",
+              "type": "",
+              "annotation": false,
+              "default": null,
+              "kind": "positional or keyword",
+              "description": "Positive animation duration in seconds."
+            },
+            {
+              "name": "delay",
+              "type": "",
+              "annotation": false,
+              "default": "0",
+              "kind": "keyword only",
+              "description": "Nonnegative animation start delay in seconds."
+            }
+          ],
+          "description": "Set this animation duration and start delay in seconds.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/animation.py",
+          "line": 18
+        }
+      ],
+      "extra_parameters": []
+    },
+    {
+      "id": "conformations.StructureMatch",
+      "name": "StructureMatch",
+      "module": "conformations",
+      "kind": "class",
+      "href": "/reference/conformations/StructureMatch/",
+      "description": "Atom correspondence between two structures, with the residue and chain pairs behind it and the rigid core they share.",
+      "notes": "",
+      "import_path": "proteinmotion",
+      "signature": "StructureMatch(\n    source_atoms: np.ndarray,\n    target_atoms: np.ndarray,\n    residue_pairs: list=field(default_factory=list),\n    chain_pairs: list=field(default_factory=list),\n    core: np.ndarray=field(default_factory=lambda: np.empty(0, dtype=int)),\n    core_rmsd: float=float('nan'),\n)",
+      "parameters": [
+        {
+          "name": "source_atoms",
+          "type": "np.ndarray",
+          "annotation": true,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Matched source atom indices."
+        },
+        {
+          "name": "target_atoms",
+          "type": "np.ndarray",
+          "annotation": true,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Target atom indices, one per source atom."
+        },
+        {
+          "name": "residue_pairs",
+          "type": "list",
+          "annotation": true,
+          "default": "field(default_factory=list)",
+          "kind": "positional or keyword",
+          "description": "Matched (source, target) topology residue indices, including ligands."
+        },
+        {
+          "name": "chain_pairs",
+          "type": "list",
+          "annotation": true,
+          "default": "field(default_factory=list)",
+          "kind": "positional or keyword",
+          "description": "(source chain, target chain, sequence identity) for each paired chain."
+        },
+        {
+          "name": "core",
+          "type": "np.ndarray",
+          "annotation": true,
+          "default": "field(default_factory=lambda: np.empty(0, dtype=int))",
+          "kind": "positional or keyword",
+          "description": "Source Cα/C4′ atom indices of the rigid core: matched trace atoms that superpose within 2 Å after pruning the worst pairs and refitting. StructureMorph and domain_motion superpose on it by default."
+        },
+        {
+          "name": "core_rmsd",
+          "type": "float",
+          "annotation": true,
+          "default": "float('nan')",
+          "kind": "positional or keyword",
+          "description": "Root-mean-square deviation of the rigid core after superposition, in Å."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/conformations.py",
+      "line": 34,
+      "bases": [],
+      "attributes": {
+        "source_atoms": "Matched source atom indices.",
+        "target_atoms": "Target atom indices, one per source atom.",
+        "residue_pairs": "Matched (source, target) topology residue indices, including ligands.",
+        "chain_pairs": "(source chain, target chain, sequence identity) for each paired chain.",
+        "core": "Source Cα/C4′ atom indices of the rigid core: matched trace atoms that superpose within 2 Å after pruning the worst pairs and refitting. StructureMorph and domain_motion superpose on it by default.",
+        "core_rmsd": "Root-mean-square deviation of the rigid core after superposition, in Å."
+      },
+      "guide": "morphing",
+      "example": "gallery-hemoglobin-morph",
+      "alias": null,
+      "members": [
+        {
+          "name": "report",
+          "kind": "property",
+          "owner": "conformations.StructureMatch",
+          "inherited": false,
+          "signature": "StructureMatch.report",
+          "parameters": [],
+          "description": "Chain pairs with sequence identity, counts of matched residues and atoms, and the rigid core.",
+          "returns": "",
+          "notes": "",
+          "source": "src/proteinmotion/conformations.py",
+          "line": 49
+        }
+      ],
+      "extra_parameters": []
+    },
+    {
+      "id": "conformations.match_structures",
+      "name": "match_structures",
+      "module": "conformations",
+      "kind": "function",
+      "href": "/reference/conformations/match_structures/",
+      "description": "Pair chains, residues, ligands, and atoms of two structures of the same protein.",
+      "notes": "",
+      "import_path": "proteinmotion",
+      "signature": "match_structures(source, target, *, chains=None)",
+      "parameters": [
+        {
+          "name": "source",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "First structure."
+        },
+        {
+          "name": "target",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Second structure."
+        },
+        {
+          "name": "chains",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "Source-to-target chain ID mapping; None pairs chains by ID and sequence, and identical copies by position."
+        }
+      ],
+      "returns": "StructureMatch",
+      "source": "src/proteinmotion/conformations.py",
+      "line": 123,
+      "bases": [],
+      "attributes": {},
+      "guide": "morphing",
+      "example": "gallery-hemoglobin-morph",
+      "alias": null,
+      "members": [],
+      "extra_parameters": []
+    },
+    {
+      "id": "conformations.domain_motion",
+      "name": "domain_motion",
+      "module": "conformations",
+      "kind": "function",
+      "href": "/reference/conformations/domain_motion/",
+      "description": "How a domain turns and shifts between two structures, after superposing on a fixed part.",
+      "notes": "",
+      "import_path": "proteinmotion",
+      "signature": "domain_motion(source, target, moving, fixed=None, *, match=None)",
+      "parameters": [
+        {
+          "name": "source",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Structure that defines the regions and the frame of the result."
+        },
+        {
+          "name": "target",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Second structure of the same protein."
+        },
+        {
+          "name": "moving",
+          "type": "",
+          "annotation": false,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Region of the source whose motion is measured."
+        },
+        {
+          "name": "fixed",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "positional or keyword",
+          "description": "Region of the source used to superpose the target; None uses all matched trace atoms."
+        },
+        {
+          "name": "match",
+          "type": "",
+          "annotation": false,
+          "default": "None",
+          "kind": "keyword only",
+          "description": "StructureMatch to reuse; None calls match_structures()."
+        }
+      ],
+      "returns": "DomainMotion",
+      "source": "src/proteinmotion/conformations.py",
+      "line": 625,
+      "bases": [],
+      "attributes": {},
+      "guide": "morphing",
+      "example": "gallery-adenylate-kinase-morph",
+      "alias": null,
+      "members": [],
+      "extra_parameters": []
+    },
+    {
+      "id": "conformations.DomainMotion",
+      "name": "DomainMotion",
+      "module": "conformations",
+      "kind": "class",
+      "href": "/reference/conformations/DomainMotion/",
+      "description": "Rigid motion of a domain between two structures, as a screw in the source's model frame.",
+      "notes": "",
+      "import_path": "proteinmotion",
+      "signature": "DomainMotion(angle: float, axis: np.ndarray, point: np.ndarray, translation: float)",
+      "parameters": [
+        {
+          "name": "angle",
+          "type": "float",
+          "annotation": true,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Rotation in degrees."
+        },
+        {
+          "name": "axis",
+          "type": "np.ndarray",
+          "annotation": true,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Unit rotation axis in the source's model frame."
+        },
+        {
+          "name": "point",
+          "type": "np.ndarray",
+          "annotation": true,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Point on the axis nearest the domain's center, in Å."
+        },
+        {
+          "name": "translation",
+          "type": "float",
+          "annotation": true,
+          "default": null,
+          "kind": "positional or keyword",
+          "description": "Shift along the axis in Å."
+        }
+      ],
+      "returns": "",
+      "source": "src/proteinmotion/conformations.py",
+      "line": 612,
+      "bases": [],
+      "attributes": {
+        "angle": "Rotation in degrees.",
+        "axis": "Unit rotation axis in the source's model frame.",
+        "point": "Point on the axis nearest the domain's center, in Å.",
+        "translation": "Shift along the axis in Å."
+      },
+      "guide": "morphing",
+      "example": "gallery-adenylate-kinase-morph",
+      "alias": null,
+      "members": [],
+      "extra_parameters": []
     }
   ],
   "dependencies": {
-    "docs/reference/catalog.json": "5bfc74d56b5b0544dc36fa96c29ca57e60d88dbaf65fd73b817a7c5808ccb2fa",
+    "docs/reference/catalog.json": "731ecc8db40a5b36848fb64814fe5a8f467b19965725bb56c67cbec4c0360d5c",
     "scripts/build_reference.py": "a50a8ba9cbfb80c7e1ccbcb39351b1f52d57d4aa9af559a08dab9fca7ea4b8ed",
-    "src/proteinmotion/__init__.py": "b0b12a71fa88ecc6083b7e3b49990beb657ce13f9a2711ab8bdce74a38571f4e",
-    "src/proteinmotion/animation.py": "725125650310589aa38a60ceec2c6bed321867cb858db75b4aa8492f664f11e8",
+    "src/proteinmotion/__init__.py": "6426a4ca16b16990c3897bafe2e1e2e86021d89081987ccc566350c391f67402",
+    "src/proteinmotion/animation.py": "27aeeb4f92dad112a7cb73548f80321c0f8201e407493941773bf4430a10d259",
     "src/proteinmotion/annotations.py": "6bb13f7b492797baf284eac3f6963e64c167e666e0d10f8ec6053589d1f9a25e",
     "src/proteinmotion/backbone.py": "412c15fbaab4736d823d7763a64e788215e62258676c4fd989c636754c74f6e3",
-    "src/proteinmotion/camera.py": "7f7a3f1eadefa9e49bb552473a5ed1c291e133eb22a9964f85340a00a4ca8545",
+    "src/proteinmotion/camera.py": "e41f4e1475f618249034183d51a3d2f8376c6530c49b8a7f7beb12b724189b3c",
+    "src/proteinmotion/conformations.py": "83919574f7ab496e6d4783d7128b68dbae6d7988cb107dac9d5658b376c45c58",
     "src/proteinmotion/density.py": "6d55f710ae68eeaf41956c614b77a704c9ce1eb6afd0a1be3c818ead7b55b611",
     "src/proteinmotion/distances.py": "381e8e57c71ff593c591165e802224b404c9a0645b63898925f64f0873bf0671",
     "src/proteinmotion/eevee.py": "8baa4a8e1e7c0e82f6c69418e0d9c986f13d1304897cf8a90de90e56557aa3eb",
@@ -17775,17 +21467,19 @@
     "src/proteinmotion/matching.py": "74a114ae42e00aa3286b0a7296efc0b3ba5ecffae17cfd98e60ce12fff1a001d",
     "src/proteinmotion/mesh.py": "e79e92819f0ac0d26e1613ec0ae536bf6f8a12f1664cfe7e248ed77e58f124ec",
     "src/proteinmotion/nucleic.py": "79942e4e5356dfe16013339f11566478192129104d184b7f40fd0e46d99785c8",
-    "src/proteinmotion/plots.py": "1265de96e43cf52ba318e6f7cc48e97b7bb36cda298a6bdf71de7d4904365f10",
-    "src/proteinmotion/properties.py": "78057be1216cfaa7a12956a88a7c4308802aefa9fde35f39f829e9cdc61aafb6",
-    "src/proteinmotion/protein.py": "21a4b22170de27ce735b98bfd9a57a4a3c00ec4fa23cf02484533276f8c8ba05",
+    "src/proteinmotion/plots.py": "f47f1cf18073e12ed04adc4a159721e76d87eb3bdcb9ae2c1d1dd339c1fbe681",
+    "src/proteinmotion/properties.py": "d914b296255109b3665da90ed316b6c5e6919701f446cbb172cb4b67d73c527a",
+    "src/proteinmotion/protein.py": "57faaabddc085162fc39ffdda60de28d66a442a06df5a11649c9c9dede2094ab",
+    "src/proteinmotion/ramachandran.py": "04a065c072aaf0fbe73124fef911c55518684abc9d3b6fa7f4306334c485c77b",
     "src/proteinmotion/rates.py": "c703f1a21a85740b23e64e6c8cf4e3515624532cc59f8c767ff7f3a10ef1caf0",
-    "src/proteinmotion/regions.py": "ebe9d39781ad9663e42481ac52dda5180f4c595051a8c5f4df67838ecbc57c6e",
-    "src/proteinmotion/renderer.py": "1bef2411e6910ace82c88bedc89d990ee104be40ae4b9e561d5609d49f716d31",
-    "src/proteinmotion/scene.py": "cafe4763723c4a73db590203986a04d9e7afdcd7bca2274e11fd151208a2631e",
+    "src/proteinmotion/regions.py": "aaa8a773b2e85fece53b21ab3510d87e8b562baba1e205b85bec0aa7a637cf72",
+    "src/proteinmotion/renderer.py": "dfef6887c0d47220e8823c0ddccf86449616ae36d8d4d61ed17f29bd4bf1a2a4",
+    "src/proteinmotion/scene.py": "4f46d9f8fcec059a942b70a6a615699e0df2bd993171e3c79c3dea6303abf21a",
     "src/proteinmotion/styles.py": "66b3fe78d2414a20e005e4ac53257ec95285adffa301e083c84feb63ba557bfe",
     "src/proteinmotion/styling.py": "2b71e1ad97ab0d258f7e298274e4f690515245c0a790c49f19b8914180af2991",
     "src/proteinmotion/thread.py": "a6fc8e14237a0a6f578a5241313456d3ab5ceccba3d6a49b112872d4db543188",
     "src/proteinmotion/timeline.py": "ecef7b57e48e58f4407e78517281993c077346949daa838fc36af1ca058ab45d",
-    "src/proteinmotion/trajectory.py": "809ee1cc467a6d6c47998f744a4570cb14f8f98adff7cedaf98916395592803d"
+    "src/proteinmotion/torsions.py": "cb9b3929b6b117342aece929cea20828297483cfd76e347e3b66a6ab18837ac5",
+    "src/proteinmotion/trajectory.py": "a9c43dc974170dba8554be6eb0fa77c736990b04669298aedead75e2fa5005fe"
   }
 }

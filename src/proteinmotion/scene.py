@@ -25,6 +25,7 @@ class ProteinScene:
         fps=30,
         background="#0b1220",
         msaa=4,
+        supersampling=None,
         renderer=None,
         look=None,
         eevee=None,
@@ -35,7 +36,10 @@ class ProteinScene:
             raise ValueError("fps must be positive")
         if msaa not in (1, 4):
             raise ValueError("msaa must be 1 or 4")
+        if supersampling not in (None, 1, 2, 3, 4):
+            raise ValueError("supersampling must be 1, 2, 3, 4, or None for automatic")
         self.width, self.height, self.fps, self.msaa = width, height, float(fps), msaa
+        self.supersampling = supersampling
         self.background = color(background)
         self.renderer = renderer if renderer is not None else type(self).renderer
         self.look = look if look is not None else type(self).look
@@ -214,6 +218,12 @@ class ProteinScene:
         self._view_states[id(self.camera)] = self.camera.snapshot()
         return visible
 
+    def _supersampling(self):
+        """Native and Studio frames render at 2× up to 1920 × 1080 by default, then average down."""
+        if self.supersampling is not None:
+            return self.supersampling
+        return 2 if self.width * self.height <= 1920 * 1080 else 1
+
     def render_frame(self, time=0.0, *, output=None, renderer=None, eevee=None, look=None):
         """Render a still. Use renderer='studio', look=StudioLook(...) for studio presets."""
         from .renderer import Renderer
@@ -228,11 +238,13 @@ class ProteinScene:
             )
         own = renderer is None or isinstance(renderer, str)
         if renderer is None or renderer == "native":
-            renderer = Renderer(self.width, self.height, msaa=self.msaa)
+            renderer = Renderer(self.width, self.height, msaa=self.msaa, supersampling=self._supersampling())
         elif renderer == "studio":
             from .studio import StudioRenderer
 
-            renderer = StudioRenderer(self.width, self.height, msaa=self.msaa, look=look)
+            renderer = StudioRenderer(
+                self.width, self.height, msaa=self.msaa, supersampling=self._supersampling(), look=look
+            )
         elif renderer == "eevee":
             from .eevee import EEVEE
 
@@ -310,7 +322,14 @@ class ProteinScene:
             from .studio import StudioRenderer as Renderer
 
             options["look"] = look
-        with Renderer(self.width, self.height, msaa=self.msaa, readback_format="nv12", **options) as renderer:
+        with Renderer(
+            self.width,
+            self.height,
+            msaa=self.msaa,
+            supersampling=self._supersampling(),
+            readback_format="nv12",
+            **options,
+        ) as renderer:
             with VideoWriter(
                 output, self.width, self.height, self.fps, codec=codec, bitrate=bitrate, pixel_format="nv12"
             ) as writer:

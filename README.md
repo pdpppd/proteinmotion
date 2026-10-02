@@ -135,7 +135,10 @@ The selected atoms define the focus point and follow the protein during motion. 
 - **Region tools:** camera focus, 3D sphere, box, or atom highlights, and selection by ligand, ion, residue name, or distance.
 - **Measurements:** distance labels, hydrogen-bond detection, and screened Coulomb estimates with imported charges.
 - **States and trajectories:** multi-model PDB/mmCIF, NumPy arrays, and MDAnalysis readers for XTC, DCD, TRR, and other formats.
-- **Structure morphs:** contact-map matching using protein Cα or DNA/RNA C1′ atoms, delayed motion along each chain, and fades for unmatched residues.
+- **Structure morphs:** morphs between two experimental structures of one protein (chains, residues, ligands, and atoms matched automatically; domains move along screw paths and side chains turn through χ angles), biological assemblies, and contact-map matching between different proteins using Cα or DNA/RNA C1′ atoms.
+- **Torsions:** peptides built from a sequence and φ/ψ angles, animated φ, ψ, ω, and χ changes that keep bond lengths and angles fixed, live angle markers, and Ramachandran plots over favored and allowed regions from high-resolution structures.
+- **Secondary structure:** DSSP assignment when a file has no helix or sheet records, and cartoons that blend between coil, helix, and strand as the structure changes.
+- **Heatmaps and presets:** AlphaFold PAE and live distance matrices, and color presets for pLDDT, hydropathy, and sequence conservation from an alignment.
 
 The [guides](https://pdpppd.github.io/proteinmotion/docs/scenes/) explain the options and provide code examples. ProteinMotion runs as a standalone renderer. Its exported videos can be used in Manim or a video editor.
 
@@ -163,6 +166,10 @@ These scripts and their input structures are in the repository:
 
 | Example | Source |
 |---|---|
+| Hemoglobin T → R and adenylate kinase closing, morphed between deposited structures | [structure_morph.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/structure_morph.py) |
+| φ and ψ, an α helix forming, a β-hairpin from crystal angles, and ubiquitin's Ramachandran plot | [torsions.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/torsions.py) |
+| One ψ turn, then a peptide winding into a helix | [torsion_basics.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/torsion_basics.py) |
+| AlphaFold pLDDT and PAE, hydropathy, and conservation | [confidence_and_conservation.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/confidence_and_conservation.py) |
 | Studio threading, buried-ribose depth rings, and independent animation timing | [studio_examples.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/studio_examples.py) |
 | DNA morphs with C1′ matching and delayed nucleotide motion | [dna_morph.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/dna_morph.py) |
 | DNA base styles, strand transparency, and surfaces | [dna_styles.py](https://github.com/pdpppd/proteinmotion/blob/main/examples/dna_styles.py) |

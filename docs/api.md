@@ -7,7 +7,7 @@ This quick reference covers the public Python API in version 0.13.0. Import thes
 ## ProteinScene
 
 ```python
-ProteinScene(width=1920, height=1080, fps=30, background="#0b1220", msaa=4)
+ProteinScene(width=1920, height=1080, fps=30, background="#0b1220", msaa=4, supersampling=None)
 ```
 
 Subclass `ProteinScene` and implement `construct()`. `Scene` is an alias.
@@ -28,11 +28,13 @@ Animations in separate calls run sequentially. Concurrent writers to the same ob
 ## Protein
 
 ```python
-Protein.from_file(path, chains="A")
+Protein.from_file(path, chains="A", secondary="auto", assembly=None)
+Protein.fetch("2DN1", assembly="1")
 Protein.from_trajectory(trajectory)
+Protein.build("AEAAAKEAAAKEAAAKA", "helix", hydrogens=False)
 ```
 
-`from_file` reads PDB/mmCIF and keeps all matching models as `protein.trajectory`. The default selection excludes waters and hydrogens; other hetero atoms are retained. Multi-model inputs must have consistent selected atom identities/order.
+`from_file` reads PDB/mmCIF and keeps all matching models as `protein.trajectory`. The default selection excludes waters and hydrogens; other hetero atoms are retained. Multi-model inputs must have consistent selected atom identities/order. Files without helix or sheet records are assigned with DSSP (`secondary="dssp"` always, `"file"` never). `assembly="1"` builds a biological assembly; generated copies get new chain IDs. `Protein.fetch` downloads a PDB entry or an `AF-…` AlphaFold DB model once into `~/.cache/proteinmotion` and passes other options to `from_file`. `Protein.build` makes an ideal peptide from one-letter codes and a conformation or `phi`/`psi`/`omega` angles in degrees. [Torsions guide](torsions.md).
 
 | Method/property | Behavior |
 |---|---|
@@ -48,10 +50,13 @@ Protein.from_trajectory(trajectory)
 | `positions` | Current interpolated coordinates in the protein's local frame |
 | `set_positions(xyz)` | Set coordinates with unchanged topology |
 | `copy()` | Make an independently animated protein |
-| `with_secondary_structure(assignments)` | One `H/E/C` character per residue |
+| `with_secondary_structure(assignments)` | One `H/E/C` character per residue, or `"dssp"`, before `add()` |
+| `secondary_structure` / `set_secondary_structure(codes)` / `assign_secondary_structure()` | Current H/E/C string; set it at any authoring time, or assign it with DSSP |
+| `torsions(chain=None, residues=None)` | `TorsionAngles`: φ, ψ, ω, χ1–χ5 in degrees per residue |
+| `set_torsions(conformation=None, anchor="center", **angles)` | Change torsions immediately; see `SetTorsions` |
 | `animate` | Build fluent transform or opacity animations |
 
-Coordinates/radii are ångströms; angles are radians. Cartoon/ribbon color accepts `secondary`, `rainbow`, `chain`, or `#RRGGBB`. Ball-and-stick uses element colors as its base palette. Residue overrides apply to every representation.
+Coordinates/radii are ångströms; angles are radians, except torsion angles, which are degrees. Cartoon/ribbon/surface color accepts `secondary`, `rainbow`, `chain`, `hydropathy`, or `#RRGGBB`. Ball-and-stick uses element colors as its base palette. Residue overrides apply to every representation.
 
 Cartoons and ribbons draw ligands, ions, and loaded waters (atoms outside the traced chains) as ball-and-stick. [Ligands, ions, and side chains](ligands-and-side-chains.md).
 
@@ -76,6 +81,8 @@ marker = region.highlight(style="box", color="#f2ba67", padding=1.5)
 Selections use PDB author residue numbers. Tuples are inclusive ranges; lists select explicit numbers. The chain, atom-name, and `resname` filters also accept lists. `ligands=True`, `ions=True`, and `water=True` select residues outside the traced chains and combine with each other. `within=r, of=region` selects whole residues with an atom within r Å of `region`, excluding that region's own residues. Other filters must all match. Empty selections raise an error. Explicit atom indices are zero-based.
 
 `region.atom_indices`, `region.residue_indices`, `region.positions`, and `region.world_positions` expose the selected atoms/residues and current coordinates. Indices are read-only. Unions require the same parent protein.
+
+`region.torsions()`, `region.set_torsions(**angles)`, and `region.torsion_marker("phi", **options)` measure, change, and mark torsions of the selection.
 
 `region.set_color(color)`, `region.set_opacity(value)` and their `.animate` equivalents style the selection. `region.show_atoms()` and `region.hide_atoms()` draw or remove the selection as ball-and-stick over a cartoon. `region.side_chains()` returns the side chains of its amino acids, including Cα. `region.distance_to(other, **options)` creates a distance ruler. [Styling and surface guide](styling.md).
 
@@ -143,7 +150,7 @@ self.play(self.camera.animate.orbit(theta=0.5, phi=0.1), run_time=2)
 self.play(self.camera.animate.zoom(1.3), run_time=1)
 ```
 
-`self.camera.animate.depth_cue(0.7)` eases the distance fog and combines with `orbit` and `zoom`. `camera.clearest_view(region)` returns the `(theta, phi)` with the fewest atoms in front of a region. `camera.cutaway_geometry()` reports the open cutaway's center, radii, tunnel depth, and axis.
+`self.camera.animate.depth_cue(0.7)` eases the distance fog and combines with `orbit` and `zoom`. `camera.look_along(axis, protein=None)` turns the view to look down an axis, such as a `domain_motion` axis. `camera.clearest_view(region)` returns the `(theta, phi)` with the fewest atoms in front of a region. `camera.cutaway_geometry()` reports the open cutaway's center, radii, tunnel depth, and axis.
 
 `frame` and `focus` are immediate setup methods. Use `self.focus(...)`, `Focus(...)`, or `camera.animate.focus(...)` for timeline animation. `theta`, `phi`, and `fov` are radians; `distance` and `target` control camera position. `depth_cue=0` disables distance fog. Region tracking follows the center with fixed zoom.
 
@@ -165,7 +172,11 @@ self.play(self.camera.animate.zoom(1.3), run_time=1)
 | `Deform(protein, function)` | Transform coordinates through a callable |
 | `Focus(camera, region, margin=1.25, aspect=16/9, follow=True)` | Animate camera focus; evaluate after molecular motion |
 | `PlayTrajectory(protein, trajectory=None, start=0, end=None, state_easing=linear)` | Interpolate between trajectory models |
+| `StructureMorph(source, target, align=None, chains=None, fade_out=(0, 0.35), fade_in=(0.65, 1), style="source")` | Morph between two experimental structures of the same protein; residues follow screw paths and side chains turn through χ angles. [Guide](morphing.md) |
 | `BackboneMorph(source, target, match=..., residue_delay=0.025)` | Contact-guided morph between different proteins |
+| `SetTorsions(target, phi=None, psi=None, omega=None, chi1=None, …, conformation=None, anchor="center", path="allowed", stagger=None)` | Move torsions to values in degrees; atoms rotate about bonds, and the cartoon blends to the new DSSP assignment. [Guide](torsions.md) |
+| `RotateTorsions(target, chi1=120, …)` | Turn torsions by amounts in degrees, including full turns |
+| `SecondaryStructure(protein, assignments="dssp")` | Blend the cartoon to DSSP of the current coordinates, or to an H/E/C string |
 
 Default motion easing is quintic `smooth`. Trajectory playback uses a linear clip clock by default. `state_easing` changes the blend inside each adjacent model pair; `rate_func` changes progress through the whole clip. Built-ins include `linear`, `smooth`, `ease_in_out_sine`, and `there_and_back`.
 
@@ -197,6 +208,8 @@ match = ContactMatch.load("correspondence.json")
 print(match.report)
 ```
 
+`match_structures(source, target, chains=None)` pairs chains, residues, ligands, and atoms of two structures of one protein for `StructureMorph`. `domain_motion(source, target, moving, fixed=None)` returns the `angle` (degrees), `axis`, `point`, and `translation` of a domain's rigid motion between them.
+
 `ContactMatch.from_pairs(source, target, source_indices, target_indices)` accepts zero-based topology residue indices in increasing order. DNA/RNA uses C1′ anchors; proteins use Cα. The search maximizes matched residue count under a contact-error limit, then minimizes error among equal-sized sets. Check the report to see whether the search completed and proved optimality.
 
 ## Command line
@@ -213,20 +226,28 @@ proteinmotion preview scene.py SceneName
 
 `init` creates a starter scene and a 1UBQ structure in a new folder. `install-skill` copies the AI agent skill; `--path` selects its destination folder and `--force` replaces modified bundled files. The default destination is the Codex skills directory. All commands are also available through `python -m proteinmotion`.
 
-Shared render/still/preview options: `--width`, `--height`, `--fps`, `--msaa 1|4`. Rendering also accepts `--codec` and `--bitrate`. Preview controls: drag to orbit, wheel to zoom, Space to pause, arrows to seek, Home to rewind, R to reset the camera, Escape to close.
+Shared render/still/preview options: `--width`, `--height`, `--fps`, `--msaa 1|4`, `--supersampling` (1–4 for the native and Studio renderers, by default 2 up to 1920 × 1080; any value of at least 1 for EEVEE, by default 1.5). Rendering also accepts `--codec` and `--bitrate`. Preview controls: drag to orbit, wheel to zoom, Space to pause, arrows to seek, Home to rewind, R to reset the camera, Escape to close.
 
 
 ## Numerical properties
 
 `ResidueValues` holds one value per topology residue. Load file B factors with `ResidueValues.b_factors(protein)`, calculate aligned fluctuations with `ResidueValues.rmsf(protein)`, or import measurements with `ResidueValues.from_mapping(protein, values)`.
 
-`protein.color_by(values, scale=ColorScale(0, 40), thickness=(0.6, 1.8))` sets initial colors and optional cartoon thickness. Use `ColorByProperty` inside `play` for an eased transition, including residue delays. `ColorLegend` displays the same scale. [Guide and rendered output](numerical-properties.md).
+Presets bring their own scale: `ResidueValues.hydropathy(protein, scale="kyte-doolittle")`, `ResidueValues.conservation(protein, alignment)`, and `ResidueValues.plddt(protein, source=None)`. Matching scales are `ColorScale.hydropathy()`, `.conservation()`, `.plddt()`, `.pae()`, `.distance()`, and `.difference()`. `ColorScale(..., boundaries=[...])` makes a banded scale.
+
+`protein.color_by(values, scale=ColorScale(0, 40), thickness=(0.6, 1.8))` sets initial colors and optional cartoon thickness. `color_by("hydropathy")` and `color_by("plddt")` use the presets. Use `ColorByProperty` inside `play` for an eased transition, including residue delays. `ColorLegend` displays the same scale. [Guide and rendered output](numerical-properties.md).
 
 ## Plots and sequence tracks
 
 `TimeSeriesPlot(times, values, protein=protein)` follows the current trajectory state. Omit `protein` to follow scene seconds. `TimeSeriesPlot.distance(first, second)` measures centroid distance between two Regions over a trajectory and places the marker at the current measurement.
 
 `ContactMap(protein, selection=region)` displays live backbone contacts (Cα for proteins, C4′ or P for nucleotides). `SequenceTrack(protein, selection=region)` displays the current residue colors. Both use viewport position and size. [Guide and rendered output](synchronized-plots.md).
+
+`Heatmap(matrix_or_function, protein=None, rows=None, columns=None, scale=None, highlight=None)` draws a matrix with a color bar. `Heatmap.pae(protein, source)` reads AlphaFold DB, ColabFold, and AlphaFold 3 PAE files; `Heatmap.distances(protein, region=None, reference=None)` shows live residue distances or their change. [Guide](confidence-and-conservation.md).
+
+`RamachandranPlot(protein, region=None, highlight=None, background="general")` plots live φ/ψ over favored and allowed regions. `TorsionMarker(region, "phi")` draws one torsion's bond, arc, and value. [Guide](torsions.md).
+
+Every plot, legend, and heatmap has `with_panel(color="#0b1220", opacity=1)`, which draws a card behind it.
 
 ## Density maps
 

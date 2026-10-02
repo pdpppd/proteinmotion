@@ -114,6 +114,21 @@
       "title": "Animation groups",
       "description": "Animation groups for readable molecular movies.",
       "guide": "readable-authoring"
+    },
+    "torsions": {
+      "title": "Torsions",
+      "description": "Measure, set, and animate backbone and side-chain torsion angles in degrees.",
+      "guide": "torsions"
+    },
+    "ramachandran": {
+      "title": "Ramachandran plots",
+      "description": "Plot φ and ψ over favored and allowed regions from high-resolution structures.",
+      "guide": "torsions"
+    },
+    "conformations": {
+      "title": "Structure morphs",
+      "description": "Match two experimental structures of one protein, morph between them, and measure domain motions.",
+      "guide": "morphing"
     }
   },
   "parameters": {
@@ -746,7 +761,15 @@
     "diagnostics": "Report analysis prerequisites and missing hydrogen donors.",
     "requires_linear_timeline": "Whether the animation preserves a linear clip clock for staggered item timing.",
     "show_atoms": "Show ball-and-stick detail over the active representation. Chained animations may also change color, opacity, or transforms.",
-    "hide_atoms": "Hide ball-and-stick detail while retaining the active representation."
+    "hide_atoms": "Hide ball-and-stick detail while retaining the active representation.",
+    "with_panel": {
+      "description": "Draw a rounded card behind the plot so molecules passing behind it stay hidden.",
+      "parameters": {
+        "color": "Card color.",
+        "opacity": "Card opacity in [0, 1].",
+        "padding": "Margin around the plot in design pixels at 1080p."
+      }
+    }
   },
   "entries": {
     "scene.ProteinScene": {
@@ -778,6 +801,9 @@
           },
           "returns": "RGBA uint8 image array."
         }
+      },
+      "parameters": {
+        "supersampling": "Native and Studio renderers draw each frame at this multiple of the width and height (1, 2, 3, or 4) and average down in linear light. None uses 2 for outputs up to 1920 × 1080 and 1 for larger ones; EEVEE uses EEVEEOptions.supersampling instead."
       }
     },
     "scene.Scene": {
@@ -804,6 +830,52 @@
         },
         "color_by": {
           "description": "Apply residue property colors and optional cartoon thickness before adding the protein to a scene."
+        },
+        "from_file": {
+          "parameters": {
+            "secondary": "\"auto\" uses the file's helix and sheet records, or DSSP when it has none; \"dssp\" always computes; \"file\" uses records only.",
+            "assembly": "Biological assembly to build from the deposited chains, such as \"1\"; None keeps the deposited chains."
+          }
+        },
+        "build": {
+          "description": "Build an ideal peptide with every heavy atom from one-letter codes and torsion angles.",
+          "parameters": {
+            "sequence": "One-letter codes for the 20 standard amino acids, or a list of residue names.",
+            "conformation": "helix, alpha, 310, pi, strand, beta, parallel, antiparallel, ppii, extended, or left.",
+            "phi": "φ in degrees, one value or one per residue; overrides the conformation.",
+            "psi": "ψ in degrees, one value or one per residue; overrides the conformation.",
+            "omega": "ω in degrees, one value or one per residue.",
+            "chain": "Chain ID.",
+            "first": "Number of the first residue.",
+            "hydrogens": "Add amide H atoms."
+          }
+        },
+        "set_secondary_structure": {
+          "parameters": {
+            "assignments": "One H, E, or C per topology residue."
+          }
+        },
+        "torsions": {
+          "parameters": {
+            "chain": "Author chain ID or IDs; None selects all chains.",
+            "residues": "Author residue number, list, or inclusive (first, last) range."
+          }
+        },
+        "set_torsions": {
+          "parameters": {
+            "conformation": "Sets φ and ψ together, as in SetTorsions.",
+            "anchor": "Part that stays still, as in SetTorsions.",
+            "secondary": "\"auto\" updates the cartoon to the new DSSP states; \"keep\" leaves it unchanged.",
+            "angles": "phi, psi, omega, or chi1–chi5 in degrees, as in SetTorsions."
+          }
+        },
+        "fetch": {
+          "description": "Download a PDB entry or AlphaFold DB model once, keep it in the cache, and load it.",
+          "parameters": {
+            "identifier": "Four-character PDB ID such as \"4HHB\", or AlphaFold DB ID such as \"AF-P0DP23-F1\".",
+            "cache": "Download folder; None uses PROTEINMOTION_CACHE or ~/.cache/proteinmotion.",
+            "options": "from_file() options, such as assembly=\"1\" or chains=\"A\"."
+          }
         }
       }
     },
@@ -842,6 +914,13 @@
             "follow": "Track the mean selected position through motion; False fixes the initial world point."
           },
           "notes": "Selectors apply to a Protein target. Ranges use inclusive PDB author numbers. atoms=\"CA\" focuses on the Cα centroid. A region defines one focus plane, rather than making all selected atoms equally sharp."
+        },
+        "look_along": {
+          "description": "Turn the view to look down an axis, which then points toward the viewer.",
+          "parameters": {
+            "axis": "Direction in world coordinates, or in the protein's model frame when protein is given.",
+            "protein": "Protein whose orientation converts a model-frame axis, such as a DomainMotion axis."
+          }
         }
       }
     },
@@ -1212,6 +1291,20 @@
         "animate": {
           "description": "Create a builder for residue color and opacity animations.",
           "returns": "Animate"
+        },
+        "set_torsions": {
+          "parameters": {
+            "conformation": "Sets φ and ψ together, as in SetTorsions.",
+            "anchor": "Part that stays still, as in SetTorsions.",
+            "secondary": "\"auto\" updates the cartoon to the new DSSP states; \"keep\" leaves it unchanged.",
+            "angles": "phi, psi, omega, or chi1–chi5 in degrees, as in SetTorsions."
+          }
+        },
+        "torsion_marker": {
+          "parameters": {
+            "torsion": "phi, psi, omega, or chi1–chi5.",
+            "kwargs": "TorsionMarker options."
+          }
         }
       }
     },
@@ -1429,20 +1522,51 @@
         },
         "map": {
           "description": "Map values to an RGB array shaped (*values.shape, 3)."
+        },
+        "hydropathy": {
+          "parameters": {
+            "scale": "\"kyte-doolittle\" or \"eisenberg\"."
+          }
+        },
+        "conservation": {
+          "parameters": {
+            "vmin": "Score drawn turquoise (variable).",
+            "vmax": "Score drawn maroon (conserved)."
+          }
+        },
+        "pae": {
+          "parameters": {
+            "max_error": "Error in ångströms drawn near white."
+          }
+        },
+        "distance": {
+          "parameters": {
+            "max_distance": "Distance in ångströms drawn darkest."
+          }
+        },
+        "difference": {
+          "parameters": {
+            "limit": "Change in ångströms at either end of the symmetric scale."
+          }
         }
+      },
+      "parameters": {
+        "boundaries": "Increasing values that split the scale into bands, one fewer than colors; None interpolates."
       }
     },
     "properties.ResidueValues": {
       "description": "One measurement per topology residue, with identity checks and optional units.",
       "example": "numerical-properties",
       "parameters": {
-        "values": "One finite number or NaN per topology residue, including selected hetero residues."
+        "values": "One finite number or NaN per topology residue, including selected hetero residues.",
+        "scale": "Preset ColorScale used by color_by, ColorByProperty, and ColorLegend when they get no scale."
       },
       "attributes": {
         "values": "Read-only array of per-residue values.",
         "keys": "Chain, author residue number, insertion code, and residue name in topology order.",
         "name": "Measurement name.",
-        "unit": "Measurement unit."
+        "unit": "Measurement unit.",
+        "scale": "Preset ColorScale, or one fitted to the values."
       },
       "members": {
         "from_mapping": {
@@ -1464,6 +1588,24 @@
             "atoms": "backbone selects Cα/C4′/P; an atom name selects that atom; None averages atomic mean-square fluctuations per residue."
           },
           "notes": "Default alignment uses Cα/C4′/P anchors. Unwrap periodic MD coordinates before analysis. NMR RMSF describes variation across deposited models."
+        },
+        "hydropathy": {
+          "parameters": {
+            "scale": "\"kyte-doolittle\" (default) or \"eisenberg\"."
+          }
+        },
+        "conservation": {
+          "parameters": {
+            "alignment": "FASTA, A3M, Stockholm, or Clustal file, or a list of aligned sequences.",
+            "chain": "Chains to map; None maps every chain the query matches.",
+            "query": "Name or index of the query sequence; None picks the sequence most similar to the structure.",
+            "weighting": "Weight sequences by the Henikoff method."
+          }
+        },
+        "plddt": {
+          "parameters": {
+            "source": "AlphaFold DB confidence or ColabFold scores JSON; None reads the B-factor column."
+          }
         }
       }
     },
@@ -1475,7 +1617,10 @@
     "plots.ColorLegend": {
       "description": "A horizontal color bar with numeric limits and measurement units.",
       "example": "numerical-properties",
-      "guide": "numerical-properties"
+      "guide": "numerical-properties",
+      "parameters": {
+        "scale": "ColorScale, or ResidueValues to use their preset scale, name, and unit."
+      }
     },
     "plots.TimeSeriesPlot": {
       "description": "A vector trace with a cursor linked to scene time or a protein trajectory.",
@@ -1681,6 +1826,215 @@
       "description": "Compose actions with independent durations and start offsets in seconds. Animation.during(seconds, delay=...) is shorthand.",
       "parameters": {
         "offsets": "One nonnegative start offset in seconds per animation."
+      }
+    },
+    "torsions.SetTorsions": {
+      "description": "Animate backbone and side-chain torsions to new values in degrees; atoms rotate about bonds, so bond lengths and angles stay fixed.",
+      "example": "torsions",
+      "guide": "torsions",
+      "parameters": {
+        "target": "Protein or Region whose amino acids change.",
+        "phi": "φ, C(i−1)–N–Cα–C. Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged.",
+        "psi": "ψ, N–Cα–C–N(i+1). Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged.",
+        "omega": "ω, the peptide bond Cα–C–N(i+1)–Cα(i+1). Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged.",
+        "chi1": "χ1 side-chain torsion. Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged.",
+        "chi2": "χ2 side-chain torsion. Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged.",
+        "chi3": "χ3 side-chain torsion. Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged.",
+        "chi4": "χ4 side-chain torsion. Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged.",
+        "chi5": "χ5 side-chain torsion. Target angle in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged.",
+        "conformation": "Sets φ and ψ together: helix, alpha, 310, pi, strand, beta, parallel, antiparallel, ppii, extended, or left.",
+        "anchor": "Part that stays still: \"center\" keeps the middle of each chain in place, \"n\" or \"c\" a terminus; a Region is held in place as a whole.",
+        "secondary": "\"auto\" blends the cartoon toward the DSSP assignment of the final conformation; \"keep\" leaves it unchanged.",
+        "path": "\"allowed\" turns φ and ψ the way that keeps each residue in favored and allowed Ramachandran regions; \"shortest\" takes the smaller turn.",
+        "stagger": "Fraction of the clip, in [0, 1), used to start residues one after another from N to C.",
+        "reverse": "Stagger from C to N.",
+        "easing": "Easing of each torsion's change."
+      },
+      "notes": "Torsions in rings, such as proline φ, are skipped and listed by locked. Disulfides and ligands bonded to several residues stretch. The motion illustrates a change of angles, not a folding pathway."
+    },
+    "torsions.RotateTorsions": {
+      "description": "Turn torsions by amounts in degrees, for example a full side-chain rotation.",
+      "example": "torsions",
+      "guide": "torsions",
+      "parameters": {
+        "target": "Protein or Region whose amino acids change.",
+        "phi": "φ, C(i−1)–N–Cα–C. Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn.",
+        "psi": "ψ, N–Cα–C–N(i+1). Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn.",
+        "omega": "ω, the peptide bond Cα–C–N(i+1)–Cα(i+1). Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn.",
+        "chi1": "χ1 side-chain torsion. Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn.",
+        "chi2": "χ2 side-chain torsion. Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn.",
+        "chi3": "χ3 side-chain torsion. Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn.",
+        "chi4": "χ4 side-chain torsion. Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn.",
+        "chi5": "χ5 side-chain torsion. Amount to turn in degrees: one value for every selected residue, one per residue, or a {residue number: angle} dictionary. None leaves it unchanged; 360 makes a full turn.",
+        "conformation": "Sets φ and ψ together: helix, alpha, 310, pi, strand, beta, parallel, antiparallel, ppii, extended, or left.",
+        "anchor": "Part that stays still: \"center\" keeps the middle of each chain in place, \"n\" or \"c\" a terminus; a Region is held in place as a whole.",
+        "secondary": "\"auto\" blends the cartoon toward the DSSP assignment of the final conformation; \"keep\" leaves it unchanged.",
+        "path": "\"allowed\" turns φ and ψ the way that keeps each residue in favored and allowed Ramachandran regions; \"shortest\" takes the smaller turn.",
+        "stagger": "Fraction of the clip, in [0, 1), used to start residues one after another from N to C.",
+        "reverse": "Stagger from C to N.",
+        "easing": "Easing of each torsion's change."
+      }
+    },
+    "torsions.TorsionAngles": {
+      "description": "φ, ψ, ω, and χ1–χ5 in degrees for a set of residues; NaN where a residue lacks a torsion.",
+      "example": "torsions",
+      "guide": "torsions",
+      "parameters": {
+        "protein": "Protein that was measured.",
+        "residue_indices": "Topology residue indices, one per row.",
+        "values": "Array of shape (residues, 8) in degrees, columns phi, psi, omega, chi1–chi5."
+      },
+      "notes": "Use protein.torsions() or region.torsions(). Attributes phi, psi, omega, and chi1–chi5 return one value per residue; angles[23] or angles[\"A\", 23] returns one residue's values."
+    },
+    "torsions.TorsionMarker": {
+      "description": "A live protractor for one torsion: its bond, an arc around the bond, and the current angle.",
+      "example": "torsions",
+      "guide": "torsions",
+      "parameters": {
+        "target": "Single-residue Region.",
+        "torsion": "phi, psi, omega, or chi1–chi5.",
+        "radius": "Arc radius in ångströms.",
+        "color": "Line and label color.",
+        "precision": "Decimal places in the angle label, from 0 to 3.",
+        "label": "Text before the value; None uses the torsion's symbol.",
+        "show_value": "Show the angle after the symbol.",
+        "line_width": "Arc width in design pixels at 1080p.",
+        "backing": "Color of the translucent card behind the label; None removes it."
+      }
+    },
+    "ramachandran.RamachandranPlot": {
+      "description": "A live φ/ψ plot: one point per residue over favored and allowed regions.",
+      "example": "torsions",
+      "guide": "torsions",
+      "parameters": {
+        "protein": "Protein whose residues are plotted.",
+        "region": "Region limiting the plotted residues; None plots every residue with both φ and ψ.",
+        "highlight": "Region whose residues are ringed, enlarged, and labeled.",
+        "labels": "Label highlighted residues with name and number.",
+        "color": "One color for every point; None uses the residue colors drawn in 3D.",
+        "dot_size": "Point radius in design pixels at 1080p.",
+        "background": "Reference regions: general, glycine, proline, preproline, or None.",
+        "region_labels": "Label the αR, β, and αL regions.",
+        "paths": "During SetTorsions, draw each moving residue's path from its start.",
+        "favored_color": "Fill of regions containing 98% of reference residues.",
+        "allowed_color": "Fill of regions containing 99.8% of reference residues.",
+        "title": "Text displayed above the plot."
+      },
+      "notes": "Glycine is drawn as a triangle and proline as a square. Regions come from one chain per 30% identity cluster of X-ray entries at 1.4 Å or better; scripts/build_ramachandran_reference.py rebuilds them."
+    },
+    "animation.SecondaryStructure": {
+      "description": "Blend the cartoon to new helix, strand, and coil states.",
+      "example": "torsions",
+      "guide": "torsions",
+      "parameters": {
+        "protein": "Protein whose cartoon changes.",
+        "assignments": "\"dssp\" assigns states from the coordinates when the clip starts; otherwise one H, E, or C per topology residue."
+      }
+    },
+    "plots.Heatmap": {
+      "description": "A matrix of colored cells with a color bar; rows and columns can be residues.",
+      "example": "confidence-and-conservation",
+      "guide": "confidence-and-conservation",
+      "parameters": {
+        "values": "2D array, or a function returning one that is called again when coordinates change.",
+        "protein": "Protein whose residues label the rows and columns.",
+        "rows": "Topology residue indices or a Region for the rows; None uses every polymer residue.",
+        "columns": "Topology residue indices or a Region for the columns; None uses the rows.",
+        "highlight": "Region whose rows and columns are marked at the edges.",
+        "unit": "Unit shown above the color bar.",
+        "max_cells": "Larger matrices are averaged into at most this many cells per side.",
+        "colorbar": "Draw the color bar."
+      },
+      "members": {
+        "pae": {
+          "description": "AlphaFold predicted aligned error from AlphaFold DB, ColabFold, or AlphaFold 3 files, a .npy file, or an array.",
+          "parameters": {
+            "source": "PAE JSON or .npy file, parsed JSON, or a square array with one row per polymer residue.",
+            "title": "Text displayed above the plot."
+          }
+        },
+        "distances": {
+          "description": "Live residue distances in ångströms, or their change from a reference structure.",
+          "parameters": {
+            "region": "Region limiting the residues; None uses every polymer residue.",
+            "anchor": "\"backbone\" uses Cα (C4′ for nucleotides); \"centroid\" uses residue centroids.",
+            "reference": "Protein with the same residues, or coordinates in this protein's atom order; the plot shows the change.",
+            "max_distance": "Upper color limit in ångströms; None rounds the largest initial value up.",
+            "max_residues": "Maximum residues in the live quadratic calculation.",
+            "title": "Text displayed above the plot."
+          }
+        }
+      }
+    },
+    "conformations.StructureMorph": {
+      "description": "Morph between two experimental structures of the same protein, moving residues along screw paths.",
+      "example": "gallery-hemoglobin-morph",
+      "guide": "morphing",
+      "parameters": {
+        "source": "Structure shown before the morph.",
+        "target": "Structure that replaces the source at the end; chains, residues, ligands, and atoms may differ.",
+        "align": "Region of the source whose matched Cα/C4′ atoms superpose the target; None uses all matched trace atoms.",
+        "chains": "Source-to-target chain ID mapping; None pairs chains automatically.",
+        "match": "StructureMatch to reuse; None calls match_structures().",
+        "fade_out": "Interval of the clip, as fractions, in which source-only atoms fade out.",
+        "fade_in": "Interval of the clip, as fractions, in which target-only atoms fade in.",
+        "style": "\"source\" gives the target the source's representation and colors; \"target\" keeps its own.",
+        "secondary": "\"auto\" blends residues whose DSSP state differs between the structures; \"keep\" leaves the cartoon unchanged.",
+        "easing": "Easing of the whole morph."
+      },
+      "members": {
+        "result": {
+          "description": "The target structure, which replaces the source when the morph ends."
+        }
+      },
+      "notes": "Rigid domains rotate along arcs and keep their bond lengths; side chains turn through their χ angles; bond lengths then relax toward interpolated values. The path illustrates the difference between two endpoints, not a calculated pathway."
+    },
+    "conformations.StructureMatch": {
+      "description": "Atom correspondence between two structures, with the residue and chain pairs behind it and the rigid core they share.",
+      "example": "gallery-hemoglobin-morph",
+      "guide": "morphing",
+      "parameters": {
+        "source_atoms": "Matched source atom indices.",
+        "target_atoms": "Target atom indices, one per source atom.",
+        "residue_pairs": "Matched (source, target) topology residue indices, including ligands.",
+        "chain_pairs": "(source chain, target chain, sequence identity) for each paired chain.",
+        "core": "Source Cα/C4′ atom indices of the rigid core: matched trace atoms that superpose within 2 Å after pruning the worst pairs and refitting. StructureMorph and domain_motion superpose on it by default.",
+        "core_rmsd": "Root-mean-square deviation of the rigid core after superposition, in Å."
+      }
+    },
+    "conformations.match_structures": {
+      "description": "Pair chains, residues, ligands, and atoms of two structures of the same protein.",
+      "example": "gallery-hemoglobin-morph",
+      "guide": "morphing",
+      "parameters": {
+        "source": "First structure.",
+        "target": "Second structure.",
+        "chains": "Source-to-target chain ID mapping; None pairs chains by ID and sequence, and identical copies by position."
+      },
+      "returns": "StructureMatch"
+    },
+    "conformations.domain_motion": {
+      "description": "How a domain turns and shifts between two structures, after superposing on a fixed part.",
+      "example": "gallery-adenylate-kinase-morph",
+      "guide": "morphing",
+      "parameters": {
+        "source": "Structure that defines the regions and the frame of the result.",
+        "target": "Second structure of the same protein.",
+        "moving": "Region of the source whose motion is measured.",
+        "fixed": "Region of the source used to superpose the target; None uses all matched trace atoms.",
+        "match": "StructureMatch to reuse; None calls match_structures()."
+      },
+      "returns": "DomainMotion"
+    },
+    "conformations.DomainMotion": {
+      "description": "Rigid motion of a domain between two structures, as a screw in the source's model frame.",
+      "example": "gallery-adenylate-kinase-morph",
+      "guide": "morphing",
+      "parameters": {
+        "angle": "Rotation in degrees.",
+        "axis": "Unit rotation axis in the source's model frame.",
+        "point": "Point on the axis nearest the domain's center, in Å.",
+        "translation": "Shift along the axis in Å."
       }
     }
   }

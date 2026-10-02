@@ -64,6 +64,7 @@ packages = ["src/proteinmotion"]
 "skills/proteinmotion-movies/references/annotations-and-interactions.md" = "proteinmotion/_skill/references/annotations-and-interactions.md"
 "skills/proteinmotion-movies/references/ligands-and-side-chains.md" = "proteinmotion/_skill/references/ligands-and-side-chains.md"
 "skills/proteinmotion-movies/references/cutaways-and-threading.md" = "proteinmotion/_skill/references/cutaways-and-threading.md"
+"skills/proteinmotion-movies/references/torsions-and-secondary-structure.md" = "proteinmotion/_skill/references/torsions-and-secondary-structure.md"
 "skills/proteinmotion-movies/assets/film.py" = "proteinmotion/_skill/assets/film.py"
 "skills/proteinmotion-movies/assets/1ubq.cif" = "proteinmotion/_skill/assets/1ubq.cif"
 

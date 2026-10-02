@@ -76,6 +76,8 @@ A `ColorScale` uses fixed limits and evenly spaced color stops. Values beyond th
 
 `thickness=(0.6, 1.8)` gives the low end 0.6 times the usual cartoon width and height, and the high end 1.8 times. Missing values keep the usual thickness. Ball radii and surface geometry retain their existing sizes.
 
+Presets supply both values and a matching scale: `ResidueValues.hydropathy(protein)`, `ResidueValues.conservation(protein, alignment)`, and `ResidueValues.plddt(protein)`. Pass one to `color_by`, `ColorByProperty`, or `ColorLegend` without a scale. `protein.color_by("hydropathy")` and `color_by("plddt")` are shortcuts. See [heatmaps, confidence, and conservation](confidence-and-conservation.md).
+
 ## B factors and confidence
 
 ```python

@@ -185,6 +185,25 @@ def test_frames_finite_and_unit_guides(protein):
     np.testing.assert_allclose(np.linalg.norm(data[ca, 4:7], axis=1), 1, atol=1e-5)
 
 
+def test_cartoon_frames_stay_flat_along_helices_and_strands(structure_path):
+    from proteinmotion.geometry import secondary_weights
+
+    firm, total = 0, 0
+    for name in ("4ake", "2dn2", "1cll", "1pga"):
+        p = Protein.from_file(structure_path.parent / f"{name}.cif")
+        weights = secondary_weights(p)
+        data = state_data(p.topology, p.positions, secondary=weights)
+        for chain in p.topology.chains:
+            trace = [p.topology.residues[i].trace_atom for i in chain]
+            for k in ("H", "E"):
+                regular = np.array([p.topology.residues[i].secondary == k for i in chain])
+                inside = regular[:-1] & regular[1:]
+                total += inside.sum()
+                # Firmness below 0.7 would draw a visible round neck in the ribbon.
+                firm += (data[trace[:-1], 7][inside] >= 0.7).sum()
+    assert firm / total > 0.98
+
+
 def test_fade_auto_add_and_visibility(protein):
     s = ProteinScene()
     s.wait(1)

@@ -34,9 +34,9 @@ MDAnalysis converts coordinates to ångströms. For NumPy files in nanometers, p
 
 **Load whole, unwrapped molecules.** Prepare periodic boundaries before importing a trajectory. Wrapped coordinates can create long bonds and incorrect interpolated paths. You can also align frames to remove overall motion. The MD adapter reads frames sequentially on one thread.
 
-Secondary structure comes from PDB/mmCIF annotations. When assignments are missing, cartoons use coils and structure files produce a warning. MD topologies also default to coils.
+Secondary structure comes from PDB/mmCIF annotations. When a file has none, ProteinMotion assigns helix, strand, and coil with DSSP from the first model. MD topologies are assigned from the first frame.
 
-To supply assignments, call `p.with_secondary_structure("HHHCCEEE…")` before adding the protein. Use one `H`, `E`, or `C` per topology residue. The assignments stay fixed during playback. Helix geometry follows the Cα backbone.
+The assignment stays fixed during playback. To update the cartoon to the current coordinates, play `SecondaryStructure(p)` after the trajectory or morph. To supply assignments, call `p.set_secondary_structure("HHHCCEEE…")` with one `H`, `E`, or `C` per topology residue. Helix geometry follows the Cα backbone. See [secondary structure](torsions.md#secondary-structure).
 
 ## Ubiquitin NMR example
 

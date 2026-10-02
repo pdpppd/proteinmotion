@@ -5,15 +5,38 @@ import numpy as np
 from .math3d import color
 from .styling import _AppearanceAnimation
 
+# Residue hydropathy (positive = hydrophobic). Kyte & Doolittle, J. Mol. Biol. 157,
+# 105–132 (1982); Eisenberg normalized consensus, J. Mol. Biol. 179, 125–142 (1984).
+HYDROPATHY = {
+    "kyte-doolittle": dict(
+        ALA=1.8, ARG=-4.5, ASN=-3.5, ASP=-3.5, CYS=2.5, GLN=-3.5, GLU=-3.5, GLY=-0.4, HIS=-3.2, ILE=4.5,
+        LEU=3.8, LYS=-3.9, MET=1.9, PHE=2.8, PRO=-1.6, SER=-0.8, THR=-0.7, TRP=-0.9, TYR=-1.3, VAL=4.2,
+    ),
+    "eisenberg": dict(
+        ALA=0.62, ARG=-2.53, ASN=-0.78, ASP=-0.90, CYS=0.29, GLN=-0.85, GLU=-0.74, GLY=0.48, HIS=-0.40,
+        ILE=1.38, LEU=1.06, LYS=-1.50, MET=0.64, PHE=1.19, PRO=0.12, SER=-0.18, THR=-0.05, TRP=0.81,
+        TYR=0.26, VAL=1.08,
+    ),
+}  # fmt: skip
+# ConSurf's nine conservation grades, from variable (turquoise) to conserved (maroon).
+CONSURF = ("#10c8d1", "#8cffff", "#d7ffff", "#eaffff", "#ffffff", "#fcedf4", "#fac9de", "#f07dab", "#a02560")
+# AlphaFold DB pLDDT bands: very low < 50 ≤ low < 70 ≤ confident < 90 ≤ very high.
+PLDDT = ("#ff7d45", "#ffdb13", "#65cbf3", "#0053d6")
+
 
 class ColorScale:
     """A fixed linear scale shared by structures, plots, and legends.
 
     Values outside the limits use the endpoint colors. NaN uses ``missing``.
     Intermediate colors are linearly interpolated between equally spaced stops.
+    With ``boundaries`` the scale is banded instead: one color per interval, so
+    ``len(colors) == len(boundaries) + 1``.
+    Presets: hydropathy(), conservation(), plddt(), pae(), distance(), difference().
     """
 
-    def __init__(self, vmin, vmax, *, colors=("#355f9e", "#56c5bd", "#f5d477"), missing="#87909c"):
+    def __init__(
+        self, vmin, vmax, *, colors=("#355f9e", "#56c5bd", "#f5d477"), missing="#87909c", boundaries=None
+    ):
         if not np.isfinite([vmin, vmax]).all() or vmax <= vmin:
             raise ValueError("ColorScale needs finite limits with vmax > vmin")
         self.vmin, self.vmax = float(vmin), float(vmax)
@@ -22,6 +45,48 @@ class ColorScale:
             raise ValueError("Supply at least two color stops")
         self.colors.flags.writeable = False
         self.missing = color(missing)
+        self.boundaries = None
+        if boundaries is not None:
+            bounds = np.asarray(boundaries, dtype=float)
+            if bounds.ndim != 1 or len(bounds) != len(self.colors) - 1 or not np.isfinite(bounds).all():
+                raise ValueError("Banded scales need one fewer boundary than colors")
+            if np.any(np.diff(bounds) <= 0):
+                raise ValueError("Boundaries must increase")
+            bounds.flags.writeable = False
+            self.boundaries = bounds
+
+    @classmethod
+    def hydropathy(cls, scale="kyte-doolittle"):
+        """Hydrophilic blue, neutral near-white, hydrophobic orange; symmetric about 0."""
+        if scale not in HYDROPATHY:
+            raise ValueError(f"Unknown hydropathy scale {scale!r}; choose from {', '.join(HYDROPATHY)}")
+        limit = max(abs(v) for v in HYDROPATHY[scale].values())
+        return cls(-limit, limit, colors=("#3f7fd8", "#e8edf2", "#e8913a"))
+
+    @classmethod
+    def conservation(cls, vmin=0.0, vmax=1.0):
+        """ConSurf's palette from variable (turquoise) through white to conserved (maroon)."""
+        return cls(vmin, vmax, colors=CONSURF)
+
+    @classmethod
+    def plddt(cls):
+        """AlphaFold's four confidence bands, split at pLDDT 50, 70 and 90."""
+        return cls(0, 100, colors=PLDDT, boundaries=(50, 70, 90))
+
+    @classmethod
+    def pae(cls, max_error=31.75):
+        """Predicted aligned error in Å: confident dark green to uncertain near-white."""
+        return cls(0, max_error, colors=("#0e5a2e", "#4f9d63", "#b6dcbd", "#f2f6f2"))
+
+    @classmethod
+    def distance(cls, max_distance=40.0):
+        """Short distances bright, long distances dark."""
+        return cls(0, max_distance, colors=("#f5d477", "#e07b4f", "#7b3f8c", "#1f2a4f"))
+
+    @classmethod
+    def difference(cls, limit=10.0):
+        """A signed change in Å: closer in blue, unchanged near-white, farther in red."""
+        return cls(-limit, limit, colors=("#3f7fd8", "#e8edf2", "#e0604a"))
 
     @classmethod
     def from_values(cls, values, **kwargs):
@@ -41,6 +106,14 @@ class ColorScale:
 
     def map(self, values):
         """Return RGB colors with shape (*values.shape, 3)."""
+        if self.boundaries is not None:
+            values = np.asarray(values, dtype=float)
+            bands = np.searchsorted(
+                self.boundaries, np.nan_to_num(values, nan=self.vmin).ravel(), side="right"
+            )
+            result = self.colors[bands].copy()
+            result[~np.isfinite(values).ravel()] = self.missing
+            return result.reshape(values.shape + (3,)).astype(np.float32)
         t = self.normalize(values)
         safe = np.nan_to_num(t, nan=0).ravel()
         stops = np.linspace(0, 1, len(self.colors))
@@ -56,13 +129,21 @@ class ResidueValues:
     Residue identity is checked before applying values to another protein.
     """
 
-    def __init__(self, protein, values, *, name="Value", unit=""):
+    def __init__(self, protein, values, *, name="Value", unit="", scale=None):
         self.keys = tuple((r.chain, r.resid, r.icode, r.name) for r in protein.topology.residues)
         self.values = np.array(values, dtype=float, copy=True)
         if self.values.shape != (len(self.keys),) or np.isinf(self.values).any():
             raise ValueError("Supply one finite value or NaN per topology residue")
         self.values.flags.writeable = False
         self.name, self.unit = str(name), str(unit)
+        if scale is not None and not isinstance(scale, ColorScale):
+            raise TypeError("scale must be a ColorScale")
+        self._scale = scale
+
+    @property
+    def scale(self):
+        """The preset ColorScale for these values, or one fitted to their range."""
+        return self._scale if self._scale is not None else ColorScale.from_values(self.values)
 
     def _validate(self, protein):
         keys = tuple((r.chain, r.resid, r.icode, r.name) for r in protein.topology.residues)
@@ -82,6 +163,67 @@ class ResidueValues:
                 raise ValueError(f"Residue key {key!r} matches {len(ids)} residues; include insertion codes")
             output[ids[0]] = value
         return cls(protein, output, name=name, unit=unit)
+
+    @classmethod
+    def hydropathy(cls, protein, scale="kyte-doolittle"):
+        """Residue hydropathy (positive = hydrophobic); NaN for non-amino acids.
+
+        Scales: "kyte-doolittle" (default) or "eisenberg". Modified residues use
+        their parent amino acid where the structure records one.
+        """
+        import gemmi
+
+        if scale not in HYDROPATHY:
+            raise ValueError(f"Unknown hydropathy scale {scale!r}; choose from {', '.join(HYDROPATHY)}")
+        table, values = HYDROPATHY[scale], []
+        for r in protein.topology.residues:
+            name = r.name.upper()
+            if name not in table and not r.is_nucleic:
+                code = gemmi.find_tabulated_residue(name)
+                parent = code.one_letter_code.upper() if code is not None else ""
+                name = next(
+                    (k for k in table if gemmi.find_tabulated_residue(k).one_letter_code == parent), name
+                )
+            values.append(table.get(name, np.nan) if not r.is_nucleic else np.nan)
+        label = {"kyte-doolittle": "Hydropathy (Kyte–Doolittle)", "eisenberg": "Hydrophobicity (Eisenberg)"}[
+            scale
+        ]
+        return cls(protein, values, name=label, scale=ColorScale.hydropathy(scale))
+
+    @classmethod
+    def conservation(cls, protein, alignment, *, chain=None, query=None, weighting=True):
+        """Sequence conservation from 0 (variable) to 1 (invariant) for each residue.
+
+        ``alignment`` is a FASTA, A3M, Stockholm or Clustal file, or a list of
+        aligned sequences. The query (``query`` by name or index, by default the
+        sequence most similar to the structure) is aligned to every protein chain
+        it matches (``chain`` restricts this). The score is 1 − H/ln 20, where H is
+        the Shannon entropy of the column's amino acids with Henikoff sequence
+        weights, scaled by the fraction of sequences without a gap there. The
+        preset color scale spans the 5th–95th percentile of this protein's scores.
+        """
+        from .conservation import residue_conservation
+
+        values = residue_conservation(protein, alignment, chain=chain, query=query, weighting=weighting)
+        # Like ConSurf grades, the preset scale spans this protein's own range of scores.
+        lo, hi = np.round(np.nanpercentile(values, [5, 95]), 2)
+        scale = ColorScale.conservation(lo, hi) if hi > lo else ColorScale.conservation()
+        return cls(protein, values, name="Conservation", scale=scale)
+
+    @classmethod
+    def plddt(cls, protein, source=None):
+        """AlphaFold pLDDT per residue, read from the B-factor field or a confidence JSON file.
+
+        AlphaFold models store pLDDT in the B-factor column; ``source`` may instead
+        be an AlphaFold DB ``confidence_v*.json`` file or a ColabFold scores file.
+        """
+        if source is None:
+            values = cls.b_factors(protein).values
+        else:
+            from .confidence import read_plddt
+
+            values = read_plddt(protein, source)
+        return cls(protein, values, name="pLDDT", unit="", scale=ColorScale.plddt())
 
     @classmethod
     def b_factors(cls, protein, *, atoms="backbone", name="B factor", unit="Å²"):
@@ -157,10 +299,20 @@ class ResidueValues:
         return cls(protein, [np.sqrt(np.mean(g)) if g else np.nan for g in groups], name="RMSF", unit="Å")
 
 
+def resolve_values(protein, values):
+    """ResidueValues from values, an array, or a preset name: hydropathy or plddt."""
+    if isinstance(values, str):
+        presets = {"hydropathy": ResidueValues.hydropathy, "plddt": ResidueValues.plddt}
+        if values.lower() not in presets:
+            raise ValueError(f"Unknown residue property {values!r}; use hydropathy, plddt or ResidueValues")
+        return presets[values.lower()](protein)
+    return values if isinstance(values, ResidueValues) else ResidueValues(protein, values)
+
+
 def _style(protein, values, scale, thickness):
-    values = values if isinstance(values, ResidueValues) else ResidueValues(protein, values)
+    values = resolve_values(protein, values)
     values._validate(protein)
-    scale = ColorScale.from_values(values) if scale is None else scale
+    scale = values.scale if scale is None else scale
     if not isinstance(scale, ColorScale):
         raise TypeError("scale must be a ColorScale")
     atom_residues = np.array([a.residue_index for a in protein.topology.atoms])

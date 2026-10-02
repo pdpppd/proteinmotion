@@ -121,12 +121,28 @@ export const guides = [
       "Bring chains into view as wires that trace the backbone from C to N terminus.",
   },
   {
+    slug: "torsions",
+    file: "torsions.md",
+    title: "Torsions & secondary structure",
+    group: "AUTHORING",
+    description:
+      "Build peptides, animate φ, ψ, and χ angles, plot Ramachandran diagrams, and assign DSSP.",
+  },
+  {
     slug: "numerical-properties",
     file: "numerical-properties.md",
     title: "Numerical properties",
     group: "AUTHORING",
     description:
       "Map B factors, RMSF, and custom residue values to color and thickness.",
+  },
+  {
+    slug: "confidence-and-conservation",
+    file: "confidence-and-conservation.md",
+    title: "Heatmaps & conservation",
+    group: "AUTHORING",
+    description:
+      "Show AlphaFold PAE and pLDDT, distance matrices, hydropathy, and sequence conservation.",
   },
   {
     slug: "synchronized-plots",
@@ -343,6 +359,51 @@ export const demos: Demo[] = [
     fps: 60,
     renderCommand:
       "proteinmotion render examples/thread_hemoglobin.py ThreadHemoglobin \\\n  --fps 60 -o hemoglobin.mp4",
+  },
+  {
+    id: "hemoglobin-morph",
+    title: "Hemoglobin from T to R",
+    file: "docs/hemoglobin-morph",
+    label: "STUDIO · STRUCTURE MORPH · ASSEMBLY",
+    detail:
+      "Deoxyhemoglobin (2DN2) morphs to oxyhemoglobin (2DN1, expanded to its tetramer), superposed on α1β1. α2β2 turns 14° in the image plane while O₂ appears at each heme. A heatmap shows Cα–Cα distances changing between the αβ dimers but not within them. The path illustrates the difference between the two structures.",
+    source: "examples/structure_morph.py",
+    scene: "HemoglobinMorph",
+    duration: "17.7 s",
+    pdb: "2DN2 · 2DN1",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/structure_morph.py HemoglobinMorph \\\n  -o hemoglobin-morph.mp4 --fps 60",
+  },
+  {
+    id: "adenylate-kinase-morph",
+    title: "Adenylate kinase closes",
+    file: "docs/adenylate-kinase-morph",
+    label: "STUDIO · STRUCTURE MORPH · DOMAIN MOTION",
+    detail:
+      "Open adenylate kinase (4AKE) closes around the inhibitor Ap5A (1AKE), superposed on the CORE. The LID turns 52° and the NMP-binding domain 45°; a ruler between them shortens from 43.7 Å to 19.1 Å, and Ap5A, present only in 1AKE, fades in.",
+    source: "examples/structure_morph.py",
+    scene: "AdenylateKinaseMorph",
+    duration: "17.2 s",
+    pdb: "4AKE · 1AKE",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/structure_morph.py AdenylateKinaseMorph \\\n  -o adenylate-kinase-morph.mp4 --fps 60",
+  },
+  {
+    id: "torsions-film",
+    title: "Two angles per residue",
+    file: "docs/torsions-film",
+    label: "STUDIO · TORSIONS · RAMACHANDRAN",
+    detail:
+      "φ and ψ of one alanine turn with live protractors and a Ramachandran plot. Baldwin’s peptide then winds into an α helix as its i → i+4 hydrogen bonds form, φ/ψ angles measured in protein G fold the β-hairpin of residues 41–56, and ubiquitin’s residues fill the favored regions. Torsions rotate atoms about bonds; the motion is an illustration, not a folding pathway.",
+    source: "examples/torsions.py",
+    scene: "TorsionsFilm",
+    duration: "61.6 s",
+    pdb: "1PGA · 1UBQ",
+    fps: 60,
+    renderCommand:
+      "proteinmotion render examples/torsions.py TorsionsFilm \\\n  --fps 60 -o torsions.mp4",
   },
   {
     id: "binding-sites",

@@ -50,6 +50,13 @@ class Protein:
         self.base_radius = 0.16
         # Stable reference geometry for base planes, independent of seeking order.
         self._base_reference = xyz
+        # Coil/helix/strand weights per residue. Cartoons blend between these profiles
+        # when torsion changes or morphs alter the secondary structure.
+        from .secondary import weights
+
+        self._secondary = weights("".join(r.secondary for r in topology.residues))
+        # The (φ, ψ) paths of a running torsion animation, read by Ramachandran plots.
+        self._torsion_motion = None
 
     def select(
         self,
@@ -99,6 +106,77 @@ class Protein:
             required=required,
             updating=updating,
         )
+
+    @classmethod
+    def build(
+        cls,
+        sequence,
+        conformation="extended",
+        *,
+        phi=None,
+        psi=None,
+        omega=180.0,
+        chain="A",
+        first=1,
+        hydrogens=False,
+    ):
+        """Build an ideal peptide from a one-letter sequence, with every heavy atom.
+
+        ``conformation`` is helix, strand, ppii, 310, pi, left or extended. ``phi``,
+        ``psi`` and ``omega`` (degrees; one value or one per residue) override it.
+        Side chains start in common rotamers. ``hydrogens=True`` adds amide H atoms.
+        Coordinates are centered with the chain running along x from the N terminus.
+        """
+        from .builder import build_peptide
+
+        topology, xyz = build_peptide(
+            sequence,
+            conformation,
+            phi=phi,
+            psi=psi,
+            omega=omega,
+            chain=chain,
+            first=first,
+            hydrogens=hydrogens,
+        )
+        return cls(topology, xyz)
+
+    @property
+    def secondary_structure(self):
+        """Current H/E/C state of each residue, as the cartoon draws it."""
+        from .secondary import codes
+
+        return codes(self._secondary)
+
+    def set_secondary_structure(self, assignments):
+        """Set one H/E/C state per residue for drawing; can change between animations."""
+        from .secondary import weights
+
+        if len(assignments) != len(self.topology.residues):
+            raise ValueError("Supply one H/E/C code per residue")
+        self._secondary = weights(assignments)
+        return self
+
+    def assign_secondary_structure(self):
+        """Assign helix, strand and coil with DSSP from the current coordinates."""
+        from .secondary import assign
+
+        return self.set_secondary_structure(assign(self.topology, self.positions))
+
+    def torsions(self, *, chain=None, residues=None):
+        """Measure φ, ψ, ω and χ1–χ5 in degrees for all residues, or a selection."""
+        from .torsions import measure
+
+        if chain is None and residues is None:
+            return measure(self)
+        return measure(self, self.select(chain=chain, residues=residues).residue_indices)
+
+    def set_torsions(self, *, conformation=None, anchor="center", secondary="auto", **angles):
+        """Set torsions in degrees immediately, for every residue; see SetTorsions."""
+        from .torsions import set_torsions
+
+        set_torsions(self, conformation=conformation, anchor=anchor, secondary=secondary, **angles)
+        return self
 
     def summary(self):
         """Describe available selections without reading topology internals."""
@@ -214,11 +292,40 @@ class Protein:
         )
 
     @classmethod
-    def from_file(cls, path, *, chains=None, include_water=False, include_hydrogens=False):
+    def from_file(
+        cls,
+        path,
+        *,
+        chains=None,
+        include_water=False,
+        include_hydrogens=False,
+        secondary="auto",
+        assembly=None,
+    ):
+        """Load PDB/mmCIF models. Cartoons use the file's helix and sheet records, or
+        DSSP when the file has none (predicted models, MD frames); ``secondary="dssp"``
+        always computes them and ``secondary="file"`` never does. ``assembly="1"``
+        builds that biological assembly from the deposited chains."""
         topo, frames = load_structure(
-            path, chains=chains, include_water=include_water, include_hydrogens=include_hydrogens
+            path,
+            chains=chains,
+            include_water=include_water,
+            include_hydrogens=include_hydrogens,
+            secondary=secondary,
+            assembly=assembly,
         )
         return cls(topo, frames[0], trajectory=Trajectory(frames, topology=topo))
+
+    @classmethod
+    def fetch(cls, identifier, *, cache=None, **options):
+        """Download a PDB entry (``"4HHB"``) or AlphaFold DB model (``"AF-P0DP23-F1"``) and load it.
+
+        Files are kept in ``cache`` (default ``~/.cache/proteinmotion``) and reused.
+        Other options, such as ``assembly="1"`` or ``chains="A"``, go to from_file().
+        """
+        from .download import fetch_structure
+
+        return cls.from_file(fetch_structure(identifier, cache=cache), **options)
 
     @classmethod
     def from_trajectory(cls, trajectory):
@@ -410,12 +517,20 @@ class Protein:
         return self
 
     def with_secondary_structure(self, assignments):
-        """Set one H/E/C label per topology residue (e.g. from DSSP). Before add()."""
+        """Set one H/E/C label per topology residue. Before add().
+
+        ``assignments="dssp"`` computes them from the coordinates. Use
+        set_secondary_structure() to change states after the protein is drawn.
+        """
+        if isinstance(assignments, str) and assignments.lower() == "dssp":
+            from .secondary import assign
+
+            assignments = assign(self.topology, self.positions)
         if len(assignments) != len(self.topology.residues) or any(c not in "HEC" for c in assignments):
             raise ValueError("Supply one H/E/C code per residue")
         residues = tuple(replace(r, secondary=c) for r, c in zip(self.topology.residues, assignments))
         self.topology = Topology(self.topology.atoms, residues, self.topology.bonds, self.topology.chains)
-        return self
+        return self.set_secondary_structure(assignments)
 
     @property
     def animate(self):
@@ -462,6 +577,8 @@ class Protein:
             base_thickness=self.base_thickness,
             base_radius=self.base_radius,
             base_reference=self._base_reference,
+            secondary=self._secondary,
+            torsion_motion=self._torsion_motion,
         )
 
     def restore(self, s):
@@ -476,6 +593,7 @@ class Protein:
         self._detail_mix = s["detail_mix"]
         self._surface_options, self.surface_opacity = s["surface_options"], s["surface_opacity"]
         self._base_reference = s["base_reference"]
+        self._secondary, self._torsion_motion = s["secondary"], s["torsion_motion"]
         for k in ("position", "orientation", "representation", "base_style"):
             setattr(self, k, s[k].copy())
         for k in (

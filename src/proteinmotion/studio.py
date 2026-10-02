@@ -672,6 +672,9 @@ class StudioRenderer(Renderer):
                 if p.surface_opacity > 0 and 0 < total < 1:
                     p.representation = p.representation / total
             levels = sorted({round(float(o), 5) for _, o, _ in saved if 0 < o < 1})
+            shared = None if levels else self._shared_atom_opacity(molecules)
+            if shared is not None and shared > self.SOLID_FADE_START:
+                return self._atom_fade_commands(objects, molecules, shared, camera, background)
             thresholds = [2.0, *reversed(levels)]  # Solid-only layer first, then lower thresholds.
             weights = [1 - (levels[-1] if levels else 0.0)]
             weights += [u - (levels[i - 1] if i else 0.0) for i, u in reversed(list(enumerate(levels)))]
@@ -696,6 +699,64 @@ class StudioRenderer(Renderer):
         finally:
             for p, opacity, representation in saved:
                 p.opacity, p.representation = opacity, representation
+
+    # Partly visible atoms that share one opacity u blend toward solid layers above this
+    # level: (1 − w)·transparency + w·(u·solid + (1 − u)·hidden), with w rising to 1 at
+    # u = 1. Ghosted regions below it keep their order-independent transparency, and a
+    # per-atom fade (a region restored to full opacity, or a morph handing over to its
+    # target) reaches the solid image exactly instead of jumping to it.
+    SOLID_FADE_START = 0.8
+
+    @staticmethod
+    def _partial_atoms(p):
+        values = p.atom_opacities / p.opacity
+        return (values > 1e-4) & (values < 1 - 1e-6), values
+
+    @classmethod
+    def _shared_atom_opacity(cls, molecules):
+        """The one opacity of every partly visible atom in the frame, or None."""
+        shared = None
+        for p in molecules:
+            if p.opacity <= 0:
+                continue
+            mask, values = cls._partial_atoms(p)
+            for value in np.unique(np.round(values[mask], 4)):
+                if shared is not None and value != shared:
+                    return None
+                shared = float(value)
+        return shared
+
+    def _atom_fade_commands(self, objects, molecules, shared, camera, background):
+        from .annotations import Annotation
+
+        t = (shared - self.SOLID_FADE_START) / (1 - self.SOLID_FADE_START)
+        fade = t * t * (3 - 2 * t)
+        layers = ((None, 1 - fade), (True, fade * shared), (False, fade * (1 - shared)))
+        visible = [p for p in molecules if p.opacity > 0]
+        hidden = [p for p in molecules if p.opacity <= 0]
+        partial = [self._partial_atoms(p)[0] for p in visible]
+        original = [(p._controls, p._appearance) for p in visible]
+        encoder = None
+        try:
+            for index, (solid, weight) in enumerate(layers):
+                for p, mask, (controls, appearance) in zip(visible, partial, original):
+                    p._controls, p._appearance = controls, appearance
+                    if solid is not None and mask.any():
+                        controls = np.array(controls)
+                        controls[mask, 4:6] = 1.0 if solid else 0.0
+                        appearance = np.array(appearance)
+                        appearance[mask, 12:14] = 1.0
+                        p._controls, p._appearance = controls, appearance
+                final = index == len(layers) - 1
+                layer = [o for o in objects if (final or not isinstance(o, Annotation)) and o not in hidden]
+                self._layer_weight, self._layer_first, self._layer_final = weight, index == 0, final
+                encoder = super()._commands(layer, camera, background)
+                if not final:
+                    self.device.queue.submit([encoder.finish()])
+            return encoder
+        finally:
+            for p, (controls, appearance) in zip(visible, original):
+                p._controls, p._appearance = controls, appearance
 
     def close(self):
         if not self._closed:

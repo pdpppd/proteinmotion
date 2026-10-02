@@ -8,7 +8,7 @@ import wgpu
 
 from ._gpu import select_adapter
 from .annotations import Annotation
-from .geometry import packed_metadata, segments, state_data, sweep_grid
+from .geometry import packed_metadata, secondary_weights, segments, state_data, sweep_grid
 from .mesh import MeshGPU, MeshObject
 from .styling import atom_weights
 
@@ -53,9 +53,12 @@ class _MoleculeGPU:
         self.has_detail = bool(np.any(protein._appearance[:, 16:18] > 0))
         self.partial_atoms = False
         self.shape_reference = protein._cartoon_scale
+        self.secondary_reference = protein._secondary
         self.color_key = str(protein.color_scheme)
         self.backbone_radius = protein.backbone_radius
-        self.reference = state_data(self.topology, protein._a)[:, 4:7].copy()
+        self.reference = state_data(self.topology, protein._a, secondary=secondary_weights(protein))[
+            :, 4:7
+        ].copy()
         self.uniforms, self.bindings = [], []
         for _ in range(7 if self.has_nucleic else 3):  # atoms, backbone, surface, four base styles
             uniform = d.create_buffer(size=112, usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST)
@@ -87,8 +90,13 @@ class _MoleculeGPU:
         if protein.topology is not self.topology:
             raise ValueError("Topology changed after GPU upload; set secondary structure before rendering")
         wanted = [protein._key_a, protein._key_b]
-        if id(protein._metadata_override) != self.metadata_key or self.metadata_color != str(
-            protein.color_scheme
+        secondary_changed = protein._secondary is not self.secondary_reference and not np.array_equal(
+            protein._secondary, self.secondary_reference
+        )
+        if (
+            id(protein._metadata_override) != self.metadata_key
+            or self.metadata_color != str(protein.color_scheme)
+            or (secondary_changed and protein._metadata_override is None)
         ):
             queue.write_buffer(self.metadata, 0, packed_metadata(protein))
             self.metadata_key = id(protein._metadata_override)
@@ -110,6 +118,9 @@ class _MoleculeGPU:
         self.partial_atoms = (weights is not None and bool(np.any((weights > 0) & (weights < 1)))) or (
             self.has_detail and 0 < protein.opacity < 1
         )
+        if secondary_changed:
+            # Guides depend on secondary structure through the expected twist.
+            self.keys = [None, None]
         chosen = []
         for key, coords in zip(wanted, (protein._a, protein._b)):
             if key in self.keys:
@@ -118,7 +129,7 @@ class _MoleculeGPU:
                 slot = next(
                     i for i, existing in enumerate(self.keys) if existing not in wanted and i not in chosen
                 )
-                packed = state_data(self.topology, coords, self.reference)
+                packed = state_data(self.topology, coords, self.reference, secondary_weights(protein))
                 queue.write_buffer(self.states[slot], 0, packed)
                 self.keys[slot] = key
                 self.state_references[slot] = coords
@@ -127,10 +138,12 @@ class _MoleculeGPU:
             self.color_key != str(protein.color_scheme)
             or self.backbone_radius != protein.backbone_radius
             or not np.array_equal(self.shape_reference, protein._cartoon_scale)
+            or secondary_changed
         ):
             queue.write_buffer(self.segments, 0, self.renderer._segment_data(protein))
             self.color_key = str(protein.color_scheme)
             self.shape_reference = protein._cartoon_scale
+            self.secondary_reference = protein._secondary
             self.backbone_radius = protein.backbone_radius
         # The atom pass applies the ball-and-stick fraction per atom (see stick_opacity).
         fractions = [1.0, cartoon + ribbon, protein.surface_opacity]
@@ -217,6 +230,7 @@ class Renderer:
         height=1080,
         *,
         msaa=4,
+        supersampling=1,
         require_metal=None,
         readback_format="rgba",
         backend=None,
@@ -226,10 +240,21 @@ class Renderer:
             raise ValueError("readback_format must be rgba or nv12")
         if readback_format == "nv12" and (width % 2 or height % 2):
             raise ValueError("NV12 export requires even width and height")
+        if supersampling not in (1, 2, 3, 4):
+            raise ValueError("supersampling must be 1, 2, 3, or 4")
         self.readback_format = readback_format
-        self.width, self.height, self.msaa = width, height, msaa
+        # Frames are drawn at supersampling times the output size and averaged down, so
+        # every scene target, overlay and post-processing pass uses the larger size.
+        self.supersampling = supersampling
+        self.output_width, self.output_height = width, height
+        self.width, self.height, self.msaa = width * supersampling, height * supersampling, msaa
         self.adapter = select_adapter(backend=backend, adapter_name=adapter_name, require_metal=require_metal)
         self.adapter_info = dict(self.adapter.info)
+        largest = self.adapter.limits["max-texture-dimension-2d"]
+        if max(self.width, self.height) > largest:
+            raise ValueError(
+                f"{width}×{height} with supersampling={supersampling} exceeds this GPU's {largest}-pixel textures"
+            )
         # State A/B, atom metadata, bonds, segments and per-atom motion/visibility controls.
         self.device = self.adapter.request_device_sync(
             required_limits={"max-storage-buffers-per-shader-stage": 8}
@@ -351,24 +376,27 @@ class Renderer:
         self.indices = d.create_buffer_with_data(data=indices, usage=wgpu.BufferUsage.INDEX)
         self.n_indices = len(indices)
         self.texture = d.create_texture(
-            size=(width, height, 1),
+            size=(self.width, self.height, 1),
             format="rgba8unorm",
             usage=wgpu.TextureUsage.RENDER_ATTACHMENT
             | wgpu.TextureUsage.COPY_SRC
             | wgpu.TextureUsage.TEXTURE_BINDING,
         )
         self.view = self.texture.create_view()
+        self.output_texture, self.output_view = self.texture, self.view
+        if supersampling > 1:
+            self._create_downsample()
         self.ms_texture = None
         if msaa > 1:
             self.ms_texture = d.create_texture(
-                size=(width, height, 1),
+                size=(self.width, self.height, 1),
                 sample_count=msaa,
                 format="rgba8unorm",
                 usage=wgpu.TextureUsage.RENDER_ATTACHMENT,
             )
         self.ms_view = self.ms_texture.create_view() if self.ms_texture else self.view
         self.depth = d.create_texture(
-            size=(width, height, 1),
+            size=(self.width, self.height, 1),
             sample_count=msaa,
             format="depth32float",
             usage=wgpu.TextureUsage.RENDER_ATTACHMENT | wgpu.TextureUsage.TEXTURE_BINDING,
@@ -397,12 +425,52 @@ class Renderer:
             self.nv12_group = d.create_bind_group(
                 layout=self.nv12_pipeline.get_bind_group_layout(0),
                 entries=[
-                    {"binding": 0, "resource": self.view},
+                    {"binding": 0, "resource": self.output_view},
                     {"binding": 1, "resource": {"buffer": self.nv12_buffer}},
                 ],
             )
         self._staging = []
         self._closed = False
+
+    def _create_downsample(self):
+        """Output-size texture and the pass that averages supersampled pixels into it."""
+        d = self.device
+        self.output_texture = d.create_texture(
+            size=(self.output_width, self.output_height, 1),
+            format="rgba8unorm",
+            usage=wgpu.TextureUsage.RENDER_ATTACHMENT
+            | wgpu.TextureUsage.COPY_SRC
+            | wgpu.TextureUsage.TEXTURE_BINDING,
+        )
+        self.output_view = self.output_texture.create_view()
+        code = files("proteinmotion").joinpath("shaders/downsample.wgsl").read_text()
+        shader = d.create_shader_module(code=code.replace("FACTOR", str(self.supersampling)))
+        self.downsample_pipeline = d.create_render_pipeline(
+            layout="auto",
+            vertex={"module": shader, "entry_point": "vertex"},
+            fragment={"module": shader, "entry_point": "fragment", "targets": [{"format": "rgba8unorm"}]},
+            primitive={"topology": "triangle-list"},
+        )
+        self.downsample_group = d.create_bind_group(
+            layout=self.downsample_pipeline.get_bind_group_layout(0),
+            entries=[{"binding": 0, "resource": self.view}],
+        )
+
+    def _downsample(self, encoder):
+        render_pass = encoder.begin_render_pass(
+            color_attachments=[
+                {
+                    "view": self.output_view,
+                    "load_op": "clear",
+                    "store_op": "store",
+                    "clear_value": (0, 0, 0, 0),
+                }
+            ]
+        )
+        render_pass.set_pipeline(self.downsample_pipeline)
+        render_pass.set_bind_group(0, self.downsample_group)
+        render_pass.draw(3)
+        render_pass.end()
 
     def _create_transparency(self):
         """Allocate/compile OIT only when a scene first contains a fade."""
@@ -717,6 +785,8 @@ class Renderer:
     def enqueue(self, proteins, camera, background):
         """Submit a frame; return the oldest completed frame when three are in flight."""
         encoder = self._commands(proteins, camera, background)
+        if self.supersampling > 1:
+            self._downsample(encoder)
         if self._free:
             buffer = self._free.pop()
         else:
@@ -729,14 +799,14 @@ class Renderer:
             convert = encoder.begin_compute_pass()
             convert.set_pipeline(self.nv12_pipeline)
             convert.set_bind_group(0, self.nv12_group)
-            convert.dispatch_workgroups((self.width + 31) // 32, (self.height + 15) // 16)
+            convert.dispatch_workgroups((self.output_width + 31) // 32, (self.output_height + 15) // 16)
             convert.end()
             encoder.copy_buffer_to_buffer(self.nv12_buffer, 0, buffer, 0, self.row_bytes * self.readback_rows)
         else:
             encoder.copy_texture_to_buffer(
-                {"texture": self.texture},
-                {"buffer": buffer, "bytes_per_row": self.row_bytes, "rows_per_image": self.height},
-                (self.width, self.height, 1),
+                {"texture": self.output_texture},
+                {"buffer": buffer, "bytes_per_row": self.row_bytes, "rows_per_image": self.output_height},
+                (self.output_width, self.output_height, 1),
             )
         self.device.queue.submit([encoder.finish()])
         promise = buffer.map_async(wgpu.MapMode.READ)
@@ -749,10 +819,11 @@ class Renderer:
         raw = np.frombuffer(buffer.read_mapped(copy=False), dtype=np.uint8).reshape(
             self.readback_rows, self.row_bytes
         )
+        width, height = self.output_width, self.output_height
         if self.readback_format == "nv12":
-            result = raw[:, : self.width].copy()
+            result = raw[:, :width].copy()
         else:
-            result = raw[:, : self.width * 4].reshape(self.height, self.width, 4).copy()
+            result = raw[:, : width * 4].reshape(height, width, 4).copy()
         del raw
         buffer.unmap()
         self._free.append(buffer)
@@ -784,6 +855,7 @@ class Renderer:
             self.vertices,
             self.indices,
             self.texture,
+            self.output_texture if self.output_texture is not self.texture else None,
             self.depth,
             self.ms_texture,
             self.nv12_buffer,

@@ -1,6 +1,6 @@
 ---
 name: proteinmotion-movies
-description: Create and render protein, DNA, and RNA movies with ProteinMotion from PDB/mmCIF structures or trajectories, including base representations, surfaces, ligands, metal ions and side chains drawn over cartoons, cutaways and depth tunnels, threading animations, eased motion, region annotations, and protein morphs. Use for making or revising molecular animation scripts and their rendered videos.
+description: Create and render protein, DNA, and RNA movies with ProteinMotion from PDB/mmCIF structures or trajectories, including base representations, surfaces, ligands, metal ions and side chains drawn over cartoons, cutaways and depth tunnels, threading animations, eased motion, region annotations, protein morphs between experimental states (including biological assemblies), peptides built from sequence, animated φ/ψ/χ torsions with Ramachandran plots and DSSP secondary structure, AlphaFold PAE and distance heatmaps, and hydropathy, conservation, and pLDDT coloring. Use for making or revising molecular animation scripts and their rendered videos, including structural-biology teaching films.
 ---
 
 # ProteinMotion Movies
@@ -27,7 +27,7 @@ If hardware rendering fails, diagnose the reported adapter and encoder before ch
 
 For a new project, `proteinmotion init movie` creates `movie/film.py` and `movie/1ubq.cif`. The bundled [starter scene](assets/film.py) and [ubiquitin structure](assets/1ubq.cif) are also directly reusable. Use this structure only for a demo with no requested input. Substitute the user's structure and actual selections when provided; do not keep the starter's residue numbers or labels on a different protein.
 
-Load inputs and inspect chain IDs, residue numbers, atom availability, bound ligands and ions (`p.topology.residue_categories`), and state counts before choosing labels or analyses. Cartoons draw ligands, ions, and loaded waters by default; hide crystallization additives that are not part of the story. Resolve structure paths relative to `Path(__file__).parent` so the script works from any current directory. Keep input structures alongside the script or use explicit user paths.
+Load inputs and inspect chain IDs, residue numbers, atom availability, bound ligands and ions (`p.topology.residue_categories`), secondary structure (`p.secondary_structure`), and state counts before choosing labels or analyses. Cartoons draw ligands, ions, and loaded waters by default; hide crystallization additives that are not part of the story. Resolve structure paths relative to `Path(__file__).parent` so the script works from any current directory. Keep input structures alongside the script or use explicit user paths.
 
 Compose a normal `ProteinScene.construct()` with `add`, `play`, and `wait`. Ordinary setters are recorded at the current authoring time, including after `add()`. Use animations for interpolated changes. Frame the camera before the first `play`/`wait`; it inherits the scene aspect ratio. Clip durations add up; `run_time` belongs to `play`, while `animation.during(seconds, delay=...)` gives concurrent actions independent timing. Angles are radians and coordinates are Å. Set topology and secondary-structure assignments before building the timeline.
 
@@ -42,8 +42,9 @@ Read only the relevant supporting reference:
 - [DNA and RNA](references/nucleic-acids.md): nucleotide backbones, base styles, modified residues, surfaces, color, opacity, and trajectories.
 - [Ligands, ions, and side chains](references/ligands-and-side-chains.md): default ligand/ion display, category and distance selectors, `ShowSideChains`/`ShowAtoms`, colors, and binding-site storyboards.
 - [Cutaways, depth tunnels, and threading](references/cutaways-and-threading.md): revealing hidden selections, showing their depth, and threading cartoon or ball-and-stick geometry into view, with an optional wire mode.
-- [Animation and state changes](references/animation.md): representations, residue styling, timelines, trajectories, same-topology deformation, and different-protein contact-map morphs.
-- [Numerical values, plots, and density](references/data-visualization.md): B factors, RMSF, custom residue values, synchronized plots, MRC/CCP4 contours, and slices.
+- [Animation and state changes](references/animation.md): representations, residue styling, timelines, trajectories, same-topology deformation, morphs between two structures of the same protein (`StructureMorph`, assemblies, `domain_motion`), and different-protein contact-map morphs.
+- [Torsions and secondary structure](references/torsions-and-secondary-structure.md): peptides from sequence, measuring and animating φ, ψ, ω, and χ, torsion markers, Ramachandran plots, and DSSP.
+- [Numerical values, plots, and density](references/data-visualization.md): B factors, RMSF, hydropathy, conservation, pLDDT, custom residue values, synchronized plots, PAE and distance heatmaps, MRC/CCP4 contours, and slices.
 - [Annotations and interactions](references/annotations-and-interactions.md): selectors, focus, text, 3D regions, distance rulers, hydrogen bonds, and imported-charge electrostatics.
 
 ## Render and check

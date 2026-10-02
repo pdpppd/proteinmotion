@@ -100,6 +100,30 @@ fn guide(i: u32) -> vec3<f32> {
     if dot(a,b) < 0.0 { b = -b; }
     return mix(a,b,atom_progress(i));
 }
+// Width axis (xyz) and flatness (w) along a ribbon segment. The axis turns from the
+// first residue's guide to the second's. Where the direction of that turn is ambiguous
+// (guide.w near 0), the turn happens in the middle of the segment while the ribbon is
+// briefly round there, so an animation that changes it cannot flip a flat ribbon.
+// Sheet arrowheads keep the strand's orientation.
+fn segment_guide(s:Segment, t:f32, cartoon:f32) -> vec4f {
+    let hold=clamp(s.caps.z,0.0,1.0)*cartoon*(1.0-smoothstep(0.85,1.0,t));
+    let first=guide(s.atoms.y);
+    var second=guide(s.atoms.z);
+    let i=s.atoms.y;
+    var firm=mix(state_a[i].guide.w,state_b[i].guide.w,atom_progress(i));
+    // guide() aligns each residue with its first keyframe, which can reverse a segment's
+    // twist in the second. Restore that twist halfway, while the segment is round.
+    let j=s.atoms.z;
+    if (dot(state_a[i].guide.xyz,state_b[i].guide.xyz)<0.0)!=(dot(state_a[j].guide.xyz,state_b[j].guide.xyz)<0.0) {
+        let p=0.5*(atom_progress(i)+atom_progress(j));
+        if p>0.5 { second=-second; }
+        firm*=smoothstep(0.1,0.25,abs(p-0.5));
+    }
+    let along=mix(smoothstep(0.35,0.65,t),t,firm);
+    let g=mix(mix(first,second,along),first,hold);
+    let flat=1.0-(1.0-firm)*smoothstep(0.22,0.36,t)*smoothstep(0.22,0.36,1.0-t);
+    return vec4f(g,mix(flat,1.0,hold));
+}
 fn world(p: vec3<f32>) -> vec3<f32> { return (object.model*vec4<f32>(p,1.0)).xyz; }
 fn world_normal(n: vec3<f32>) -> vec3<f32> { return safe_normal((object.model*vec4<f32>(n,0.0)).xyz); }
 
@@ -214,12 +238,12 @@ fn tangent(a:vec3<f32>,b:vec3<f32>,c:vec3<f32>,d:vec3<f32>,t:f32) -> vec3<f32> {
     let t=uv.x;
     let center=catmull(a,b,c,d,t);
     let direction=tangent(a,b,c,d,t);
-    let g=mix(guide(s.atoms.y),guide(s.atoms.z),t);
-    let width_axis=safe_normal(g-direction*dot(g,direction));
+    let frame=segment_guide(s,t,object.style.x);
+    let width_axis=safe_normal(frame.xyz-direction*dot(frame.xyz,direction));
     let height_axis=safe_normal(cross(direction,width_axis));
     let angle=uv.y*6.28318530718;
-    let width=mix(object.style.y,mix(s.shape.x,s.shape.y,t),object.style.x);
     let height=mix(0.13,mix(s.shape.z,s.shape.w,t),object.style.x);
+    let width=mix(height,mix(object.style.y,mix(s.shape.x,s.shape.y,t),object.style.x),frame.w);
     var cap=1.0;
     if s.caps.x>0.5 { cap*=smoothstep(0.0,0.12,t); }
     if s.caps.y>0.5 { cap*=smoothstep(0.0,0.12,1.0-t); }

@@ -17,6 +17,18 @@ For an animated change, use `ColorByProperty(protein, values, scale=scale, thick
 
 `ResidueValues.rmsf(protein, alignment=region)` aligns frames to the first frame, then computes fluctuations about the mean. It uses Cα atoms by default and reads one trajectory frame at a time. Use `align=False` for already aligned data. Unwrap periodic MD coordinates first. Describe NMR variation as ensemble variation and label state indices rather than simulation time. Label B-factor fields as confidence only when the source file defines them that way.
 
+## Presets: hydropathy, conservation, and pLDDT
+
+```python
+protein.surface(color="hydropathy")  # named palette
+conservation = ResidueValues.conservation(protein, "family.sto")  # FASTA/A3M/Stockholm/Clustal
+self.play(ColorByProperty(protein, conservation, stagger=0.4), run_time=2.5)
+self.add(ColorLegend(conservation))  # uses the preset scale, name, unit
+model.color_by("plddt")  # AlphaFold B-factor field, four bands
+```
+
+Preset `ResidueValues` carry their scale: pass them to `color_by`, `ColorByProperty`, or `ColorLegend` without `scale=`. Hydropathy defaults to Kyte–Doolittle (`"eisenberg"` also available). Conservation is 1 − H/ln 20 with Henikoff weights and a gap penalty, mapped through the alignment query to every matching chain; its ConSurf palette spans the protein's 5th–95th percentile, and unaligned residues are gray. Cite the alignment source on screen.
+
 ## Synchronized overlays
 
 ```python
@@ -34,6 +46,16 @@ Use actual selections in the supplied structure. Distance traces measure centroi
 
 `ContactMap` is a live binary Cα contact map, with an 8 Å default cutoff and nearby residues excluded. Use `region=` to limit its quadratic calculation for large proteins. `SequenceTrack` follows current residue colors, or accepts fixed `values=` and `scale=`. The same `selection` can mark a 3D region and both overlays. Plot `position` and `size` are viewport fractions; reserve space to keep the molecule visible.
 
+## Heatmaps
+
+```python
+pae = Heatmap.pae(model, "AF-…-predicted_aligned_error_v6.json", highlight=lobe).with_panel()
+distances = Heatmap.distances(protein, region=protein.select(residues=(1, 70)))
+change = Heatmap.distances(protein, reference=other_conformation)  # blue closer, red apart
+```
+
+`Heatmap.pae` reads AlphaFold DB, ColabFold, and AlphaFold 3 files; the matrix must match the loaded model's polymer residues. Rows are aligned residues and columns scored residues. `Heatmap.distances` is live and follows trajectories and torsion changes. `Heatmap(matrix, protein=protein, rows=ids)` draws any residue matrix; matrices larger than `max_cells` (160) are averaged. Every plot has `.with_panel()` to hide molecules passing behind it.
+
 ## Maps and slices
 
 ```python
@@ -50,6 +72,7 @@ Confirm that the structure and map originally share coordinates. `follow=protein
 For raw arrays, use `(x,y,z)` order and supply physical spacing/origin. Contours in `units="sigma"` use mean + level × standard deviation; absolute contours use raw values. Slice positions span 0–1 along a grid axis. Fixed contour meshes are cached; changing levels runs CPU marching cubes. Crop large maps and use `step_size` to reduce work. Inspect map alignment, contour coverage, slice contrast, and overlays in actual rendered frames.
 
 The website has complete scripts with rendered output:
+- [Heatmaps, confidence, and conservation](https://pdpppd.github.io/proteinmotion/docs/confidence-and-conservation/)
 - [Numerical properties](https://pdpppd.github.io/proteinmotion/docs/numerical-properties/)
 - [Synchronized plots](https://pdpppd.github.io/proteinmotion/docs/synchronized-plots/)
 - [Density maps](https://pdpppd.github.io/proteinmotion/docs/density-maps/)

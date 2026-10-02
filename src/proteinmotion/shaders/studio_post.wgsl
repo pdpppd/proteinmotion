@@ -57,6 +57,17 @@ fn bayer4(px: vec2i) -> f32 {
     return (m[i] + 0.5) / 16.0;
 }
 
+// Continuous occlusion of the shading point p by the visible surface point q behind the
+// sample s: how far q lies in front of s, with a smooth falloff. A binary in-front test
+// would switch samples on and off as geometry slides by a fraction of a pixel, which
+// shimmers during motion.
+fn occluded_by(p: vec3f, s: vec3f, q: vec3f, radius: f32) -> f32 {
+    let lead = distance(post.eye.xyz, s) - distance(post.eye.xyz, q);
+    let covered = smoothstep(0.03 * radius, 0.3 * radius, lead);
+    let range = smoothstep(0.0, 1.0, radius / max(distance(p, q), 1e-4));
+    return covered * range;
+}
+
 // Screen-space ambient occlusion in world space, with normals reconstructed from depth.
 fn occlusion(px: vec2i, front: bool) -> f32 {
     let d = layer_depth(px, front);
@@ -92,16 +103,22 @@ fn occlusion(px: vec2i, front: bool) -> f32 {
         let ndc = clip.xyz / clip.w;
         let suv = vec2f(ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5);
         if any(suv < vec2f(0.0)) || any(suv > vec2f(1.0)) { continue; }
-        let sd = layer_depth(vec2i(suv * post.size.xy), front);
-        if sd <= 0.0 { continue; }
-        let q = world_at(suv, sd);
-        // Continuous occlusion: how far the visible surface lies in front of the sample,
-        // with a smooth falloff. A binary in-front test would switch samples on and off as
-        // geometry slides by a fraction of a pixel, which shimmers during motion.
-        let lead = distance(post.eye.xyz, s) - distance(post.eye.xyz, q);
-        let covered = smoothstep(0.03 * radius, 0.3 * radius, lead);
-        let range = smoothstep(0.0, 1.0, radius / max(distance(p, q), 1e-4));
-        occlusion += covered * range;
+        let spx = vec2i(suv * post.size.xy);
+        let sd = layer_depth(spx, front);
+        var amount = 0.0;
+        if sd > 0.0 { amount = occluded_by(p, s, world_at(suv, sd), radius); }
+        // Fading geometry occludes the solid layer in proportion to its opacity, so a
+        // molecule that fades in shades its neighbors gradually, not all at once at full
+        // opacity. Where the front layer is the solid surface the two terms coincide.
+        if !front && post.flags.x > 0.5 {
+            let fd = front_depth_at(spx);
+            let size = vec2i(textureDimensions(front_alpha_tex));
+            let alpha = textureLoad(front_alpha_tex, clamp(spx, vec2i(0), size - 1), 0).r;
+            if fd > 0.0 && fd != sd {
+                amount = max(amount, smoothstep(0.5, 1.0, alpha) * occluded_by(p, s, world_at(suv, fd), radius));
+            }
+        }
+        occlusion += amount;
     }
     return clamp(1.0 - occlusion / f32(count), 0.0, 1.0);
 }

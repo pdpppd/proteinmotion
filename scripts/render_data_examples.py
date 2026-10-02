@@ -1,4 +1,4 @@
-"""Render ligand, numerical-property, plot, and density examples and verify every frame."""
+"""Render ligand, numerical-property, plot, density, and torsion examples and verify every frame."""
 
 import argparse
 import hashlib
@@ -104,6 +104,56 @@ EXAMPLES = [
         "1UBQ PDBe density: animate the contour and move a slice past helix 23–34.",
         ["1ubq.cif", "1ubq.ccp4"],
     ),
+    (
+        "torsions",
+        "torsion_basics",
+        "TorsionBasics",
+        7.5,
+        "Torsion angles",
+        "A 12-residue alanine peptide: ψ of Ala6 turns, then every residue moves to α-helix angles.",
+        [],
+    ),
+    (
+        "confidence-and-conservation",
+        "confidence_and_conservation",
+        "ConfidenceAndConservation",
+        3,
+        "Confidence and conservation",
+        "AlphaFold calmodulin pLDDT and PAE, then the ubiquitin surface by hydropathy and Pfam conservation.",
+        [
+            "AF-P0DP23-F1-model_v6.cif",
+            "AF-P0DP23-F1-predicted_aligned_error_v6.json",
+            "1ubq.cif",
+            "pf00240-seed.sto",
+        ],
+    ),
+    (
+        "hemoglobin-morph",
+        "structure_morph",
+        "HemoglobinMorph",
+        11,
+        "Hemoglobin from T to R",
+        "2DN2 deoxy to 2DN1 oxy (assembly 1), superposed on α1β1, with the change in Cα distances.",
+        ["2dn2.cif", "2dn1.cif"],
+    ),
+    (
+        "adenylate-kinase-morph",
+        "structure_morph",
+        "AdenylateKinaseMorph",
+        11.5,
+        "Adenylate kinase closes",
+        "4AKE open to 1AKE closed around Ap5A, superposed on the CORE.",
+        ["4ake.cif", "1ake.cif"],
+    ),
+    (
+        "torsions-film",
+        "torsions",
+        "TorsionsFilm",
+        32,
+        "Two angles per residue",
+        "φ and ψ of one residue, an α helix and its hydrogen bonds, the 1PGA β-hairpin, and ubiquitin.",
+        ["1pga.cif", "1ubq.cif"],
+    ),
 ]
 
 
@@ -115,6 +165,9 @@ BITRATE = {
     "troponin-sites": "4M",
     "side-chain-ensemble": "4M",
     "nucleic-ions": "4M",
+    "torsions-film": "4M",
+    "hemoglobin-morph": "4M",
+    "adenylate-kinase-morph": "4M",
 }
 
 

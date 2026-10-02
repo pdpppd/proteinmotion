@@ -91,7 +91,13 @@ def main():
             )
         p.add_argument("--blender", help="Blender executable path (EEVEE only)")
         p.add_argument("--samples", type=int, default=64, help="EEVEE samples per pixel")
-        p.add_argument("--supersampling", type=float, default=1.5, help="EEVEE spatial resolution multiplier")
+        p.add_argument(
+            "--supersampling",
+            type=float,
+            default=None,
+            help="Render at this multiple of the output size and average down: 1-4 for native and "
+            "Studio (default 2 up to 1920x1080, else 1); any value of at least 1 for EEVEE (default 1.5)",
+        )
         if mode == "render":
             p.add_argument("--codec", default="auto")
             p.add_argument("--bitrate", default="20M")
@@ -192,13 +198,24 @@ def main():
                 look = StudioLook(**settings)
             except (ValueError, TypeError) as error:
                 parser.error(str(error))
+    factor = getattr(args, "supersampling", None)
+    whole = factor is not None and float(factor).is_integer() and 1 <= factor <= 4
     scene = load_scene(
-        args.file, args.scene, width=args.width, height=args.height, fps=args.fps, msaa=args.msaa
+        args.file,
+        args.scene,
+        width=args.width,
+        height=args.height,
+        fps=args.fps,
+        msaa=args.msaa,
+        supersampling=int(factor) if whole else None,
     )
+    if factor is not None and not whole and (args.renderer or scene.renderer) != "eevee":
+        parser.error("--supersampling must be 1, 2, 3, or 4 for the native and Studio renderers")
+    eevee_supersampling = 1.5 if factor is None else factor
     if args.command == "render":
         from .eevee import EEVEEOptions
 
-        options = EEVEEOptions(blender=args.blender, samples=args.samples, supersampling=args.supersampling)
+        options = EEVEEOptions(blender=args.blender, samples=args.samples, supersampling=eevee_supersampling)
         scene.render(
             args.output,
             codec=args.codec,
@@ -210,7 +227,7 @@ def main():
     elif args.command == "still":
         from .eevee import EEVEEOptions
 
-        options = EEVEEOptions(blender=args.blender, samples=args.samples, supersampling=args.supersampling)
+        options = EEVEEOptions(blender=args.blender, samples=args.samples, supersampling=eevee_supersampling)
         scene.render_frame(
             args.time,
             output=args.output,

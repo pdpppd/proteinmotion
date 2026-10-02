@@ -1,6 +1,6 @@
 # Plots that follow the movie
 
-Add a time-series plot, a live Cα contact map, or a sequence strip to a scene. Axes, text, and data draw directly over the scene background. Both rendering backends use the same vector overlays. Positions and sizes use fractions of the viewport, measured from its upper-left corner.
+Add a time-series plot, a live Cα contact map, or a sequence strip to a scene. For AlphaFold PAE, distance matrices, and other residue-by-residue values, use a [heatmap](confidence-and-conservation.md); for φ/ψ, use a [Ramachandran plot](torsions.md#ramachandran-plots). Axes, text, and data draw directly over the scene background. Both rendering backends use the same vector overlays. Positions and sizes use fractions of the viewport, measured from its upper-left corner.
 
 ## Complete example and output
 

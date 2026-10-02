@@ -197,6 +197,24 @@ class Camera:
             points = target.positions @ m[:3, :3].T + m[:3, 3]
             self.target = (points.min(0) + points.max(0)) / 2 + self.composition_offset()
 
+    def look_along(self, axis, protein=None):
+        """Turn the view to look down ``axis``, which then points toward the viewer.
+
+        ``axis`` is in world coordinates, or in a protein's model frame when
+        ``protein`` is given (for example a DomainMotion axis or a helix axis).
+        """
+        direction = np.asarray(axis, dtype=float)
+        if direction.shape != (3,) or not np.isfinite(direction).all() or np.linalg.norm(direction) < 1e-9:
+            raise ValueError("axis must be a nonzero 3-vector")
+        if protein is not None:
+            direction = protein.orientation @ direction
+        direction /= np.linalg.norm(direction)
+        self.phi = float(
+            np.clip(np.arcsin(np.clip(direction[1], -1, 1)), -np.pi / 2 + 0.01, np.pi / 2 - 0.01)
+        )
+        self.theta = float(np.arctan2(direction[0], direction[2]))
+        return self
+
     def orbit(self, theta=0.0, phi=0.0):
         self.theta += theta
         self.phi = float(np.clip(self.phi + phi, -np.pi / 2 + 0.01, np.pi / 2 - 0.01))

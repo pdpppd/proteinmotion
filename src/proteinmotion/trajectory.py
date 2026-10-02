@@ -5,7 +5,7 @@ from collections import OrderedDict
 import numpy as np
 
 from .math3d import align_coordinates
-from .structure import Atom, Topology, coordinates, infer_bonds, make_chains, residue_record
+from .structure import Atom, Topology, coordinates, infer_bonds, make_chains, residue_record, with_dssp
 
 
 class Trajectory:
@@ -110,6 +110,8 @@ class Trajectory:
         topo = Topology(
             tuple(atoms), tuple(residues), infer_bonds(atoms, xyz), make_chains(residues, xyz, atoms)
         )
+        # MD topologies carry no helix/sheet records; assign them from the first frame.
+        topo = with_dssp(topo, xyz)
         source = _MDFrames(universe, group.indices, stride)
         result = cls(source, topology=topo, time_unit="ps")
         result._time_reader = source.times

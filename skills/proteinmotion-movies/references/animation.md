@@ -69,6 +69,25 @@ self.play(Morph(p, rest, align=False), run_time=2)
 
 `Morph(p, other_protein)` requires matching atom identities, or an explicit map covering every source atom. Raw coordinate arrays must follow source atom order. These operations retain topology; use `BackboneMorph` for different protein or nucleic-acid topologies. DNA/RNA alignment uses C1′ anchors.
 
+## Two structures of the same protein
+
+Use `StructureMorph` for two experimental states of one protein (apo/holo, T/R, open/closed), even when files differ in chains, missing residues, ligands, or atoms:
+
+```python
+deoxy = Protein.from_file("2dn2.cif").cartoon()
+oxy = Protein.from_file("2dn1.cif", assembly="1").cartoon()  # build the biological tetramer
+oxy.select(resname="MBN").hide_atoms()  # hide crystallization additives in the target
+dimer = deoxy.select(chain=["A", "B"])
+motion = domain_motion(deoxy, oxy, moving=deoxy.select(chain=["C", "D"]), fixed=dimer)
+deoxy.center()
+self.add(deoxy)
+self.camera.look_along(motion.axis, deoxy)  # the domain then turns in the image plane
+self.camera.frame(deoxy, margin=1.1, aspect=self.width / self.height)
+self.play(StructureMorph(deoxy, oxy, align=dimer), run_time=6)
+```
+
+`match_structures` pairs chains by sequence (identical copies by position), residues by number or alignment, atoms by name, and ligands by name and number. By default the target is superposed on the rigid core (matched Cα within 2 Å after pruning; size and RMSD in `match.report`), so moving domains do not shift the frame; `align=region` superposes on a chosen source Region instead. Short aligned fragments between gaps stay unpaired and fade. Residues follow screw paths (rigid domains rotate along arcs), side chains turn through their χ angles, and bond lengths relax. Atoms in one structure only fade (`fade_out`, `fade_in`). The target replaces the source at the end with the source's style (`style="target"` keeps its own); continue animating `morph.result` (the target). `domain_motion(...)` returns `angle` (degrees), `axis`, and `translation` for captions. `Protein.fetch("4HHB", assembly="1")` downloads and caches PDB or `AF-…` entries. Present the motion as the difference between two endpoints, not a pathway; paths do not avoid clashes, so a domain that turns far can pass through a neighbor. For large complexes, fading a lobe afterwards (`SetOpacity(region, 0.2)`) shows what the moving domain now touches; see `Cas9Morph` in `examples/structure_morph.py`.
+
 ## Different-protein contact matching
 
 ```python

@@ -4,7 +4,14 @@ from functools import lru_cache
 
 import numpy as np
 
-from .geometry import atom_colors, atom_metadata, residue_colors, segments, state_data
+from .geometry import (
+    atom_colors,
+    atom_metadata,
+    residue_colors,
+    secondary_weights,
+    segments,
+    state_data,
+)
 from .math3d import normalize
 from .styling import atom_weights, current_tints
 
@@ -145,10 +152,15 @@ def _cartoon(p, xyz, tint):
     steps, sides = 16, 16
     ids = rows[:, :4].copy().view(np.uint32)
     # Evaluate the same guide interpolation and Catmull–Rom curve as the native shader.
-    ga = state_data(p.topology, p._a)[:, 4:7]
-    gb = state_data(p.topology, p._b, ga)[:, 4:7]
-    gb = np.where((ga * gb).sum(1)[:, None] < 0, -gb, gb)
-    guides = ga * (1 - p.atom_progress[:, None]) + gb * p.atom_progress[:, None]
+    secondary = secondary_weights(p)
+    sa = state_data(p.topology, p._a, secondary=secondary)
+    sb = state_data(p.topology, p._b, sa[:, 4:7], secondary)
+    ga, gb = sa[:, 4:7], sb[:, 4:7]
+    flipped = (ga * gb).sum(1) < 0
+    gb = np.where(flipped[:, None], -gb, gb)
+    progress = p.atom_progress
+    guides = ga * (1 - progress[:, None]) + gb * progress[:, None]
+    firm = sa[:, 7] * (1 - progress) + sb[:, 7] * progress
     t = np.linspace(0, 1, steps + 1)[None, :, None]
     a, b, c, d = (xyz[ids[:, i]][:, None] for i in range(4))
     center = 0.5 * (
@@ -157,13 +169,29 @@ def _cartoon(p, xyz, tint):
     tangent = normalize(
         0.5 * ((-a + c) + 2 * (2 * a - 5 * b + 4 * c - d) * t + 3 * (-a + 3 * b - 3 * c + d) * t * t)
     )
-    guide = (1 - t) * guides[ids[:, 1]][:, None] + t * guides[ids[:, 2]][:, None]
-    u = normalize(guide - tangent * (guide * tangent).sum(-1, keepdims=True))
-    v = normalize(np.cross(tangent, u))
     cartoon, ribbon = p.representation[:2]
     mix = cartoon / max(cartoon + ribbon, 1e-8)
-    width = (1 - mix) * p.ribbon_width + mix * ((1 - t) * rows[:, 4, None, None] + t * rows[:, 5, None, None])
+    # As segment_guide in the shader: arrowheads keep the strand's axis, and ribbons
+    # round where the twist to the next residue is ambiguous.
+    hold = np.clip(rows[:, 18, None, None], 0, 1) * mix * (1 - _smoothstep(0.85, 1, t))
+    first, second = guides[ids[:, 1]], guides[ids[:, 2]]
+    firm = firm[ids[:, 1]]
+    # Restore the second keyframe's twist of segments that per-atom alignment reversed.
+    swap = flipped[ids[:, 1]] != flipped[ids[:, 2]]
+    middle = 0.5 * (progress[ids[:, 1]] + progress[ids[:, 2]])
+    second = np.where((swap & (middle > 0.5))[:, None], -second, second)
+    firm = np.where(swap, firm * _smoothstep(0.1, 0.25, np.abs(middle - 0.5)), firm)
+    first, second, firm = first[:, None], second[:, None], firm[:, None, None]
+    along = firm * t + (1 - firm) * _smoothstep(0.35, 0.65, t)
+    guide = (1 - along) * first + along * second
+    guide += hold * (first - guide)
+    flat = 1 - (1 - firm) * _smoothstep(0.22, 0.36, t) * _smoothstep(0.22, 0.36, 1 - t)
+    flat += hold * (1 - flat)
+    u = normalize(guide - tangent * (guide * tangent).sum(-1, keepdims=True))
+    v = normalize(np.cross(tangent, u))
     height = (1 - mix) * 0.13 + mix * ((1 - t) * rows[:, 6, None, None] + t * rows[:, 7, None, None])
+    width = (1 - mix) * p.ribbon_width + mix * ((1 - t) * rows[:, 4, None, None] + t * rows[:, 5, None, None])
+    width = height + flat * (width - height)
     cap = np.ones((len(rows), steps + 1, 1))
     for flag, progress in ((16, t), (17, 1 - t)):
         z = np.clip(progress / 0.12, 0, 1)

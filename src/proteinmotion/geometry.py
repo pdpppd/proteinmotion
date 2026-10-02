@@ -40,34 +40,70 @@ BASE_COLORS = {
 }
 
 
+# Coil, helix and strand cartoon cross-sections (width, thickness) in Å, in the
+# order of Protein._secondary weights.
+CARTOON_PROFILE = np.array([[0.24, 0.24], [1.15, 0.20], [1.18, 0.16]])
+STUDIO_PROFILE = np.array([[0.18, 0.18], [1.25, 0.16], [1.20, 0.12]])
+SHEET_ARROW = 2.05
+
+
+def secondary_weights(protein):
+    """Coil/helix/strand weights per residue, following the topology if they are stale."""
+    weights = getattr(protein, "_secondary", None)
+    if weights is None or len(weights) != len(protein.topology.residues):
+        from .secondary import weights as from_codes
+
+        weights = from_codes("".join(r.secondary for r in protein.topology.residues))
+    return np.asarray(weights, np.float32)
+
+
 def residue_colors(protein):
     topo, scheme = protein.topology, protein.color_scheme
+    if scheme in ("secondary", "base", "element"):
+        palette = np.array([color(SS_COLORS[k]) for k in "CHE"], np.float32)
+        result = secondary_weights(protein) @ palette
+        for i, r in enumerate(topo.residues):
+            if r.is_nucleic:
+                result[i] = color(BASE_COLORS.get(r.base, BASE_COLORS["N"]))
+        return result.astype(np.float32)
+    if scheme == "hydropathy":
+        from .properties import ColorScale, ResidueValues
+
+        return ColorScale.hydropathy().map(ResidueValues.hydropathy(protein).values)
     chains = list(dict.fromkeys(r.chain for r in topo.residues))
     result = []
     for i, r in enumerate(topo.residues):
-        if scheme in ("secondary", "base", "element"):
-            c = color(BASE_COLORS.get(r.base, BASE_COLORS["N"]) if r.is_nucleic else SS_COLORS[r.secondary])
-        elif scheme == "rainbow":
+        if scheme == "rainbow":
             c = colorsys.hsv_to_rgb(0.70 * (1 - i / max(1, len(topo.residues) - 1)), 0.58, 0.95)
         elif scheme == "chain":
             c = colorsys.hsv_to_rgb((chains.index(r.chain) * 0.618 + 0.42) % 1, 0.5, 0.93)
         else:
             c = color(scheme)
         result.append(c)
-    return np.array(result, np.float32)
+    return np.array(result, np.float32).reshape(-1, 3)
+
+
+def _element_data(topology):
+    """Element colors and display radii per atom, computed once per topology."""
+    cached = topology.__dict__.get("_element_data")
+    if cached is None:
+        categories = topology.residue_categories
+        cached = np.zeros((len(topology.atoms), 4), np.float32)
+        for i, atom in enumerate(topology.atoms):
+            cached[i, :3] = color(ELEMENT_COLORS.get(atom.element, "#c987cb"))
+            cached[i, 3] = max(float(gemmi.Element(atom.element).vdw_r), 1.0)
+            if categories[atom.residue_index] == "ion":
+                cached[i, 3] *= ION_SCALE
+        cached.flags.writeable = False
+        topology.__dict__["_element_data"] = cached
+    return cached
 
 
 def atom_metadata(protein):
     if protein._metadata_override is not None:
         return protein._metadata_override
     topology = protein.topology
-    categories = topology.residue_categories
-    data = np.zeros((len(topology.atoms), 4), np.float32)
-    for i, atom in enumerate(topology.atoms):
-        data[i, :3] = color(ELEMENT_COLORS.get(atom.element, "#c987cb"))
-        data[i, 3] = max(float(gemmi.Element(atom.element).vdw_r), 1.0)
-        if categories[atom.residue_index] == "ion":
-            data[i, 3] *= ION_SCALE
+    data = _element_data(topology).copy()
     if protein.color_scheme != "element":
         colors = residue_colors(protein)[[a.residue_index for a in topology.atoms]]
         if protein.color_scheme in ("secondary", "base"):
@@ -85,9 +121,12 @@ def detail_colors(protein):
     meta = atom_metadata(protein)
     if protein._metadata_override is not None or protein.color_scheme == "element":
         return meta[:, :3].copy()
-    atoms = protein.topology.atoms
-    result = np.array([color(ELEMENT_COLORS.get(a.element, "#c987cb")) for a in atoms], np.float32)
-    carbon = np.array([a.element == "C" for a in atoms], bool)
+    topology = protein.topology
+    result = _element_data(topology)[:, :3].copy()
+    carbon = topology.__dict__.get("_carbon_atoms")
+    if carbon is None:
+        carbon = np.array([a.element == "C" for a in topology.atoms], bool)
+        topology.__dict__["_carbon_atoms"] = carbon
     result[carbon] = meta[carbon, :3]
     return result
 
@@ -112,22 +151,26 @@ def packed_metadata(protein):
 
 
 def segments(protein):
-    """80-byte segment records: four CA indices + widths/thicknesses + endpoint colors."""
+    """80-byte segment records: four CA indices + widths/thicknesses + endpoint colors.
+
+    Cross-sections blend the coil, helix and strand profiles by the residue's
+    secondary-structure weights; the last residue of a strand widens into an arrow.
+    """
     topo = protein.topology
     palette = residue_colors(protein)
+    secondary = secondary_weights(protein)
     rows = []
     for chain in topo.chains:
         cas = [topo.residues[i].trace_atom for i in chain]
-        width, thick = [], []
-        for j, ri in enumerate(chain):
-            ss = topo.residues[ri].secondary
-            w, h = {"H": (1.15, 0.20), "E": (1.18, 0.16), "C": (0.24, 0.24)}[ss]
-            if topo.residues[ri].is_nucleic:
-                w = h = protein.backbone_radius
-            if ss == "E" and (j == len(chain) - 1 or topo.residues[chain[j + 1]].secondary != "E"):
-                w = 2.05
-            width.append(w * protein._cartoon_scale[ri])
-            thick.append(h * protein._cartoon_scale[ri])
+        weights = secondary[chain]
+        width, thick = (weights @ CARTOON_PROFILE).T
+        strand = weights[:, 2]
+        arrow = strand * (1 - np.r_[strand[1:], 0.0])
+        width = width + arrow * (SHEET_ARROW - width)
+        nucleic = np.array([topo.residues[ri].is_nucleic for ri in chain])
+        width[nucleic] = thick[nucleic] = protein.backbone_radius
+        scale = protein._cartoon_scale[chain]
+        width, thick = width * scale, thick * scale
         for i in range(len(chain) - 1):
             row = np.zeros(20, np.float32)
             row[:4].view(np.uint32)[:] = [
@@ -138,8 +181,9 @@ def segments(protein):
             ]
             row[4:8] = [width[i], width[i + 1], thick[i], thick[i + 1]]
             row[8:11], row[12:15] = palette[chain[i]], palette[chain[i + 1]]
-            # End cap flags. Surface endpoints collapse to close open ribbon ends.
-            row[16:20] = [i == 0, i == len(chain) - 2, 0, 0]
+            # End cap flags (surface endpoints collapse to close open ribbon ends), and the
+            # arrow weight of a segment leaving a strand, whose arrowhead keeps the strand's axis.
+            row[16:20] = [i == 0, i == len(chain) - 2, arrow[i], 0]
             rows.append(row)
     return np.asarray(rows, np.float32).reshape(-1, 20)
 
@@ -153,36 +197,131 @@ def studio_cartoon_segments(protein):
     """
     rows = segments(protein)
     topo = protein.topology
+    secondary = secondary_weights(protein)
+    # Codes are continuous (helix weight + 2 × strand weight) so shapes can blend.
+    codes = secondary[:, 1] + 2 * secondary[:, 2]
+    dims = secondary @ STUDIO_PROFILE
     offset = 0
     for chain in topo.chains:
         for j in range(len(chain) - 1):
             row = rows[offset]
             offset += 1
             for endpoint, ri in enumerate(chain[j : j + 2]):
-                residue = topo.residues[ri]
-                if residue.is_nucleic:
+                if topo.residues[ri].is_nucleic:
                     row[11 + 4 * endpoint] = -1
                     continue
-                ss = residue.secondary
-                row[11 + 4 * endpoint] = {"C": 0, "H": 1, "E": 2}[ss]
-                width, height = {"C": (0.18, 0.18), "H": (1.25, 0.16), "E": (1.20, 0.12)}[ss]
+                row[11 + 4 * endpoint] = codes[ri]
                 scale = protein._cartoon_scale[ri]
-                row[4 + endpoint], row[6 + endpoint] = width * scale, height * scale
-            before, after = [topo.residues[ri] for ri in chain[j : j + 2]]
-            row[18] = not before.is_nucleic and (
-                (before.secondary == "E" and after.secondary != "E")
-                or (after.secondary == "E" and j == len(chain) - 2)
-            )
+                row[4 + endpoint], row[6 + endpoint] = dims[ri] * scale
+            before, after = chain[j], chain[j + 1]
+            if not topo.residues[before].is_nucleic:
+                strand_a, strand_b = secondary[before, 2], secondary[after, 2]
+                row[18] = min(1.0, strand_a * (1 - strand_b) + strand_b * (j == len(chain) - 2))
     return rows
 
 
-def state_data(topology, xyz, reference_normals=None):
-    """Compute frame guides once per keyframe, never once per rendered tween."""
+# Typical turn of a cartoon's width axis from one residue to the next about the Cα–Cα
+# chord, for coil, helix and strand: right-handed in α-helices, slight elsewhere.
+CARTOON_TWIST = np.radians([15.0, 49.0, 15.0])
+
+
+def _turn(v, axis, angle):
+    """Rotate the rows of v about unit rows of axis by angle (radians)."""
+    c, s = np.cos(angle)[:, None], np.sin(angle)[:, None]
+    return v * c + np.cross(axis, v) * s + axis * np.sum(axis * v, 1)[:, None] * (1 - c)
+
+
+def _smoothstep(lo, hi, x):
+    t = np.clip((x - lo) / (hi - lo), 0, 1)
+    return t * t * (3 - 2 * t)
+
+
+def _line_directions(tensors, normals):
+    """Principal direction of each symmetric tensor within the plane perpendicular to its normal."""
+    reference = np.where(np.abs(normals[:, :1]) < 0.9, [[1.0, 0.0, 0.0]], [[0.0, 1.0, 0.0]])
+    u = normalize(np.cross(normals, reference))
+    v = np.cross(normals, u)
+    a = np.einsum("ni,nij,nj->n", u, tensors, u)
+    b = np.einsum("ni,nij,nj->n", u, tensors, v)
+    d = np.einsum("ni,nij,nj->n", v, tensors, v)
+    angle = 0.5 * np.arctan2(2 * b, a - d)
+    return np.cos(angle)[:, None] * u + np.sin(angle)[:, None] * v
+
+
+def protein_guides(points, secondary=None, carbonyls=None):
+    """Cartoon width axes along a Cα trace, and how firmly each step's twist is determined.
+
+    Axes depend only on atoms a few residues away, so they move continuously with
+    them: crossing consecutive Cα bisectors gives the local helix axis, and curvature
+    binormals orient strands and loops. Cα→O vectors (``carbonyls``, zero where
+    missing) only decide where the trace is straight. Lines are averaged as sign-free
+    tensors, then each axis is oriented like its predecessor turned by the typical
+    twist (CARTOON_TWIST). The firmness of step i → i+1 is 1 where that twist is clear
+    and falls to 0 where it is ambiguous (about 90° from typical). Renderers round the
+    ribbon there, so a change of twist during an animation cannot flip a flat ribbon.
+    """
+    points = np.asarray(points, dtype=np.float64)
+    n = len(points)
+    tangents = normalize(np.gradient(points, axis=0))
+    binormal = np.zeros_like(points)
+    binormal[1:-1] = np.cross(points[1:-1] - points[:-2], points[2:] - points[1:-1])
+    binormal[0], binormal[-1] = binormal[1], binormal[-2]
+    binormal = normalize(binormal)
+    bisector = np.zeros_like(points)
+    bisector[1:-1] = normalize(points[:-2] + points[2:] - 2 * points[1:-1])
+    axis = np.zeros_like(points)
+    axis[1:-2] = np.cross(bisector[1:-2], bisector[2:-1])
+    before = np.r_[np.zeros((1, 3)), axis[:-1]]
+    chords = normalize(points[1:] - points[:-1])
+    peptide = np.zeros_like(points) if carbonyls is None else np.asarray(carbonyls, np.float64)
+    ahead = np.r_[chords, chords[-1:]]
+    peptide = normalize(peptide - np.sum(peptide * ahead, 1)[:, None] * ahead)
+    terms = ((1, axis), (1, before), (0.5, binormal), (0.05, peptide))
+    lines = sum(w * x[:, :, None] * x[:, None, :] for w, x in terms)
+    window = lines.copy()
+    window[1:] += 0.5 * lines[:-1]
+    window[:-1] += 0.5 * lines[1:]
+    guides = _line_directions(window, tangents)
+    weights = np.asarray(secondary, np.float64) if secondary is not None else np.tile([1.0, 0, 0], (n, 1))
+    step = 0.5 * (weights[:-1] + weights[1:]) @ CARTOON_TWIST
+
+    def orient(g):
+        agree = np.sum(g[1:] * _turn(g[:-1], chords, step), 1)
+        return g * np.cumprod(np.r_[1.0, np.where(agree < 0, -1.0, 1.0)])[:, None], np.abs(agree)
+
+    guides, _ = orient(guides)
+    # Pull each axis toward its neighbours' predictions of it, ignoring ambiguous neighbours.
+    ahead, behind = _turn(guides[:-1], chords, step), _turn(guides[1:], chords, -step)
+    trust = _smoothstep(0.15, 0.45, np.abs(np.sum(ahead * guides[1:], 1)))[:, None]
+    smoothed = guides.copy()
+    smoothed[1:] += 0.5 * trust * ahead
+    smoothed[:-1] += 0.5 * trust * behind
+    smoothed -= np.sum(smoothed * tangents, 1)[:, None] * tangents
+    guides, agree = orient(normalize(smoothed))
+    return guides, np.r_[_smoothstep(0.1, 0.4, agree), 1.0]
+
+
+def state_data(topology, xyz, reference_normals=None, secondary=None):
+    """Compute frame guides once per keyframe, never once per rendered tween.
+
+    Rows hold the position and, on trace atoms, the cartoon width axis plus the
+    firmness of the twist to the next residue (see protein_guides). ``secondary``
+    gives coil/helix/strand weights per residue, which set the expected twist.
+    """
     data = np.zeros((len(xyz), 8), np.float32)
     data[:, :3] = xyz
     for chain in topology.chains:
         ca = np.array([topology.residues[i].trace_atom for i in chain])
         pts = xyz[ca]
+        if len(chain) >= 3 and not topology.residues[chain[0]].is_nucleic:
+            oxygen = np.array([topology.residues[i].oxygen for i in chain])
+            carbonyls = np.where(oxygen[:, None] >= 0, xyz[np.maximum(oxygen, 0)] - pts, 0.0)
+            weights = None if secondary is None else secondary[chain]
+            guides, firmness = protein_guides(pts, weights, carbonyls)
+            if reference_normals is not None and np.sum(guides * reference_normals[ca]) < 0:
+                guides *= -1
+            data[ca, 4:7], data[ca, 7] = guides, firmness
+            continue
         tangents = normalize(np.gradient(pts, axis=0))
         guides = []
         last = None
@@ -214,7 +353,7 @@ def state_data(topology, xyz, reference_normals=None):
             # Choose a consistent sign for the whole continuous chain across frames.
             if np.sum(guides * reference_normals[ca]) < 0:
                 guides *= -1
-        data[ca, 4:7] = guides
+        data[ca, 4:7], data[ca, 7] = guides, 1.0
     return data
 
 

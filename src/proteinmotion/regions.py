@@ -133,6 +133,7 @@ class Region:
             resnames = {n.upper() for n in resnames}
         categories = {c for c, on in (("ligand", ligands), ("ion", ions), ("water", water)) if on}
         residue_categories = protein.topology.residue_categories
+        states = protein.secondary_structure if structures is not None else None
         near = None
         if (within is None) != (of is None):
             raise ValueError("Use within and of together, e.g. within=5.0, of=ligand")
@@ -162,7 +163,7 @@ class Region:
             and (not categories or residue_categories[atom.residue_index] in categories)
             and (polymer is None or (residue_categories[atom.residue_index] == "polymer") == polymer)
             and (elements is None or atom.element.upper() in elements)
-            and (structures is None or protein.topology.residues[atom.residue_index].secondary in structures)
+            and (structures is None or states[atom.residue_index] in structures)
             and (codes is None or atom.icode in codes)
             and (near is None or near[atom.residue_index])
         ]
@@ -264,6 +265,25 @@ class Region:
         from .distances import Distance
 
         return Distance(self, other, **kwargs)
+
+    def torsions(self):
+        """Measure φ, ψ, ω and χ1–χ5 in degrees for this region's residues."""
+        from .torsions import measure
+
+        self._validate()
+        return measure(self.protein, self.residue_indices)
+
+    def set_torsions(self, *, conformation=None, anchor="center", secondary="auto", **angles):
+        """Set this region's torsions in degrees immediately; see SetTorsions."""
+        from .torsions import set_torsions
+
+        return set_torsions(self, conformation=conformation, anchor=anchor, secondary=secondary, **angles)
+
+    def torsion_marker(self, torsion="phi", **kwargs):
+        """A live protractor showing one torsion of this single-residue region."""
+        from .torsions import TorsionMarker
+
+        return TorsionMarker(self, torsion, **kwargs)
 
     def callout(self, text, **kwargs):
         """Create a screen-fixed callout whose leader follows this region."""

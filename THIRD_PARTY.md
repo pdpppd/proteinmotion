@@ -28,6 +28,17 @@ Other dependencies retain their respective upstream licenses. PDB structure prov
 
 The installable starter movie and Codex skill include deposited ubiquitin coordinates, [PDB 1UBQ](https://www.rcsb.org/structure/1UBQ), copied unchanged from `examples/data/1ubq.cif`. The file retains its structural metadata and source citation. These scientific data are separate from the package's original MIT-licensed code.
 
+## Ramachandran reference regions
+
+`src/proteinmotion/data/ramachandran.npz` holds favored and allowed φ/ψ regions computed by `scripts/build_ramachandran_reference.py` from 1,000 X-ray entries in the [Protein Data Bank](https://www.rcsb.org/) (one per 30% sequence-identity cluster, 1.4 Å resolution or better). PDB data are available under [CC0 1.0](https://www.rcsb.org/pages/usage-policy). `ramachandran.json` lists the entries, filters, and residue counts.
+
+## Example data
+
+- `examples/data/AF-P0DP23-F1-model_v6.cif` and `AF-P0DP23-F1-predicted_aligned_error_v6.json`: [AlphaFold DB](https://alphafold.ebi.ac.uk/entry/P0DP23) prediction of human calmodulin-1, version 6, unmodified. AlphaFold DB data are licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Cite Jumper et al., *Nature* 596, 583–589 (2021) and Varadi et al., *Nucleic Acids Res.* 52, D368–D375 (2024).
+- `examples/data/pf00240-seed.sto`: the [Pfam PF00240](https://www.ebi.ac.uk/interpro/entry/pfam/PF00240/) (Ubiquitin family) seed alignment from InterPro, available under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
+- `examples/data/1pga.cif`: protein G B1 domain, [PDB 1PGA](https://www.rcsb.org/structure/1PGA), unmodified.
+- `examples/data/2dn1.cif`, `2dn2.cif`, `4ake.cif`, `1ake.cif`: hemoglobin and adenylate kinase entries from the [PDB](https://www.rcsb.org/) (CC0 1.0), unmodified.
+
 ## Blender (optional external application)
 
 The EEVEE backend runs a separately installed [Blender](https://www.blender.org/) executable. Blender and EEVEE are not bundled with ProteinMotion. Blender is distributed under the [GNU GPL](https://www.blender.org/about/license/). ProteinMotion's exported meshes and frame requests cross a process boundary; the EEVEE integration code in this repository uses the repository's MIT license.

@@ -463,6 +463,40 @@ class Representation(Animation):
             self.target._surface_options = self.surface_options
 
 
+class SecondaryStructure(Animation):
+    """Blend the cartoon to new helix, strand and coil states.
+
+    ``assignments="dssp"`` assigns them from the coordinates when the clip starts,
+    for example after a Morph or PlayTrajectory; an H/E/C string sets them directly.
+    """
+
+    channels = frozenset({"secondary"})
+
+    def __init__(self, protein, assignments="dssp", **kwargs):
+        from .secondary import weights
+
+        super().__init__(protein, **kwargs)
+        self.dssp = isinstance(assignments, str) and assignments.lower() == "dssp"
+        if not self.dssp:
+            if len(assignments) != len(protein.topology.residues):
+                raise ValueError("Supply one H/E/C code per residue, or 'dssp'")
+            weights(assignments)  # validate the codes now
+        self.assignments = assignments
+
+    def bind(self):
+        from .secondary import assign, weights
+
+        super().bind()
+        p = self.target
+        self.start = p._secondary
+        self.end = weights(assign(p.topology, p.positions) if self.dssp else self.assignments)
+
+    def apply(self, alpha):
+        blended = ((1 - alpha) * self.start + alpha * self.end).astype(np.float32)
+        blended.flags.writeable = False
+        self.target._secondary = blended
+
+
 class Animate(Animation):
     """Fluent .animate.shift(...).rotate(...).scale(...) or camera.animate.orbit(...)."""
 
