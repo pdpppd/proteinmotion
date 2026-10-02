@@ -1,5 +1,9 @@
 # Validation and performance
 
+## Release 0.14.0: 1 October 2026
+
+The source archive and wheel built from the release tree passed `twine check --strict`. In a fresh Python 3.12 environment outside the checkout, the wheel installed cleanly and passed `pip check` and the installed-package check, which covers packaged resources, the CLI, the starter scene, and the skill. Native and Studio movies of the starter scene rendered at 1280 × 720, and all 561 frames of each decoded. The full suite passed 319 tests, with five NVIDIA-only cases skipped, on the Apple M3 Max with `PROTEINMOTION_TEST_EEVEE=1`. The website build, TypeScript checks, and all 146 exported pages (35,546 local links and media references) passed verification.
+
 ## Supersampling, rigid-core superposition, and per-atom fades: 1 October 2026
 
 - **Supersampling.** The native and Studio renderers now draw stills and movies up to 1920 × 1080 at twice the width and height and average each 2 × 2 block in linear light, on top of 4× MSAA. This removes stair-steps on thin tubes and callout lines, and the dotted seams where Studio's ambient occlusion, which reads one depth sample per pixel, met a thin tube in front of another surface. At 1080p the 1× and 2× frames of the adenylate kinase film differ by 0.2 gray levels on average (99th percentile 5): only edges change, because text, line widths, and effects are sized in 1080p design pixels. A test checks that 2× lies closer to a 4× reference than 1× does, for both renderers. The films rendered at 82 fps (adenylate kinase, previously 90), 31 fps (hemoglobin, previously 32), and 77 fps (torsions, previously 85).

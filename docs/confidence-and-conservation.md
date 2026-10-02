@@ -2,6 +2,8 @@
 
 Show residue-by-residue matrices, such as AlphaFold predicted aligned error (PAE) or Cα distances, next to the structure. Color residues by AlphaFold pLDDT, hydropathy, or sequence conservation with preset color scales.
 
+Requires ProteinMotion 0.14.0 or later. Upgrade with `python -m pip install --upgrade "proteinmotion>=0.14.0"`.
+
 ## Complete example and output
 
 The first part colors the AlphaFold DB model of calmodulin by pLDDT and shows its PAE. Each lobe is predicted with confidence, but the position of one lobe relative to the other is not. The second part colors the ubiquitin surface by hydropathy, then by conservation across the Pfam ubiquitin family.

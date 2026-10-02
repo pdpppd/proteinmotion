@@ -90,6 +90,19 @@ Store settings on a scene with `renderer = "studio"` and
 them across interactive preview, stills, and video. The native renderer remains
 the default. See the [Studio guide and rendered examples](https://pdpppd.github.io/proteinmotion/docs/studio/).
 
+### New in 0.14
+
+- **Torsions and secondary structure:** build peptides from a sequence with `Protein.build`, measure and animate φ, ψ, ω, and χ angles with `SetTorsions`, and plot residues on Ramachandran plots drawn from high-resolution structures. Cartoons follow DSSP as secondary structure forms and blend between coil, helix, and strand. See [torsions](https://pdpppd.github.io/proteinmotion/docs/torsions/).
+- **Two states of one protein:** `StructureMorph` animates between two experimental structures, even when their chains, missing residues, ligands, or atoms differ. Domains swing along arcs about the part that stays put. `domain_motion` measures the hinge, `Protein.from_file(path, assembly="1")` builds biological assemblies, and `Protein.fetch("1ANF")` downloads PDB and AlphaFold DB entries. See [morphs](https://pdpppd.github.io/proteinmotion/docs/morphing/).
+- **Data on structures:** heatmaps for AlphaFold PAE and distance matrices, and pLDDT, hydropathy, and conservation color presets. See [heatmaps, confidence, and conservation](https://pdpppd.github.io/proteinmotion/docs/confidence-and-conservation/).
+- **Smoother rendering:** cartoons keep their orientation through morphs and trajectories, Studio fades end without a jump, and stills and movies up to 1920 × 1080 are supersampled for clean edges.
+
+### Upgrading to 0.14
+
+- Native and Studio stills and movies up to 1920 × 1080 now render at twice the width and height and average down. Edges are smoother at up to four times the GPU work. Pass `ProteinScene(supersampling=1)` or `--supersampling 1` for the earlier output.
+- Files without helix and sheet records, such as AlphaFold models and many NMR and MD structures, now get DSSP secondary structure instead of an all-coil cartoon. Pass `secondary="file"` to `Protein.from_file` for the earlier behavior.
+- Cartoon and ribbon orientation now follows the Cα trace, so ribbons no longer flip during motion. Where the twist between two residues is ambiguous, usually at sharp kinks and in loops, the ribbon makes that turn through a short round section.
+
 ### Upgrading to 0.13
 
 - `Thread` and `Unthread` now move the actual cartoon, ribbon, or ball-and-stick geometry. Pass `mode="wire"` to keep the earlier glowing-wire entrance. Surface threading raises an error.

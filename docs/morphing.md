@@ -4,7 +4,7 @@ Morph between two experimental structures of the same protein with `StructureMor
 
 ## Morph between two structures of the same protein
 
-`StructureMorph(source, target)` animates the change between two deposited states, such as deoxy and oxy hemoglobin or open and closed adenylate kinase. The files can differ in chains, missing residues, ligands, and atoms.
+`StructureMorph(source, target)` animates the change between two deposited states, such as deoxy and oxy hemoglobin or open and closed adenylate kinase. The files can differ in chains, missing residues, ligands, and atoms. Requires ProteinMotion 0.14.0 or later. Upgrade with `python -m pip install --upgrade "proteinmotion>=0.14.0"`.
 
 ```python
 deoxy = Protein.from_file("2dn2.cif").cartoon()

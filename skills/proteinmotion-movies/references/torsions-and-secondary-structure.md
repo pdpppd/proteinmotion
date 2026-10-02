@@ -1,6 +1,6 @@
 # Torsions, peptides, and secondary structure
 
-Use ProteinMotion 0.13+ from this repository revision. Import the names below from `proteinmotion`. Torsion angles are in degrees; scene rotations and camera angles stay in radians.
+Requires ProteinMotion 0.14.0 or later. Import the names below from `proteinmotion`. Torsion angles are in degrees; scene rotations and camera angles stay in radians.
 
 ## Build a peptide
 

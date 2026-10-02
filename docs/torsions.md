@@ -2,6 +2,8 @@
 
 Build peptides from a sequence, measure and animate backbone (φ, ψ, ω) and side-chain (χ) torsion angles, and show each residue on a live Ramachandran plot. Torsion changes rotate atoms about bonds, so bond lengths and angles stay fixed. The cartoon follows the change in secondary structure.
 
+Requires ProteinMotion 0.14.0 or later. Upgrade with `python -m pip install --upgrade "proteinmotion>=0.14.0"`.
+
 ## Complete example and output
 
 The example builds a 12-residue alanine peptide as an extended β strand. It turns ψ of Ala6, then moves every residue to α-helix angles, starting at the N terminus.

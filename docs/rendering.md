@@ -10,7 +10,7 @@ Residue color and opacity apply across representations. A separate pass draws te
 
 The renderer uses 4× multisample antialiasing (MSAA) to smooth geometry edges. Sphere silhouettes use analytical intersections and receive partial antialiasing. Current rendering limits include shadows, screen-space ambient occlusion, ray tracing, and refractive materials.
 
-Stills and movies up to 1920 × 1080 are also supersampled: the native and Studio renderers draw each frame at twice the width and height and average each 2 × 2 block of pixels in linear light. This smooths edges that MSAA cannot, such as thin loop tubes and callout lines, specular highlights, and the edges of Studio's ambient occlusion. Text, line widths, and effects keep their size because they are defined in 1080p design pixels. Set `ProteinScene(supersampling=1)` or `--supersampling 1` to turn it off, or 3 or 4 for still finer edges at a higher GPU cost; larger outputs default to 1. The interactive preview does not supersample.
+Since version 0.14.0, stills and movies up to 1920 × 1080 are also supersampled: the native and Studio renderers draw each frame at twice the width and height and average each 2 × 2 block of pixels in linear light. This smooths edges that MSAA cannot, such as thin loop tubes and callout lines, specular highlights, and the edges of Studio's ambient occlusion. Text, line widths, and effects keep their size because they are defined in 1080p design pixels. Set `ProteinScene(supersampling=1)` or `--supersampling 1` to turn it off, or 3 or 4 for still finer edges at a higher GPU cost; larger outputs default to 1. The interactive preview does not supersample.
 
 ## Studio GPU rendering
 

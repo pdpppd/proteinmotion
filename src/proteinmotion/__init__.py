@@ -39,7 +39,7 @@ from .timeline import AnimationGroup
 from .torsions import RotateTorsions, SetTorsions, TorsionAngles, TorsionMarker
 from .trajectory import Trajectory
 
-__version__ = "0.13.0"
+__version__ = "0.14.0"
 __all__ = [
     "AnimationGroup",
     "MolecularStyle",
