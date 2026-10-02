@@ -9,6 +9,7 @@ build/
 *.mp4
 !website/public/media/*.mp4
 !website/public/media/docs/*.mp4
+!website/public/media/gallery/*.mp4
 .DS_Store
 .env
 .env.*
