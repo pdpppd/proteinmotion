@@ -4,7 +4,7 @@ The rendered excerpts use [docs_examples.py](docs_examples.py). Its `ubiquitin()
 
 Add text, amino acid names, and labels for selected regions. A callout connects a label to a region with a line. These annotations work in preview windows, still images, and exported videos.
 
-Watch the [label and text animation examples](https://pdpppd.github.io/proteinmotion/gallery/#labels), or run the [complete script](labels_and_callouts.py).
+Watch the [label and text animation examples](https://pdpppd.github.io/proteinmotion/gallery/#film-labels), or run the [complete script](labels_and_callouts.py).
 
 ## Manim-style writing
 

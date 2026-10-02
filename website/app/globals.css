@@ -291,3 +291,15 @@
     @apply font-medium text-accent underline underline-offset-4;
   }
 }
+@layer components {
+  .gallery-dialog {
+    @apply fixed inset-0 m-auto flex h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-[1500px] flex-col overflow-hidden rounded-xl border border-line bg-white p-0 shadow-2xl md:h-[calc(100dvh-4rem)] md:w-[calc(100vw-4rem)];
+  }
+  .gallery-dialog:not([open]) {
+    display: none;
+  }
+  .gallery-dialog::backdrop {
+    background: rgb(22 35 29 / 0.55);
+    backdrop-filter: blur(3px);
+  }
+}

@@ -2945,7 +2945,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 500,
+      "line": 514,
       "bases": [
         "animation.Animation"
       ],
@@ -2965,7 +2965,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 517
+          "line": 531
         },
         {
           "name": "shift",
@@ -2987,7 +2987,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 546
+          "line": 560
         },
         {
           "name": "rotate",
@@ -3017,7 +3017,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 549
+          "line": 563
         },
         {
           "name": "scale",
@@ -3039,7 +3039,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 553
+          "line": 567
         },
         {
           "name": "set_opacity",
@@ -3068,7 +3068,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 558
+          "line": 572
         },
         {
           "name": "orbit",
@@ -3098,7 +3098,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 567
+          "line": 581
         },
         {
           "name": "zoom",
@@ -3120,7 +3120,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 570
+          "line": 584
         },
         {
           "name": "depth_cue",
@@ -3142,7 +3142,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 575
+          "line": 589
         },
         {
           "name": "set_color",
@@ -3171,7 +3171,7 @@
           "returns": "The object or a Colorize animation.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 581
+          "line": 595
         },
         {
           "name": "show_atoms",
@@ -3192,7 +3192,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 586
+          "line": 600
         },
         {
           "name": "hide_atoms",
@@ -3213,7 +3213,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 591
+          "line": 605
         },
         {
           "name": "representation",
@@ -3242,7 +3242,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 596
+          "line": 610
         },
         {
           "name": "focus",
@@ -3296,7 +3296,7 @@
           "returns": "The camera, scene, or Focus animation.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 599
+          "line": 613
         },
         {
           "name": "frame",
@@ -3325,7 +3325,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 611
+          "line": 625
         },
         {
           "name": "set_focus",
@@ -3354,7 +3354,7 @@
           "returns": "FocusPull",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 615
+          "line": 629
         },
         {
           "name": "lens_focus",
@@ -3383,7 +3383,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 619
+          "line": 633
         },
         {
           "name": "bind",
@@ -3396,7 +3396,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 622
+          "line": 636
         },
         {
           "name": "apply",
@@ -3418,7 +3418,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 632
+          "line": 646
         },
         {
           "name": "during",
@@ -4585,7 +4585,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 455
+          "line": 461
         },
         {
           "name": "during",
@@ -20405,7 +20405,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 466,
+      "line": 480,
       "bases": [
         "animation.Animation"
       ],
@@ -20425,7 +20425,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 486
+          "line": 500
         },
         {
           "name": "apply",
@@ -20447,7 +20447,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 494
+          "line": 508
         },
         {
           "name": "during",
@@ -21454,7 +21454,7 @@
     "docs/reference/catalog.json": "731ecc8db40a5b36848fb64814fe5a8f467b19965725bb56c67cbec4c0360d5c",
     "scripts/build_reference.py": "a50a8ba9cbfb80c7e1ccbcb39351b1f52d57d4aa9af559a08dab9fca7ea4b8ed",
     "src/proteinmotion/__init__.py": "f671f6b99b354f63cf075190ce382a8ed884f2f2a34d455a92de09c1997cd71d",
-    "src/proteinmotion/animation.py": "27aeeb4f92dad112a7cb73548f80321c0f8201e407493941773bf4430a10d259",
+    "src/proteinmotion/animation.py": "1ec7a64b187ca1bc8a0bbd70d219cac84d09040952f9b25f45653dc09b2a2d6d",
     "src/proteinmotion/annotations.py": "6bb13f7b492797baf284eac3f6963e64c167e666e0d10f8ec6053589d1f9a25e",
     "src/proteinmotion/backbone.py": "412c15fbaab4736d823d7763a64e788215e62258676c4fd989c636754c74f6e3",
     "src/proteinmotion/camera.py": "e41f4e1475f618249034183d51a3d2f8376c6530c49b8a7f7beb12b724189b3c",

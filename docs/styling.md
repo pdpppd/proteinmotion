@@ -123,4 +123,4 @@ For contact-guided morphs between different protein topologies, use cartoon, rib
 proteinmotion render examples/molecular_tools.py StylingAndSurface -o styling-and-surface.mp4 --fps 60
 ```
 
-The example colors two ubiquitin regions, fades the rest, changes representation, adds a Cα distance label, and rebuilds a surface through NMR conformations. [Watch the video](https://pdpppd.github.io/proteinmotion/gallery/#surfaces) or read the [complete script](molecular-example.md).
+The example colors two ubiquitin regions, fades the rest, changes representation, adds a Cα distance label, and rebuilds a surface through NMR conformations. [Watch the video](https://pdpppd.github.io/proteinmotion/gallery/#film-surfaces) or read the [complete script](molecular-example.md).

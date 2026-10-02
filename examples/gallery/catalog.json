@@ -1,0 +1,480 @@
+{
+  "categories": [
+    {
+      "id": "basics",
+      "title": "Scenes & camera",
+      "description": "Representations, camera moves, transforms, timing, and large assemblies."
+    },
+    {
+      "id": "style",
+      "title": "Color & style",
+      "description": "Color schemes, residue colors, transparency, surfaces, lighting, and materials."
+    },
+    {
+      "id": "annotate",
+      "title": "Annotation",
+      "description": "Highlights, callouts, residue labels, text, and distance rulers."
+    },
+    {
+      "id": "chemistry",
+      "title": "Ligands & interactions",
+      "description": "Ions, binding pockets, side chains, hydrogen bonds, and charge interactions."
+    },
+    {
+      "id": "reveal",
+      "title": "Cutaways & threading",
+      "description": "Open the surface onto buried sites, measure their depth, and thread chains into view."
+    },
+    {
+      "id": "data",
+      "title": "Data & analysis",
+      "description": "B factors, AlphaFold confidence, conservation, synchronized plots, and density maps."
+    },
+    {
+      "id": "motion",
+      "title": "Motion & morphs",
+      "description": "NMR ensembles, morphs between structures, contact-guided morphs, and deformations."
+    },
+    {
+      "id": "torsions",
+      "title": "Torsions",
+      "description": "φ, ψ, and χ angles, Ramachandran plots, and secondary-structure changes."
+    },
+    {
+      "id": "nucleic",
+      "title": "DNA & RNA",
+      "description": "Nucleotide base styles, RNA regions, and nucleic-acid surfaces."
+    }
+  ],
+  "examples": [
+    {
+      "id": "representations",
+      "category": "basics",
+      "file": "representations.py",
+      "scene": "Representations",
+      "title": "Representations",
+      "summary": "Blend one protein through cartoon, ribbon, ball-and-stick, and solvent-excluded surface views.",
+      "tags": ["Representation", "cartoon", "ribbon", "ball_and_stick", "surface"],
+      "pdb": "1UBQ",
+      "poster": 5.2
+    },
+    {
+      "id": "camera",
+      "category": "basics",
+      "file": "camera.py",
+      "scene": "CameraMoves",
+      "title": "Camera moves",
+      "summary": "Orbit and zoom the camera, ease it onto the helix, and return to the whole protein.",
+      "tags": ["camera.animate.orbit", "zoom", "focus"],
+      "pdb": "1UBQ",
+      "poster": 6.5
+    },
+    {
+      "id": "transforms",
+      "category": "basics",
+      "file": "transforms.py",
+      "scene": "Transforms",
+      "title": "Fades and transforms",
+      "summary": "Fade proteins in and out, rotate them about any axis, and shift or scale them in the scene.",
+      "tags": ["FadeIn", "FadeOut", "Rotate", "shift", "scale"],
+      "pdb": "1UBQ · 1PGA",
+      "poster": 8
+    },
+    {
+      "id": "timing",
+      "category": "basics",
+      "file": "timing.py",
+      "scene": "IndependentTiming",
+      "title": "Independent timing",
+      "summary": "Give concurrent actions their own durations and delays inside one play() call.",
+      "tags": ["during", "MolecularStyle", "selection algebra"],
+      "pdb": "1UBQ",
+      "poster": 4.8
+    },
+    {
+      "id": "assembly",
+      "category": "basics",
+      "file": "assembly.py",
+      "scene": "LargeAssembly",
+      "title": "Large assemblies",
+      "summary": "Render all 21 chains of GroEL–GroES, ghost all but one subunit, and look down the barrel.",
+      "tags": ["chain colors", "SetOpacity", "8,000 residues"],
+      "pdb": "1AON",
+      "poster": 5.5
+    },
+    {
+      "id": "color-schemes",
+      "category": "style",
+      "file": "color_schemes.py",
+      "scene": "ColorSchemes",
+      "title": "Color schemes",
+      "summary": "Blend a tetramer between secondary-structure, rainbow, chain, and hydropathy palettes.",
+      "tags": ["color", "secondary", "rainbow", "chain", "hydropathy"],
+      "pdb": "4HHB",
+      "poster": 5.6
+    },
+    {
+      "id": "residue-colors",
+      "category": "style",
+      "file": "residue_colors.py",
+      "scene": "ResidueColors",
+      "title": "Residue colors",
+      "summary": "Tint selected residues one after another, then restore the original palette.",
+      "tags": ["Colorize", "residue_delay"],
+      "pdb": "1UBQ",
+      "poster": 5
+    },
+    {
+      "id": "opacity",
+      "category": "style",
+      "file": "opacity.py",
+      "scene": "Opacity",
+      "title": "Transparency",
+      "summary": "Ghost everything except the β sheet, grow its side chains, then fade the whole protein.",
+      "tags": ["SetOpacity", "~region", "ShowSideChains"],
+      "pdb": "1UBQ",
+      "poster": 4.6
+    },
+    {
+      "id": "surfaces",
+      "category": "style",
+      "file": "surfaces.py",
+      "scene": "SurfaceKinds",
+      "title": "Molecular surfaces",
+      "summary": "Van der Waals, solvent-accessible, and solvent-excluded surfaces side by side, then colored by hydropathy.",
+      "tags": ["surface", "vdw", "sas", "ses", "hydropathy"],
+      "pdb": "1UBQ",
+      "poster": 5
+    },
+    {
+      "id": "lighting",
+      "category": "style",
+      "file": "lighting.py",
+      "scene": ["StudioLighting", "SoftLighting", "DramaticLighting", "FlatLighting"],
+      "title": "Lighting presets",
+      "summary": "The studio, soft, dramatic, and flat Studio lighting presets on the same surface.",
+      "tags": ["StudioLook", "lighting"],
+      "pdb": "2DRI",
+      "poster": 3
+    },
+    {
+      "id": "materials",
+      "category": "style",
+      "file": "materials.py",
+      "scene": ["RoughMaterial", "MediumMaterial", "GlossyMaterial", "FilmEffects"],
+      "title": "Materials and film effects",
+      "summary": "Rough, medium, and glossy materials, and the film recipe with grain, bloom, and halation.",
+      "tags": ["StudioLook", "material", "effects", "grain", "bloom", "halation"],
+      "pdb": "2DRI",
+      "poster": 3
+    },
+    {
+      "id": "highlights",
+      "category": "annotate",
+      "file": "highlights.py",
+      "scene": "Highlights",
+      "title": "Region highlights",
+      "summary": "Mark a helix with a translucent sphere, a wire box, and an atom halo.",
+      "tags": ["highlight", "sphere", "box", "atoms"],
+      "pdb": "1UBQ",
+      "poster": 4.1
+    },
+    {
+      "id": "callouts",
+      "category": "annotate",
+      "file": "callouts.py",
+      "scene": "Callouts",
+      "title": "Callouts and residue labels",
+      "summary": "Point to the helix with a callout, then label the Leu8–Ile44–Val70 hydrophobic patch.",
+      "tags": ["callout", "label_residues", "Write"],
+      "pdb": "1UBQ",
+      "poster": 7.6
+    },
+    {
+      "id": "text",
+      "category": "annotate",
+      "file": "text.py",
+      "scene": "TextAnimation",
+      "title": "Text",
+      "summary": "Write glyph outlines, stack captions, move text, and change a string in place.",
+      "tags": ["Text", "TextGroup", "Write", "Unwrite", "set_text"],
+      "pdb": "1UBQ",
+      "poster": 5.8
+    },
+    {
+      "id": "distances",
+      "category": "annotate",
+      "file": "distances.py",
+      "scene": "DistanceRuler",
+      "title": "Distance rulers",
+      "summary": "A ruler that follows an NMR ensemble, with a trace of the same distance across the models.",
+      "tags": ["Distance", "plot", "PlayTrajectory"],
+      "pdb": "2K39",
+      "poster": 5
+    },
+    {
+      "id": "ions",
+      "category": "chemistry",
+      "file": "ions.py",
+      "scene": "CalciumSites",
+      "title": "Ions and ligands",
+      "summary": "Calcium ions drawn on the cartoon, and the side chains within 3 Å of them.",
+      "tags": ["select(ions=True)", "within", "ShowSideChains"],
+      "pdb": "1CLL",
+      "poster": 6.5
+    },
+    {
+      "id": "binding-pocket",
+      "category": "chemistry",
+      "file": "binding_pocket.py",
+      "scene": "BindingPocket",
+      "title": "Binding pocket",
+      "summary": "Fade the fold, grow the side chains within 4 Å of a bound ribose, and label key residues.",
+      "tags": ["within", "SetOpacity", "ShowSideChains", "label_residues", "clearest_view"],
+      "pdb": "2DRI",
+      "poster": 6.5
+    },
+    {
+      "id": "side-chains",
+      "category": "chemistry",
+      "file": "side_chains.py",
+      "scene": "SideChains",
+      "title": "Side chains",
+      "summary": "Grow every side chain from its Cα, N to C terminus, then remove them in reverse.",
+      "tags": ["ShowSideChains", "HideSideChains"],
+      "pdb": "1UBQ",
+      "poster": 5
+    },
+    {
+      "id": "hydrogen-bonds",
+      "category": "chemistry",
+      "file": "hydrogen_bonds.py",
+      "scene": "HelixHydrogenBonds",
+      "title": "Hydrogen bonds",
+      "summary": "The i → i+4 backbone hydrogen bonds of an α helix, detected from the coordinates.",
+      "tags": ["HydrogenBonds", "highlight"],
+      "pdb": "1UBQ",
+      "poster": 4.5
+    },
+    {
+      "id": "electrostatics",
+      "category": "chemistry",
+      "file": "electrostatics.py",
+      "scene": "ChargePairs",
+      "title": "Charge interactions",
+      "summary": "Screened Coulomb estimates between charged side chains: attractive pairs in blue, repulsive in red.",
+      "tags": ["Electrostatics", "highlight", "formal charges"],
+      "pdb": "1UBQ",
+      "poster": 5.5
+    },
+    {
+      "id": "cutaway",
+      "category": "reveal",
+      "file": "cutaway.py",
+      "scene": "Cutaway",
+      "title": "Cutaways",
+      "summary": "Cut a window through the surface onto a buried ribose; the window follows the camera.",
+      "tags": ["Reveal", "Conceal", "Focus"],
+      "pdb": "2DRI",
+      "poster": 4.5
+    },
+    {
+      "id": "depth-tunnel",
+      "category": "reveal",
+      "file": "depth_tunnel.py",
+      "scene": "DepthTunnel",
+      "title": "Depth tunnels",
+      "summary": "A tunnel with a ring every 5 Å shows how far a ligand lies below the surface.",
+      "tags": ["Reveal", "shape=\"tunnel\"", "cutaway_geometry"],
+      "pdb": "2DRI",
+      "poster": 5
+    },
+    {
+      "id": "threading",
+      "category": "reveal",
+      "file": "threading.py",
+      "scene": "Threading",
+      "title": "Threading",
+      "summary": "Thread the actual cartoon geometry into view with eased motion, then reverse it.",
+      "tags": ["Thread", "Unthread"],
+      "pdb": "2DRI",
+      "poster": 6
+    },
+    {
+      "id": "thread-wire",
+      "category": "reveal",
+      "file": "thread_wire.py",
+      "scene": "ThreadWire",
+      "title": "Wire threading",
+      "summary": "Glowing wires trace the four chains of hemoglobin, then the cartoon fades in.",
+      "tags": ["Thread", "mode=\"wire\"", "stagger"],
+      "pdb": "4HHB",
+      "poster": 4
+    },
+    {
+      "id": "b-factors",
+      "category": "data",
+      "file": "b_factors.py",
+      "scene": "BFactors",
+      "title": "B factors",
+      "summary": "Color the cartoon by Cα B factor and widen it where the crystal structure is most mobile.",
+      "tags": ["ResidueValues", "ColorByProperty", "ColorLegend", "thickness"],
+      "pdb": "1UBQ",
+      "poster": 4
+    },
+    {
+      "id": "alphafold",
+      "category": "data",
+      "file": "alphafold.py",
+      "scene": "AlphaFoldConfidence",
+      "title": "AlphaFold confidence",
+      "summary": "Color a predicted model by pLDDT beside its predicted aligned error heatmap.",
+      "tags": ["plddt", "Heatmap.pae", "ColorLegend"],
+      "pdb": "AF-P0DP23-F1",
+      "poster": 3
+    },
+    {
+      "id": "conservation",
+      "category": "data",
+      "file": "conservation.py",
+      "scene": "Conservation",
+      "title": "Hydropathy and conservation",
+      "summary": "Paint the surface by hydropathy, then by conservation across a Pfam family alignment.",
+      "tags": ["hydropathy", "conservation", "ColorByProperty"],
+      "pdb": "1UBQ · PF00240",
+      "poster": 7.5
+    },
+    {
+      "id": "plots",
+      "category": "data",
+      "file": "plots.py",
+      "scene": "SynchronizedPlots",
+      "title": "Synchronized plots",
+      "summary": "A live contact map, distance trace, and sequence track that follow an NMR ensemble.",
+      "tags": ["ContactMap", "TimeSeriesPlot", "SequenceTrack", "rmsf"],
+      "pdb": "2K39",
+      "poster": 5
+    },
+    {
+      "id": "density",
+      "category": "data",
+      "file": "density.py",
+      "scene": "DensityMaps",
+      "title": "Density maps",
+      "summary": "An electron-density contour at two σ levels and a density slice moving through a helix.",
+      "tags": ["DensityMap", "isosurface", "slice", "set_level"],
+      "pdb": "1UBQ",
+      "poster": 7
+    },
+    {
+      "id": "nmr",
+      "category": "motion",
+      "file": "nmr_ensemble.py",
+      "scene": "NMREnsemble",
+      "title": "NMR ensembles",
+      "summary": "Play through deposited NMR models as a cartoon, then with every atom.",
+      "tags": ["PlayTrajectory", "trajectory.aligned"],
+      "pdb": "2K39",
+      "poster": 8
+    },
+    {
+      "id": "structure-morph",
+      "category": "motion",
+      "file": "structure_morph.py",
+      "scene": "AdenylateKinase",
+      "title": "Domain closure",
+      "summary": "Adenylate kinase closes around its inhibitor in a morph between two crystal structures.",
+      "tags": ["StructureMorph", "domain_motion", "look_along"],
+      "pdb": "4AKE → 1AKE",
+      "poster": 6.5
+    },
+    {
+      "id": "hemoglobin-morph",
+      "category": "motion",
+      "file": "hemoglobin_morph.py",
+      "scene": "HemoglobinMorph",
+      "title": "Quaternary change",
+      "summary": "Hemoglobin goes from T to R as one αβ dimer turns against the other.",
+      "tags": ["StructureMorph", "assembly", "domain_motion"],
+      "pdb": "2DN2 → 2DN1",
+      "poster": 6.5
+    },
+    {
+      "id": "backbone-morph",
+      "category": "motion",
+      "file": "backbone_morph.py",
+      "scene": "ContactMorph",
+      "title": "Contact-guided morph",
+      "summary": "Morph calmodulin into troponin C through 114 residues matched by their contact maps.",
+      "tags": ["BackboneMorph", "ContactMatch"],
+      "pdb": "1CLL → 1NCX",
+      "poster": 5
+    },
+    {
+      "id": "deform",
+      "category": "motion",
+      "file": "deform.py",
+      "scene": "Deformation",
+      "title": "Deformations",
+      "summary": "Twist the coordinates with any Python function, then morph back to the saved structure.",
+      "tags": ["Deform", "Morph"],
+      "pdb": "1UBQ",
+      "poster": 3.5
+    },
+    {
+      "id": "torsion-markers",
+      "category": "torsions",
+      "file": "torsion_marker.py",
+      "scene": "TorsionMarkers",
+      "title": "Torsion angles",
+      "summary": "Turn φ and then ψ of one residue, with arcs on the bonds and its point on a Ramachandran plot.",
+      "tags": ["SetTorsions", "torsion_marker", "RamachandranPlot", "Protein.build"],
+      "pdb": "Built peptide",
+      "poster": 6.5
+    },
+    {
+      "id": "helix-winding",
+      "category": "torsions",
+      "file": "helix_winding.py",
+      "scene": "HelixWinding",
+      "title": "Strand to helix",
+      "summary": "Wind a peptide from a β strand into an α helix while the cartoon follows DSSP.",
+      "tags": ["SetTorsions", "stagger", "RamachandranPlot", "DSSP"],
+      "pdb": "Built peptide",
+      "poster": 7.5
+    },
+    {
+      "id": "rotamers",
+      "category": "torsions",
+      "file": "rotamers.py",
+      "scene": "Rotamers",
+      "title": "Side-chain rotamers",
+      "summary": "Spin χ1 and χ2 of three hydrophobic side chains through full turns.",
+      "tags": ["RotateTorsions", "chi1", "torsion_marker"],
+      "pdb": "1UBQ",
+      "poster": 4
+    },
+    {
+      "id": "dna-bases",
+      "category": "nucleic",
+      "file": "dna_bases.py",
+      "scene": "DNABases",
+      "title": "DNA base styles",
+      "summary": "Blend a double helix between base slabs, filled rings, sticks, and ladder rods.",
+      "tags": ["NucleicAcid", "BaseStyle"],
+      "pdb": "1BNA",
+      "poster": 3.5
+    },
+    {
+      "id": "trna",
+      "category": "nucleic",
+      "file": "trna.py",
+      "scene": "TransferRNA",
+      "title": "Transfer RNA",
+      "summary": "Highlight the anticodon loop of tRNA-Phe, change the base style, and show its surface.",
+      "tags": ["NucleicAcid", "callout", "Colorize", "surface"],
+      "pdb": "1EHZ",
+      "poster": 4
+    }
+  ]
+}

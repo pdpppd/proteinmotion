@@ -57,8 +57,30 @@ def secondary_weights(protein):
     return np.asarray(weights, np.float32)
 
 
+class SchemeBlend(str):
+    """A color scheme part of the way from one named scheme to another.
+
+    Its text includes the fraction, so every color cache keyed on the scheme
+    name refreshes as the blend advances.
+    """
+
+    def __new__(cls, start, end, fraction):
+        blend = super().__new__(cls, f"{start}>{end}@{fraction:.4f}")
+        blend.start, blend.end, blend.fraction = str(start), str(end), float(fraction)
+        return blend
+
+
 def residue_colors(protein):
-    topo, scheme = protein.topology, protein.color_scheme
+    scheme = protein.color_scheme
+    if isinstance(scheme, SchemeBlend):
+        t = scheme.fraction
+        start = _scheme_colors(protein, scheme.start)
+        return ((1 - t) * start + t * _scheme_colors(protein, scheme.end)).astype(np.float32)
+    return _scheme_colors(protein, scheme)
+
+
+def _scheme_colors(protein, scheme):
+    topo = protein.topology
     if scheme in ("secondary", "base", "element"):
         palette = np.array([color(SS_COLORS[k]) for k in "CHE"], np.float32)
         result = secondary_weights(protein) @ palette
@@ -104,16 +126,27 @@ def atom_metadata(protein):
         return protein._metadata_override
     topology = protein.topology
     data = _element_data(topology).copy()
-    if protein.color_scheme != "element":
-        colors = residue_colors(protein)[[a.residue_index for a in topology.atoms]]
-        if protein.color_scheme in ("secondary", "base"):
-            # Structure palettes have no meaning for ligands and ions: color them by element.
-            detail = topology.untraced_atoms
-            colors[detail] = data[detail, :3]
-            carbon = detail & np.array([a.element == "C" for a in topology.atoms], bool)
-            colors[carbon] = color(LIGAND_CARBON)
-        data[:, :3] = colors
+    scheme = protein.color_scheme
+    if isinstance(scheme, SchemeBlend):
+        t = scheme.fraction
+        data[:, :3] = (1 - t) * _scheme_atom_colors(protein, scheme.start, data) + t * _scheme_atom_colors(
+            protein, scheme.end, data
+        )
+    elif scheme != "element":
+        data[:, :3] = _scheme_atom_colors(protein, scheme, data)
     return data
+
+
+def _scheme_atom_colors(protein, scheme, elements):
+    topology = protein.topology
+    colors = _scheme_colors(protein, scheme)[[a.residue_index for a in topology.atoms]]
+    if scheme in ("secondary", "base"):
+        # Structure palettes have no meaning for ligands and ions: color them by element.
+        detail = topology.untraced_atoms
+        colors[detail] = elements[detail, :3]
+        carbon = detail & np.array([a.element == "C" for a in topology.atoms], bool)
+        colors[carbon] = color(LIGAND_CARBON)
+    return colors
 
 
 def detail_colors(protein):

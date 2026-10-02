@@ -2,7 +2,7 @@
 
 A 68-second film rendered with Blender EEVEE at 1080p and 60 fps. The camera follows one calmodulin structure through helix close-ups, atomic detail, a molecular surface, and a closing orbit. Focus moves between two selected helices.
 
-[Watch the film](https://pdpppd.github.io/proteinmotion/gallery/#calmodulin-in-focus) · [Download the script](calmodulin_in_focus.py) · [Download the structure](data/1cll.cif)
+[Watch the film](https://pdpppd.github.io/proteinmotion/gallery/#film-calmodulin-in-focus) · [Download the script](calmodulin_in_focus.py) · [Download the structure](data/1cll.cif)
 
 ## Chapters
 

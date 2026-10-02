@@ -120,7 +120,7 @@ Bonds are inferred from covalent radii. Metal ions within bonding distance of an
 
 The [video gallery](https://pdpppd.github.io/proteinmotion/gallery/) includes four longer films with their scripts:
 
-- [Calcium sites and a nucleotide pocket](https://pdpppd.github.io/proteinmotion/gallery/#binding-sites): calmodulin Ca²⁺ sites, then the ADP and Mg²⁺ pocket of a GroEL subunit (PDB 1AON, chain A). Residues far from the nucleotide are faded with `SetOpacity`.
-- [Troponin C metal sites](https://pdpppd.github.io/proteinmotion/gallery/#troponin-sites): two Cd²⁺ EF-hand sites, a sulfate held by Arg47, and a change to ball-and-stick and back.
-- [Side chains in an NMR ensemble](https://pdpppd.github.io/proteinmotion/gallery/#side-chain-ensemble): side chains follow the interpolated 2K39 ubiquitin conformers.
-- [Ions and ligands on nucleic acids](https://pdpppd.github.io/proteinmotion/gallery/#nucleic-ions): Mg²⁺ and Mn²⁺ on transfer RNA, then spermine across a Z-DNA duplex.
+- [Calcium sites and a nucleotide pocket](https://pdpppd.github.io/proteinmotion/gallery/#film-binding-sites): calmodulin Ca²⁺ sites, then the ADP and Mg²⁺ pocket of a GroEL subunit (PDB 1AON, chain A). Residues far from the nucleotide are faded with `SetOpacity`.
+- [Troponin C metal sites](https://pdpppd.github.io/proteinmotion/gallery/#film-troponin-sites): two Cd²⁺ EF-hand sites, a sulfate held by Arg47, and a change to ball-and-stick and back.
+- [Side chains in an NMR ensemble](https://pdpppd.github.io/proteinmotion/gallery/#film-side-chain-ensemble): side chains follow the interpolated 2K39 ubiquitin conformers.
+- [Ions and ligands on nucleic acids](https://pdpppd.github.io/proteinmotion/gallery/#film-nucleic-ions): Mg²⁺ and Mn²⁺ on transfer RNA, then spermine across a Z-DNA duplex.

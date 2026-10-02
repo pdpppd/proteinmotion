@@ -2,7 +2,7 @@
 
 This example shows the alpha-helix hydrogen-bond pattern **O(i)···H–N(i+4)**. It uses an idealized 16-residue backbone with explicit amide hydrogens. Coordinates stay fixed as the camera rotates.
 
-[Watch the film](https://pdpppd.github.io/proteinmotion/gallery/#alpha-helix) · [Download the complete script](alpha_helix_hbonds.py) · [Source on GitHub](https://github.com/pdpppd/proteinmotion/blob/main/examples/alpha_helix_hbonds.py)
+[Watch the film](https://pdpppd.github.io/proteinmotion/gallery/#film-alpha-helix) · [Download the complete script](alpha_helix_hbonds.py) · [Source on GitHub](https://github.com/pdpppd/proteinmotion/blob/main/examples/alpha_helix_hbonds.py)
 
 ![A close-up distinguishing the hydrogen bond from the covalent N–H bond](alpha-helix.png)
 

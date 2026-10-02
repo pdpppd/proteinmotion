@@ -54,6 +54,16 @@ This requires a working GPU. The command renders 720p/60 fps clips, checks every
 
 Use `output=<example-id>` after the language in a Markdown code fence to pair a snippet with its clip. Existing gallery videos use `output=gallery-<demo-id>` beside their render commands.
 
+### Gallery examples
+
+The website gallery shows one short Studio scene per feature. Each scene is a runnable file in `examples/gallery/`, listed with its category, title, summary, search tags, and poster time in `examples/gallery/catalog.json`. To add an example, write the scene, add its catalog entry, and render it:
+
+```bash
+python scripts/render_gallery.py --only <example-id>
+```
+
+Run the script without `--only` to render every example. Clips are 1280 × 720 at 60 fps. An entry whose `scene` is a list of four scenes is tiled 2 × 2, for looks such as lighting presets that cannot change during a scene. The manifest records each scene's source and input hashes, and the website build rejects missing or outdated clips. Watch each new clip before committing it. Geometry that fades to full opacity, such as a base-style change or a density slice, can shift on the last frame of the transition, and a change of surface kind switches immediately.
+
 ## Publishing
 
 The Pages workflow builds on pull requests and pushes. Only `main` pushes or a manual workflow run from `main` deploy. GitHub Pages must use **GitHub Actions** as its source. The workflow uploads the static export and deploys it with the official Pages actions. GitHub Pages serves the exported static files.

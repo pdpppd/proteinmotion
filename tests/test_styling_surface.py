@@ -170,3 +170,20 @@ def test_gpu_surface_deformation_cached_mesh_and_resurfacing(protein, backend):
         protein.set_positions(frames[1])
         renderer.render([protein], scene.camera, scene.background)
         assert renderer._molecules[protein].surface.mesh is not original
+
+
+def test_representation_blends_named_color_schemes(protein):
+    from proteinmotion.geometry import residue_colors
+
+    protein.cartoon()
+    start = residue_colors(protein).copy()
+    end = residue_colors(protein.copy().cartoon(color="rainbow"))
+    scene = Scene()
+    scene.add(protein)
+    scene.play(Representation(protein, "cartoon", color="rainbow", easing="linear"), run_time=2)
+    scene.seek(1)
+    np.testing.assert_allclose(residue_colors(protein), (start + end) / 2, atol=1e-5)
+    scene.seek(2)
+    assert protein.color_scheme == "rainbow"
+    scene.seek(0)
+    assert protein.color_scheme == "secondary"

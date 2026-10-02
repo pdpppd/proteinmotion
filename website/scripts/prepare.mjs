@@ -88,3 +88,32 @@ for (const [id, example] of Object.entries(rendered)) {
 console.log(
   `Checked sources and assets for ${Object.keys(rendered).length} rendered documentation examples.`,
 );
+
+// Every gallery example in the catalog must be rendered from its current scene.
+const catalog = JSON.parse(
+  await readFile("../examples/gallery/catalog.json", "utf8"),
+);
+const gallery = JSON.parse(
+  await readFile("public/media/gallery/manifest.json", "utf8"),
+);
+for (const { id } of catalog.examples) {
+  const example = gallery[id];
+  if (!example)
+    throw new Error(
+      `Gallery example ${id} is not rendered. Run scripts/render_gallery.py --only ${id}.`,
+    );
+  for (const [file, expected] of Object.entries(example.dependencies)) {
+    if ((await hash(`../${file}`)) !== expected)
+      throw new Error(
+        `Gallery example ${id} is stale: ${file} changed. Run scripts/render_gallery.py --only ${id}.`,
+      );
+  }
+  for (const [file, expected] of [
+    [example.video, example.video_sha256],
+    [example.poster, example.poster_sha256],
+  ]) {
+    if ((await hash(`public/${file}`)) !== expected)
+      throw new Error(`Gallery asset changed or is incomplete: ${file}`);
+  }
+}
+console.log(`Checked ${catalog.examples.length} gallery examples.`);

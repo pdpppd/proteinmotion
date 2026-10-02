@@ -3,6 +3,7 @@ import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import Search from "./Search";
 import { searchData } from "@/lib/content";
 import { referenceSearch } from "@/lib/reference";
+import { gallerySearch } from "@/lib/gallery";
 import { repo } from "@/lib/config";
 import { version } from "../package.json";
 export default function Header() {
@@ -45,7 +46,9 @@ export default function Header() {
           >
             Gallery
           </Link>
-          <Search items={[...searchData(), ...referenceSearch()]} />
+          <Search
+            items={[...searchData(), ...gallerySearch(), ...referenceSearch()]}
+          />
           <a
             href={repo}
             aria-label="ProteinMotion on GitHub"

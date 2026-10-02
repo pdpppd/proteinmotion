@@ -193,4 +193,4 @@ Interaction calculations and surface construction run on the CPU. Metal renders 
 proteinmotion render examples/molecular_tools.py InteractionsAndDistances -o interactions-and-distances.mp4 --fps 60
 ```
 
-The example compares 3D and 2D hydrogen-bond lines through ubiquitin NMR conformations, then focuses on an electrostatic contact calculated from example formal charges. [Watch the video](https://pdpppd.github.io/proteinmotion/gallery/#interactions) or read the [complete script](molecular-example.md).
+The example compares 3D and 2D hydrogen-bond lines through ubiquitin NMR conformations, then focuses on an electrostatic contact calculated from example formal charges. [Watch the video](https://pdpppd.github.io/proteinmotion/gallery/#film-interactions) or read the [complete script](molecular-example.md).

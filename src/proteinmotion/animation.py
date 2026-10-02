@@ -451,10 +451,24 @@ class Representation(Animation):
             self.target._surface_options = surface_options(reference=self.target.positions)
 
         self.surface_options = self.target._surface_options
+        # Blend residue colors between two named schemes. Element colors are already
+        # blended by the ball-and-stick weight, so changes to or from them switch directly.
+        start, end = self.target.color_scheme, self.settings.get("color_scheme")
+        self.schemes = None
+        if end is not None and str(start) != str(end) and "element" not in (start, end):
+            self.schemes = (getattr(start, "end", start), end)
 
     def apply(self, alpha):
         for key, value in self.settings.items():
             setattr(self.target, "_surface_options" if key == "surface_options" else key, value)
+        if self.schemes is not None:
+            from .geometry import SchemeBlend
+
+            start, end = self.schemes
+            fraction = round(float(alpha), 3)
+            self.target.color_scheme = (
+                start if fraction <= 0 else end if fraction >= 1 else SchemeBlend(start, end, fraction)
+            )
         self.target.representation = (1 - alpha) * self.start + alpha * self.end
         self.target.surface_opacity = (1 - alpha) * self.surface_start + alpha * self.surface_end
         if self.base_end is not None:

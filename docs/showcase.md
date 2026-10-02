@@ -2,7 +2,7 @@
 
 This feature demo is a **100.5-second scene at 60 fps**. It demonstrates representations, styling, labels, and state playback with calmodulin. A backbone morph changes calmodulin into troponin C, which is then used for the interaction measurements.
 
-[Watch the film](https://pdpppd.github.io/proteinmotion/gallery/#showcase) · [Download the scene script](feature_showcase.py) · [Source and input files on GitHub](https://github.com/pdpppd/proteinmotion/blob/main/examples/feature_showcase.py)
+[Watch the film](https://pdpppd.github.io/proteinmotion/gallery/#film-showcase) · [Download the scene script](feature_showcase.py) · [Source and input files on GitHub](https://github.com/pdpppd/proteinmotion/blob/main/examples/feature_showcase.py)
 
 ![Calmodulin in the continuous ProteinMotion feature tour](showcase.png)
 
@@ -22,7 +22,7 @@ The chapter times mark caption changes within the scene.
 | 01:21.5 | Electrostatics | The camera follows the same helix into the charged residues 91 and 95; imported charges drive screened-Coulomb highlighting. |
 | 01:29.7 | Overview | The camera pulls back to show troponin C, then the scene fades out. |
 
-The gallery also includes a [GroEL/GroES assembly example](https://pdpppd.github.io/proteinmotion/gallery/#groel).
+The gallery also includes a [GroEL/GroES assembly example](https://pdpppd.github.io/proteinmotion/gallery/#film-groel).
 
 ## Render the video
 

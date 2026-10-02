@@ -1,0 +1,1201 @@
+{
+  "representations": {
+    "id": "representations",
+    "category": "basics",
+    "file": "representations.py",
+    "scene": "Representations",
+    "title": "Representations",
+    "summary": "Blend one protein through cartoon, ribbon, ball-and-stick, and solvent-excluded surface views.",
+    "tags": [
+      "Representation",
+      "cartoon",
+      "ribbon",
+      "ball_and_stick",
+      "surface"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/representations.py",
+    "duration": 9.9,
+    "frames": 594,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/representations.mp4",
+    "poster": "media/gallery/representations.jpg",
+    "poster_time": 5.2,
+    "video_sha256": "dad8005445f2640a94deffa196f374123e871b9b383cf08382668ad9dc50c601",
+    "poster_sha256": "19ae080d2bbbf3faefe415e1fe51ca42bf432db540a5d2c63dd4404ad20d45a0",
+    "dependencies": {
+      "examples/gallery/representations.py": "cc2165a36bd8dd0619e4085569663e093790d317c4938e6ed4c0bcb6e1843380",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Cartoon, ribbon, ball-and-stick, and surface views of one protein.\n\nInput: ubiquitin, PDB 1UBQ chain A. Each Representation() call blends the\ncurrent view into the next one; the surface is a 0.6 Å voxel SES.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Protein, ProteinScene, Representation, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass Representations(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1ubq.cif\").cartoon().center()\n        self.camera.frame(protein, margin=0.9, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"Representations\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\"Cartoon\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\")\n        self.add(caption)\n        self.play(self.camera.animate.orbit(0.4), run_time=1.5)\n        for name, label, options in (\n            (\"ribbon\", \"Ribbon\", {}),\n            (\"ball_and_stick\", \"Ball and stick\", {}),\n            (\"surface\", \"Solvent-excluded surface\", {\"kind\": \"ses\", \"grid_spacing\": 0.6}),\n            (\"cartoon\", \"Cartoon\", {}),\n        ):\n            self.play(\n                Representation(protein, name, **options),\n                caption.animate.set_text(label),\n                self.camera.animate.orbit(0.35),\n                run_time=1.5,\n            )\n            self.wait(0.6)\n"
+  },
+  "camera": {
+    "id": "camera",
+    "category": "basics",
+    "file": "camera.py",
+    "scene": "CameraMoves",
+    "title": "Camera moves",
+    "summary": "Orbit and zoom the camera, ease it onto the helix, and return to the whole protein.",
+    "tags": [
+      "camera.animate.orbit",
+      "zoom",
+      "focus"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/camera.py",
+    "duration": 11.1,
+    "frames": 666,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/camera.mp4",
+    "poster": "media/gallery/camera.jpg",
+    "poster_time": 6.5,
+    "video_sha256": "7deea3208fc8ce1979b9184b7d4488369d37bf7cb2cbe5101f257dafaa2f9ec1",
+    "poster_sha256": "490ad2c3fef99298649c6a2c86b35385512198e8bbb6ca236fc3946dd190ff2c",
+    "dependencies": {
+      "examples/gallery/camera.py": "f4fa9f4e3a08dabdeacb0eed046724f724f28604e1d02b5568df858437f56ee8",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Orbit, zoom, and focus the camera on a region.\n\nInput: ubiquitin, PDB 1UBQ chain A. Camera angles are radians; self.focus()\neases the camera onto a selection and keeps it centered there.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Protein, ProteinScene, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass CameraMoves(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1ubq.cif\").cartoon().center()\n        helix = protein.select(residues=(23, 34))\n        self.camera.frame(protein, margin=0.9, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"Camera moves\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\n            \"camera.animate.orbit(theta=1.2, phi=0.3)\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\"\n        )\n        self.add(caption)\n        self.play(self.camera.animate.orbit(theta=1.2, phi=0.3), run_time=2.5)\n        self.play(\n            caption.animate.set_text(\"camera.animate.zoom(1.4)\"), self.camera.animate.zoom(1.4), run_time=1.5\n        )\n        self.wait(0.3)\n        self.play(\n            caption.animate.set_text(\"self.focus(helix)\"), helix.animate.set_color(\"#ff8fb1\"), run_time=0.8\n        )\n        self.focus(helix, margin=1.3, screen_position=(0.6, 0.52), run_time=1.5)\n        self.play(self.camera.animate.orbit(theta=0.8), run_time=2)\n        self.play(caption.animate.set_text(\"self.focus(protein)\"), run_time=0.5)\n        self.focus(protein, margin=0.9, screen_position=(0.6, 0.52), run_time=1.5)\n        self.wait(0.5)\n"
+  },
+  "transforms": {
+    "id": "transforms",
+    "category": "basics",
+    "file": "transforms.py",
+    "scene": "Transforms",
+    "title": "Fades and transforms",
+    "summary": "Fade proteins in and out, rotate them about any axis, and shift or scale them in the scene.",
+    "tags": [
+      "FadeIn",
+      "FadeOut",
+      "Rotate",
+      "shift",
+      "scale"
+    ],
+    "pdb": "1UBQ · 1PGA",
+    "source": "examples/gallery/transforms.py",
+    "duration": 10.0,
+    "frames": 600,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/transforms.mp4",
+    "poster": "media/gallery/transforms.jpg",
+    "poster_time": 8.0,
+    "video_sha256": "4dacc110fe3bb4cf823a5e0dc97e71df62c5fee8f1288d82b01379435ef79898",
+    "poster_sha256": "d94f77c5b46496b220c469edeff39431b573373a170ceddf3b23b1e87a95c8b3",
+    "dependencies": {
+      "examples/gallery/transforms.py": "5ae5f480c482d881316109a4c3655ea8cc6c61b3797386c5b01db6053ae53b84",
+      "examples/data/1pga.cif": "e8d9e171a9ca2b7e66b10568bf6d0122da8450e57ad632a7b4c13c6a71f7edf2",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Fade proteins in and out, rotate them, and move them through the scene.\n\nInputs: ubiquitin (PDB 1UBQ) and the protein G B1 domain (PDB 1PGA).\nTransforms move the whole model; distances are Å and angles are radians.\n\"\"\"\n\nfrom pathlib import Path\n\nimport numpy as np\n\nfrom proteinmotion import FadeIn, FadeOut, Protein, ProteinScene, Rotate, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass Transforms(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        ubiquitin = Protein.from_file(DATA / \"1ubq.cif\").cartoon().center()\n        protein_g = Protein.from_file(DATA / \"1pga.cif\").cartoon(color=\"#8fb8ff\").center().shift((70, 0, 0))\n        self.camera.frame(ubiquitin, margin=1.15, screen_position=(0.55, 0.52))\n        self.add(Text(\"Fades and transforms\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\"FadeIn(ubiquitin)\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\")\n        self.add(caption)\n        self.play(FadeIn(ubiquitin), run_time=1)\n        self.play(caption.animate.set_text(\"Rotate(ubiquitin, np.pi)\"), Rotate(ubiquitin, np.pi), run_time=2)\n        self.play(\n            caption.animate.set_text(\"Rotate(ubiquitin, np.pi / 2, axis=(1, 0, 0))\"),\n            Rotate(ubiquitin, np.pi / 2, axis=(1, 0, 0)),\n            run_time=1.5,\n        )\n        self.play(\n            caption.animate.set_text(\"animate.shift((x, y, z))\"),\n            ubiquitin.animate.shift((-18, 0, 0)),\n            FadeIn(protein_g),\n            protein_g.animate.shift((-52, 0, 0)),\n            run_time=2.5,\n        )\n        self.play(caption.animate.set_text(\"animate.scale(1.4)\"), protein_g.animate.scale(1.4), run_time=1.5)\n        self.play(\n            caption.animate.set_text(\"FadeOut(…)\"), FadeOut(ubiquitin), FadeOut(protein_g), run_time=1.5\n        )\n"
+  },
+  "timing": {
+    "id": "timing",
+    "category": "basics",
+    "file": "timing.py",
+    "scene": "IndependentTiming",
+    "title": "Independent timing",
+    "summary": "Give concurrent actions their own durations and delays inside one play() call.",
+    "tags": [
+      "during",
+      "MolecularStyle",
+      "selection algebra"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/timing.py",
+    "duration": 7.5,
+    "frames": 450,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/timing.mp4",
+    "poster": "media/gallery/timing.jpg",
+    "poster_time": 4.8,
+    "video_sha256": "7f69bc465ee9232052bdc8cb7e3137d69fff7c2dde2ade30b993017671ca2677",
+    "poster_sha256": "9ce1987e8d9bd66ad59853e7ca7505004c69264cd06ac152695c23c7b618ba72",
+    "dependencies": {
+      "examples/gallery/timing.py": "85136293237288b36017c0d815c918902569adcf0984f12fa213f5c990d28763",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Give concurrent actions their own durations and delays.\n\nInput: ubiquitin, PDB 1UBQ. animation.during(seconds, delay=...) offsets an\naction inside one play() call; the call lasts until its last action ends.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import FadeIn, MolecularStyle, Protein, ProteinScene, StudioLook, Text, Write\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass IndependentTiming(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"soft\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        style = MolecularStyle(\"cartoon\", {\"color\": \"#8fe3c0\"})\n        protein = Protein.from_file(DATA / \"1ubq.cif\").set_style(style).center()\n        helix = protein.select(residue_range=(23, 34))\n        self.camera.frame(protein, margin=0.9, screen_position=(0.6, 0.52))\n        title = Text(\"Independent timing\", position=(0.05, 0.08), font_size=46, font=\"semibold\")\n        caption = Text(\"during(seconds, delay=…)\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\")\n        self.play(\n            FadeIn(protein).during(2), Write(title).during(1, delay=0.5), FadeIn(caption).during(1, delay=1)\n        )\n        self.play(\n            helix.animate.set_color(\"#ffc46b\").show_atoms().during(2),\n            (~helix).animate.set_opacity(0.25).during(1, delay=0.75),\n            self.camera.animate.orbit(0.8).during(3.5),\n        )\n        self.play((~helix).animate.set_opacity(1), helix.animate.hide_atoms(), run_time=1.5)\n        self.wait(0.5)\n"
+  },
+  "assembly": {
+    "id": "assembly",
+    "category": "basics",
+    "file": "assembly.py",
+    "scene": "LargeAssembly",
+    "title": "Large assemblies",
+    "summary": "Render all 21 chains of GroEL–GroES, ghost all but one subunit, and look down the barrel.",
+    "tags": [
+      "chain colors",
+      "SetOpacity",
+      "8,000 residues"
+    ],
+    "pdb": "1AON",
+    "source": "examples/gallery/assembly.py",
+    "duration": 10.5,
+    "frames": 630,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/assembly.mp4",
+    "poster": "media/gallery/assembly.jpg",
+    "poster_time": 5.5,
+    "video_sha256": "19104d7a2bd431cacd208e915e3251790b2f53bb6403781a452da46f39d81ac0",
+    "poster_sha256": "c3a5dc2e057917a9bd10274ad952b99e97d3bb465a5d39a4ecde38f27f038b48",
+    "dependencies": {
+      "examples/gallery/assembly.py": "bc40a9aa6c5909442b25e7a5cb3a64192d2fbf1be7224c7ded444646f765c88b",
+      "examples/data/1aon.cif": "6b202f340ffb9a1924d5315ce9e837e02cee1dbd745df675be76f6d4e1b8e66f"
+    },
+    "code": "\"\"\"A 21-chain chaperonin: GroEL–GroES, colored by chain.\n\nInput: GroEL–GroES–ADP7, PDB 1AON: 14 GroEL and 7 GroES chains, about 8,000\nresidues. The camera turns from the side view to look down the barrel.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Protein, ProteinScene, SetOpacity, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass LargeAssembly(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1aon.cif\", chains=None).cartoon(color=\"chain\").center()\n        subunit = protein.select(chain=\"A\")\n        self.camera.frame(protein, margin=0.95, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"Large assemblies\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\n            \"GroEL–GroES · PDB 1AON · 21 chains\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\"\n        )\n        self.add(caption)\n        self.play(self.camera.animate.orbit(0.8), run_time=3)\n        self.play(\n            SetOpacity(~subunit, 0.12), caption.animate.set_text(\"One GroEL subunit, chain A\"), run_time=1.5\n        )\n        self.play(self.camera.animate.orbit(0.6), run_time=2.5)\n        self.play(SetOpacity(protein, 1, scope=\"residues\"), self.camera.animate.orbit(0, 1.2), run_time=3)\n        self.wait(0.5)\n"
+  },
+  "color-schemes": {
+    "id": "color-schemes",
+    "category": "style",
+    "file": "color_schemes.py",
+    "scene": "ColorSchemes",
+    "title": "Color schemes",
+    "summary": "Blend a tetramer between secondary-structure, rainbow, chain, and hydropathy palettes.",
+    "tags": [
+      "color",
+      "secondary",
+      "rainbow",
+      "chain",
+      "hydropathy"
+    ],
+    "pdb": "4HHB",
+    "source": "examples/gallery/color_schemes.py",
+    "duration": 8.4,
+    "frames": 504,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/color-schemes.mp4",
+    "poster": "media/gallery/color-schemes.jpg",
+    "poster_time": 5.6,
+    "video_sha256": "9cd4d821b306a953dca95e95d95147637fe640f29939130622b8ced027f62a42",
+    "poster_sha256": "fe3c2c07b983a1ea8991d6cbac499eb6d59a143698405820734befe4dc9eb917",
+    "dependencies": {
+      "examples/gallery/color_schemes.py": "caa4562689f4e4d8a926f6db015f42e3b2ef8ff47e16f4ab7024777808bc6ba3",
+      "examples/data/4hhb.cif": "2d3ca1bf21ddff35af2e2bc5d331720f7bfc46a16c4829ea3ec1b41062d5f5a6"
+    },
+    "code": "\"\"\"Built-in color schemes: secondary structure, rainbow, chain, and hydropathy.\n\nInput: human deoxyhemoglobin, PDB 4HHB, four chains. Representation() with a\ncolor option blends the cartoon from one palette to the next.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Protein, ProteinScene, Representation, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass ColorSchemes(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"4hhb.cif\", chains=[\"A\", \"B\", \"C\", \"D\"]).cartoon().center()\n        self.camera.frame(protein, margin=1.0, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"Color schemes\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text('color=\"secondary\"', position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\")\n        self.add(caption)\n        self.play(self.camera.animate.orbit(0.4), run_time=1.5)\n        for scheme in (\"rainbow\", \"chain\", \"hydropathy\"):\n            self.play(\n                Representation(protein, \"cartoon\", color=scheme),\n                caption.animate.set_text(f'color=\"{scheme}\"'),\n                self.camera.animate.orbit(0.4),\n                run_time=1.5,\n            )\n            self.wait(0.8)\n"
+  },
+  "residue-colors": {
+    "id": "residue-colors",
+    "category": "style",
+    "file": "residue_colors.py",
+    "scene": "ResidueColors",
+    "title": "Residue colors",
+    "summary": "Tint selected residues one after another, then restore the original palette.",
+    "tags": [
+      "Colorize",
+      "residue_delay"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/residue_colors.py",
+    "duration": 8.5,
+    "frames": 510,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/residue-colors.mp4",
+    "poster": "media/gallery/residue-colors.jpg",
+    "poster_time": 5.0,
+    "video_sha256": "ac5082dbad1a765663abcc615399066a0ca47a8a9b9c718ef0cbaed8f1d49bdc",
+    "poster_sha256": "541a9d11f90d762eef177dc4b753f9a7e4b21524590f281e455e28f1f52ebd76",
+    "dependencies": {
+      "examples/gallery/residue_colors.py": "63c4358ed9fec127fbf18c0bed92ae7be24c4595d7400fba674de7d0bbeefc17",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Tint selected residues one after another, then restore the palette.\n\nInput: ubiquitin, PDB 1UBQ. Colorize() with residue_delay starts each residue's\ncolor change after the previous one; Colorize(region, None) restores it.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Colorize, Protein, ProteinScene, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass ResidueColors(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1ubq.cif\").cartoon(color=\"#b8c4d6\").center()\n        helix = protein.select(residues=(23, 34))\n        hairpin = protein.select(residues=(1, 17))\n        self.camera.frame(protein, margin=0.9, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"Residue colors\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\n            \"Colorize(region, color, residue_delay=…)\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\"\n        )\n        self.add(caption)\n        self.wait(0.5)\n        self.play(\n            Colorize(helix, \"#50e0d0\", residue_delay=0.1),\n            Colorize(hairpin, \"#ffb45e\", residue_delay=0.08),\n            self.camera.animate.orbit(0.5),\n            run_time=2.5,\n        )\n        self.play(\n            Colorize(protein.select(residues=(40, 76)), \"#ff7f9e\", residue_delay=0.03, reverse=True),\n            run_time=2,\n        )\n        self.play(self.camera.animate.orbit(0.4), run_time=1.5)\n        self.play(caption.animate.set_text(\"Colorize(protein, None)\"), Colorize(protein, None), run_time=1.5)\n        self.wait(0.5)\n"
+  },
+  "opacity": {
+    "id": "opacity",
+    "category": "style",
+    "file": "opacity.py",
+    "scene": "Opacity",
+    "title": "Transparency",
+    "summary": "Ghost everything except the β sheet, grow its side chains, then fade the whole protein.",
+    "tags": [
+      "SetOpacity",
+      "~region",
+      "ShowSideChains"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/opacity.py",
+    "duration": 8.5,
+    "frames": 510,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/opacity.mp4",
+    "poster": "media/gallery/opacity.jpg",
+    "poster_time": 4.6,
+    "video_sha256": "588f124f24f65cfa3560eaab0a5771d33fd7d2799820ab0ef043bd472a3ca3cb",
+    "poster_sha256": "af9b1281a7691522f6c39ab3e48505485c3ee475fe9233c35f9d1b2a155f954f",
+    "dependencies": {
+      "examples/gallery/opacity.py": "b1f8dc0240fd32a80325af1a6139b74e9c56228c55170858c0898366db730f4f",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Ghost the surroundings to bring one region forward.\n\nInput: ubiquitin, PDB 1UBQ. ~region selects everything else; SetOpacity with\nresidue_delay fades residues in sequence.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import HideSideChains, Protein, ProteinScene, SetOpacity, ShowSideChains, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass Opacity(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1ubq.cif\").cartoon().center()\n        sheet = protein.select(secondary=\"E\")\n        self.camera.frame(protein, margin=0.9, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"Transparency\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\n            \"SetOpacity(~sheet, 0.18, residue_delay=0.03)\",\n            position=(0.05, 0.145),\n            font_size=28,\n            color=\"#a3b3c7\",\n        )\n        self.add(caption)\n        self.wait(0.5)\n        self.play(SetOpacity(~sheet, 0.18, residue_delay=0.03), self.camera.animate.orbit(0.4), run_time=2.5)\n        self.play(ShowSideChains(sheet, residue_delay=0.04), self.camera.animate.orbit(0.5), run_time=2)\n        self.play(\n            caption.animate.set_text(\"SetOpacity(protein, 0.35)\"),\n            HideSideChains(sheet),\n            SetOpacity(~sheet, 1),\n            SetOpacity(protein, 0.35),\n            run_time=1.5,\n        )\n        self.play(\n            caption.animate.set_text(\"SetOpacity(protein, 1)\"),\n            SetOpacity(protein, 1),\n            self.camera.animate.orbit(0.3),\n            run_time=1.5,\n        )\n        self.wait(0.5)\n"
+  },
+  "surfaces": {
+    "id": "surfaces",
+    "category": "style",
+    "file": "surfaces.py",
+    "scene": "SurfaceKinds",
+    "title": "Molecular surfaces",
+    "summary": "Van der Waals, solvent-accessible, and solvent-excluded surfaces side by side, then colored by hydropathy.",
+    "tags": [
+      "surface",
+      "vdw",
+      "sas",
+      "ses",
+      "hydropathy"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/surfaces.py",
+    "duration": 11.0,
+    "frames": 660,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/surfaces.mp4",
+    "poster": "media/gallery/surfaces.jpg",
+    "poster_time": 5.0,
+    "video_sha256": "6c9e60935d1baa6c5d8c565fc6a2481c34236bab1f5543030f4151f470f449f2",
+    "poster_sha256": "628832f2248de4a75928edffc91b0f05e5f9ccc13ed3c36294a29b5f4fed7eec",
+    "dependencies": {
+      "examples/gallery/surfaces.py": "0dade3893f0b979b18d28cbe00755b7dad17328138809d258af6e8a15bf7ab18",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Van der Waals, solvent-accessible, and solvent-excluded surfaces side by side.\n\nInput: ubiquitin, PDB 1UBQ. Each copy is a voxel surface at 0.6 Å spacing. SES\nuses cavity filling and erosion; it approximates the analytical surface.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Protein, ProteinScene, Representation, Rotate, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass SurfaceKinds(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"soft\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        base = Protein.from_file(DATA / \"1ubq.cif\").cartoon().center()\n        kinds = {\"vdw\": \"van der Waals\", \"sas\": \"Solvent accessible\", \"ses\": \"Solvent excluded\"}\n        copies = [base.copy().shift(((i - 1) * 52, 0, 0)) for i in range(3)]\n        self.camera.theta, self.camera.phi = 0, 0\n        self.camera.frame(*copies, margin=1.0, screen_position=(0.5, 0.5))\n        self.camera.zoom(1.5)\n        self.add(*copies, Text(\"Molecular surfaces\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        for i, (kind, label) in enumerate(kinds.items()):\n            self.add(Text(f'kind=\"{kind}\"', position=(0.2 + 0.3 * i, 0.8), font_size=30, align=\"center\"))\n            self.add(\n                Text(label, position=(0.2 + 0.3 * i, 0.855), font_size=24, color=\"#a3b3c7\", align=\"center\")\n            )\n        self.wait(0.5)\n        self.play(\n            *(Representation(p, \"surface\", kind=kind, grid_spacing=0.6) for p, kind in zip(copies, kinds)),\n            run_time=2,\n        )\n        self.play(*(Rotate(p, 1.6) for p in copies), run_time=4)\n        self.play(\n            *(Representation(p, \"surface\", kind=kind, color=\"hydropathy\") for p, kind in zip(copies, kinds)),\n            run_time=1.5,\n        )\n        self.play(*(Rotate(p, 1.2) for p in copies), run_time=3)\n"
+  },
+  "lighting": {
+    "id": "lighting",
+    "category": "style",
+    "file": "lighting.py",
+    "scene": [
+      "StudioLighting",
+      "SoftLighting",
+      "DramaticLighting",
+      "FlatLighting"
+    ],
+    "title": "Lighting presets",
+    "summary": "The studio, soft, dramatic, and flat Studio lighting presets on the same surface.",
+    "tags": [
+      "StudioLook",
+      "lighting"
+    ],
+    "pdb": "2DRI",
+    "source": "examples/gallery/lighting.py",
+    "duration": 6.0,
+    "frames": 360,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/lighting.mp4",
+    "poster": "media/gallery/lighting.jpg",
+    "poster_time": 3.0,
+    "video_sha256": "12ebe15f2b9e313be42d95b824c47f28c24e850231989673eb7eec89eb28cf15",
+    "poster_sha256": "7d89cf0cc7697e52422c8a328f9d0ed49593d5fe23955c1837d04c3ea3781f26",
+    "dependencies": {
+      "examples/gallery/lighting.py": "dec1fec19069ddb4759e9fc2081b46757754ae0056353d500ad1a63c4e6c057d",
+      "examples/data/2dri.cif": "e10e8bb4c75d762b657111f5cc7230cc7a0282a823c909459293a0815456fa16"
+    },
+    "code": "\"\"\"The four Studio lighting presets on the same surface.\n\nInput: E. coli ribose-binding protein, PDB 2DRI chain A, as a 0.6 Å voxel SES.\nLighting is fixed when the renderer is created, so each preset is its own\nscene; the gallery tiles the four renders into one 2 × 2 video.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Protein, ProteinScene, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass LightingScene(ProteinScene):\n    renderer = \"studio\"\n    lighting = \"studio\"\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"2dri.cif\", chains=\"A\").center()\n        protein.surface(kind=\"ses\", grid_spacing=0.6, color=\"secondary\")\n        self.camera.theta, self.camera.phi = 1.2, 0.25\n        self.camera.frame(protein, margin=1.25, screen_position=(0.6, 0.56))\n        self.add(protein, Text(f'lighting=\"{self.lighting}\"', position=(0.05, 0.06), font_size=64))\n        self.play(self.camera.animate.orbit(1.3), run_time=6)\n\n\nclass StudioLighting(LightingScene):\n    lighting = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"clean\")\n\n\nclass SoftLighting(LightingScene):\n    lighting = \"soft\"\n    look = StudioLook(lighting=\"soft\", material=\"medium\", effects=\"clean\")\n\n\nclass DramaticLighting(LightingScene):\n    lighting = \"dramatic\"\n    look = StudioLook(lighting=\"dramatic\", material=\"medium\", effects=\"clean\")\n\n\nclass FlatLighting(LightingScene):\n    lighting = \"flat\"\n    look = StudioLook(lighting=\"flat\", material=\"medium\", effects=\"clean\")\n"
+  },
+  "materials": {
+    "id": "materials",
+    "category": "style",
+    "file": "materials.py",
+    "scene": [
+      "RoughMaterial",
+      "MediumMaterial",
+      "GlossyMaterial",
+      "FilmEffects"
+    ],
+    "title": "Materials and film effects",
+    "summary": "Rough, medium, and glossy materials, and the film recipe with grain, bloom, and halation.",
+    "tags": [
+      "StudioLook",
+      "material",
+      "effects",
+      "grain",
+      "bloom",
+      "halation"
+    ],
+    "pdb": "2DRI",
+    "source": "examples/gallery/materials.py",
+    "duration": 6.0,
+    "frames": 360,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/materials.mp4",
+    "poster": "media/gallery/materials.jpg",
+    "poster_time": 3.0,
+    "video_sha256": "6521c90a1c3f73596a92b51d7bcab8a5a0f7b3f5d7b970c1350975ca4280e411",
+    "poster_sha256": "be3087f0edc47868f1fa04624adb5460932005e9148cb7c47a8a7749e83a8f43",
+    "dependencies": {
+      "examples/gallery/materials.py": "7e978793e2ffab549675f76c347ca5c72845118e3a2f1bd86c47891406899076",
+      "examples/data/2dri.cif": "e10e8bb4c75d762b657111f5cc7230cc7a0282a823c909459293a0815456fa16"
+    },
+    "code": "\"\"\"Studio materials and film effects on the same cartoon.\n\nInput: E. coli ribose-binding protein, PDB 2DRI chain A, with bound ribose.\nMaterials and effects are fixed when the renderer is created, so each look\nis its own scene; the gallery tiles the four renders into one 2 × 2 video.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Protein, ProteinScene, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass MaterialScene(ProteinScene):\n    renderer = \"studio\"\n    label = \"\"\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"2dri.cif\", chains=\"A\").center()\n        protein.cartoon(color=\"#e8cda5\")\n        protein.select(resname=\"RIP\").show_atoms()\n        self.camera.theta, self.camera.phi = 0.4, 0.2\n        self.camera.frame(protein, margin=0.9, screen_position=(0.6, 0.56))\n        self.add(protein, Text(self.label, position=(0.05, 0.06), font_size=64))\n        self.play(self.camera.animate.orbit(1.3), run_time=6)\n\n\nclass RoughMaterial(MaterialScene):\n    label = 'material=\"rough\"'\n    look = StudioLook(lighting=\"studio\", material=\"rough\", effects=\"clean\")\n\n\nclass MediumMaterial(MaterialScene):\n    label = 'material=\"medium\"'\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"clean\")\n\n\nclass GlossyMaterial(MaterialScene):\n    label = 'material=\"glossy\"'\n    look = StudioLook(lighting=\"studio\", material=\"glossy\", effects=\"clean\")\n\n\nclass FilmEffects(MaterialScene):\n    label = 'effects=\"film\"'\n    look = StudioLook(lighting=\"studio\", material=\"glossy\", effects=\"film\", halation=\"warm\")\n"
+  },
+  "highlights": {
+    "id": "highlights",
+    "category": "annotate",
+    "file": "highlights.py",
+    "scene": "Highlights",
+    "title": "Region highlights",
+    "summary": "Mark a helix with a translucent sphere, a wire box, and an atom halo.",
+    "tags": [
+      "highlight",
+      "sphere",
+      "box",
+      "atoms"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/highlights.py",
+    "duration": 9.3,
+    "frames": 558,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/highlights.mp4",
+    "poster": "media/gallery/highlights.jpg",
+    "poster_time": 4.1,
+    "video_sha256": "c457a8f88e30dbbdd73c737c16768503b8081502214322fd7ba1d1078857ca24",
+    "poster_sha256": "2870fb88c249bf04f980b41dbec85b28b595cfc6a271da7676b88830578c7b7b",
+    "dependencies": {
+      "examples/gallery/highlights.py": "ec7d955334530d55c1bc4017ece47a2ac1f4bf5afc2b81f92c5002911fc23df6",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Mark a selection with a sphere, a wire box, or an atom halo.\n\nInput: ubiquitin, PDB 1UBQ, helix residues 23–34. Highlights follow the\nselection's coordinates; FadeIn/FadeOut animate their opacity.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import FadeIn, FadeOut, Protein, ProteinScene, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass Highlights(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1ubq.cif\").cartoon().center()\n        helix = protein.select(residues=(23, 34))\n        self.camera.frame(protein, margin=0.9, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"Region highlights\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\"\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\")\n        self.add(caption)\n        for style, color, opacity in (\n            (\"sphere\", \"#ffc46b\", 0.3),\n            (\"box\", \"#ff8fb1\", 0.9),\n            (\"atoms\", \"#9fe6ff\", 0.6),\n        ):\n            marker = helix.highlight(style=style, color=color, padding=1.0, opacity=opacity)\n            self.play(\n                caption.animate.set_text(f'helix.highlight(style=\"{style}\")'),\n                FadeIn(marker),\n                self.camera.animate.orbit(0.25),\n                run_time=0.8,\n            )\n            self.play(self.camera.animate.orbit(0.45), run_time=1.6)\n            self.play(FadeOut(marker), run_time=0.6)\n        self.wait(0.3)\n"
+  },
+  "callouts": {
+    "id": "callouts",
+    "category": "annotate",
+    "file": "callouts.py",
+    "scene": "Callouts",
+    "title": "Callouts and residue labels",
+    "summary": "Point to the helix with a callout, then label the Leu8–Ile44–Val70 hydrophobic patch.",
+    "tags": [
+      "callout",
+      "label_residues",
+      "Write"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/callouts.py",
+    "duration": 10.3,
+    "frames": 618,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/callouts.mp4",
+    "poster": "media/gallery/callouts.jpg",
+    "poster_time": 7.6,
+    "video_sha256": "f589236bf46f40b0b16d3a8da9ef04fb9ada401373d669ac96335ee617d78b5d",
+    "poster_sha256": "88bc53bbdc77f7c35be8f2b54f4b7096433fb88ddb2f98727a208a79fd5de183",
+    "dependencies": {
+      "examples/gallery/callouts.py": "c31aeee711796c715b40220752fdc53fe4be17a088312bb49119cc7f1ce4d933",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Label a region with a callout and residues with three-letter names.\n\nInput: ubiquitin, PDB 1UBQ. Leu8, Ile44, and Val70 form the hydrophobic\npatch that ubiquitin-binding domains recognize. Labels track their residues\nas the camera moves.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import (\n    FadeIn,\n    FadeOut,\n    Protein,\n    ProteinScene,\n    ShowSideChains,\n    StudioLook,\n    Text,\n    Unwrite,\n    Write,\n)\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass Callouts(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1ubq.cif\").cartoon().center()\n        helix = protein.select(residues=(23, 34), atoms=\"CA\")\n        patch = protein.select(residues=[8, 44, 70])\n        self.camera.theta = 0.6\n        self.camera.frame(protein, margin=0.95, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"Callouts and labels\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        note = helix.callout(\n            \"α helix\", subtitle=\"Residues 23–34\", position=(0.12, 0.42), font_size=40, tip=\"arrow\"\n        )\n        box = helix.highlight(style=\"box\", color=\"#f2ba67\")\n        self.play(Write(note), FadeIn(box), run_time=1.5)\n        self.play(self.camera.animate.orbit(0.4), run_time=2)\n        self.play(Unwrite(note), FadeOut(box), run_time=0.8)\n        labels = protein.label_residues(\n            residues=[8, 44, 70],\n            font_size=34,\n            color=\"#ffc46b\",\n            offsets={8: (-320, -60), 44: (340, -170), 70: (340, 130)},\n        )\n        self.play(ShowSideChains(patch, residue_delay=0.2), run_time=1.2)\n        self.play(Write(labels, lag_ratio=0.15), run_time=1.5)\n        self.play(self.camera.animate.orbit(0.5), run_time=2.5)\n        self.play(Unwrite(labels), run_time=0.8)\n"
+  },
+  "text": {
+    "id": "text",
+    "category": "annotate",
+    "file": "text.py",
+    "scene": "TextAnimation",
+    "title": "Text",
+    "summary": "Write glyph outlines, stack captions, move text, and change a string in place.",
+    "tags": [
+      "Text",
+      "TextGroup",
+      "Write",
+      "Unwrite",
+      "set_text"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/text.py",
+    "duration": 9.2,
+    "frames": 552,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/text.mp4",
+    "poster": "media/gallery/text.jpg",
+    "poster_time": 5.8,
+    "video_sha256": "d625c0c4bf5262367cc3523343b53f598aa0f87a62e9dce52a72cd1dd6ae2fde",
+    "poster_sha256": "cbf45cf749a3d363c84cd9352f5cf919d426f44c3ca492e4efddf8392c06057e",
+    "dependencies": {
+      "examples/gallery/text.py": "3309f8cd9e5ca243b37c45a3a0d4f480de6c9715ee9189d67051ab343e2cfed6",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Write, restyle, move, and erase text over a scene.\n\nWrite traces each glyph's outline and then fills it; set_text crossfades the\nstring; TextGroup stacks a title and body. Text uses 1080p pixel sizes and\nnormalized screen positions, independent of the output resolution.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import (\n    FadeIn,\n    Protein,\n    ProteinScene,\n    StudioLook,\n    Text,\n    TextGroup,\n    TextStyle,\n    Unwrite,\n    Write,\n)\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass TextAnimation(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1ubq.cif\").cartoon().center()\n        self.camera.frame(protein, margin=0.9, screen_position=(0.68, 0.55))\n        title = Text(\"Ubiquitin\", font_size=110, font=\"semibold\", position=(0.06, 0.3))\n        self.play(Write(title, lag_ratio=0.12, stroke_width=1.8), FadeIn(protein), run_time=2)\n        body = TextStyle(font_size=30, color=\"#a3b3c7\")\n        caption = TextGroup(\n            Text(\"76 residues · PDB 1UBQ\", style=body),\n            Text(\"β-grasp fold: a β sheet wrapped around one α helix\", style=body, max_width=560),\n            position=(0.065, 0.5),\n            gap=14,\n        )\n        self.play(Write(caption), self.camera.animate.orbit(0.3), run_time=1.5)\n        self.play(title.animate.move_to((0.06, 0.12)), caption.animate.move_to((0.065, 0.3)), run_time=1.2)\n        greek = Text(\"α → β\", font_size=80, color=\"#50e0d0\", position=(0.06, 0.55))\n        self.play(Write(greek), self.camera.animate.orbit(0.4), run_time=1.5)\n        self.play(greek.animate.set_text(\"β → α\"), run_time=1)\n        self.wait(0.5)\n        self.play(Unwrite(title), Unwrite(caption), Unwrite(greek), run_time=1.5)\n"
+  },
+  "distances": {
+    "id": "distances",
+    "category": "annotate",
+    "file": "distances.py",
+    "scene": "DistanceRuler",
+    "title": "Distance rulers",
+    "summary": "A ruler that follows an NMR ensemble, with a trace of the same distance across the models.",
+    "tags": [
+      "Distance",
+      "plot",
+      "PlayTrajectory"
+    ],
+    "pdb": "2K39",
+    "source": "examples/gallery/distances.py",
+    "duration": 9.7,
+    "frames": 582,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/distances.mp4",
+    "poster": "media/gallery/distances.jpg",
+    "poster_time": 5.0,
+    "video_sha256": "77e3ed0bb57101fb09f676eafe63a34a3472f71cfb84dcd8ed923e664750b885",
+    "poster_sha256": "0005de49a201f235e48e905837a3a4d9fa731ff7340e06707155202903e72951",
+    "dependencies": {
+      "examples/gallery/distances.py": "3e5a068701b7b9b3667f3111263c0165d89e6e834dc225854c17c897b8002caa",
+      "examples/data/2k39.cif": "a6bf4eed6d432c37089a81aba2ef1ef1bf6500e819ac628c5a5258460e1bb824"
+    },
+    "code": "\"\"\"A distance ruler that follows an NMR ensemble, with a synchronized trace.\n\nInput: ubiquitin NMR ensemble, PDB 2K39 (116 models), aligned on Cα 1–70.\nThe ruler measures Gly10 Cα to Gly47 Cα, two loop residues, in each interpolated model. Interpolating\nbetween deposited models illustrates ensemble variation, not dynamics.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Distance, PlayTrajectory, Protein, ProteinScene, StudioLook, Text, Write, linear\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass DistanceRuler(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"2k39.cif\").cartoon().center()\n        core = protein.select(residues=(1, 70), atoms=\"CA\")\n        protein.trajectory = protein.trajectory.aligned(indices=core.atom_indices)\n        start = protein.select(residues=10, atoms=\"CA\")\n        end = protein.select(residues=47, atoms=\"CA\")\n        ruler = Distance(start, end, color=\"#ffc46b\", font_size=36, style=\"solid\", line_width=2.5)\n        trace = ruler.plot(title=\"Gly10 Cα → Gly47 Cα\", position=(0.64, 0.2), size=(0.32, 0.32)).with_panel()\n        self.camera.frame(protein, margin=0.9, screen_position=(0.33, 0.55))\n        self.add(protein, Text(\"Distance rulers\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        self.add(Text(\"2K39 · 116 NMR models\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\"))\n        self.play(Write(ruler), Write(trace), run_time=1.2)\n        self.play(\n            PlayTrajectory(protein, end=40), self.camera.animate.orbit(0.6), run_time=8, rate_func=linear\n        )\n        self.wait(0.5)\n"
+  },
+  "ions": {
+    "id": "ions",
+    "category": "chemistry",
+    "file": "ions.py",
+    "scene": "CalciumSites",
+    "title": "Ions and ligands",
+    "summary": "Calcium ions drawn on the cartoon, and the side chains within 3 Å of them.",
+    "tags": [
+      "select(ions=True)",
+      "within",
+      "ShowSideChains"
+    ],
+    "pdb": "1CLL",
+    "source": "examples/gallery/ions.py",
+    "duration": 10.5,
+    "frames": 630,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/ions.mp4",
+    "poster": "media/gallery/ions.jpg",
+    "poster_time": 6.5,
+    "video_sha256": "987c5888edf4fe69c1615a1b514716ad5d86be6ab3c6d0816a01bdd27be6140c",
+    "poster_sha256": "ff77cf3b56dd5f618bd22d57af3e4113d66ea096ff1a54fe71898b8b4cb8ac46",
+    "dependencies": {
+      "examples/gallery/ions.py": "90d528fdf0b09c6c52b1081336eebe41844553fe248d63071601cddad7dcf551",
+      "examples/data/1cll.cif": "a8be375d00d2d5d47ffacae491f775167d1c0488ab8485cabd269410e596d3aa"
+    },
+    "code": "\"\"\"Calcium ions drawn on the cartoon, and the side chains that coordinate them.\n\nInput: calmodulin with four bound Ca²⁺, PDB 1CLL. Cartoons draw ligands and\nions by default. within=3.0 selects whole residues with an atom within 3 Å of\nthe ions.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Protein, ProteinScene, ShowSideChains, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass CalciumSites(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1cll.cif\").cartoon().center()\n        ions = protein.select(ions=True)\n        site = protein.select(within=3.0, of=ions)\n        first = protein.select(ions=True, residues=149)\n        self.camera.theta, self.camera.phi = 0.4, 0.15\n        self.camera.frame(protein, margin=1.15, screen_position=(0.6, 0.55))\n        self.add(protein, Text(\"Ions and ligands\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\"Calmodulin · four Ca²⁺ ions\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\")\n        self.add(caption)\n        self.play(self.camera.animate.orbit(0.4), run_time=1.5)\n        self.play(\n            caption.animate.set_text(\"ShowSideChains(within 3 Å of the ions)\"),\n            ShowSideChains(site, residue_delay=0.04),\n            self.camera.animate.orbit(0.4),\n            run_time=2.5,\n        )\n        self.play(caption.animate.set_text(\"EF-hand I\"), run_time=0.5)\n        self.focus(\n            protein.select(within=3.0, of=first) | first,\n            margin=2.4,\n            screen_position=(0.6, 0.55),\n            run_time=1.5,\n        )\n        self.play(self.camera.animate.orbit(0.8), run_time=3)\n        self.focus(protein, margin=1.15, screen_position=(0.6, 0.55), run_time=1.5)\n"
+  },
+  "binding-pocket": {
+    "id": "binding-pocket",
+    "category": "chemistry",
+    "file": "binding_pocket.py",
+    "scene": "BindingPocket",
+    "title": "Binding pocket",
+    "summary": "Fade the fold, grow the side chains within 4 Å of a bound ribose, and label key residues.",
+    "tags": [
+      "within",
+      "SetOpacity",
+      "ShowSideChains",
+      "label_residues",
+      "clearest_view"
+    ],
+    "pdb": "2DRI",
+    "source": "examples/gallery/binding_pocket.py",
+    "duration": 10.8,
+    "frames": 648,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/binding-pocket.mp4",
+    "poster": "media/gallery/binding-pocket.jpg",
+    "poster_time": 6.5,
+    "video_sha256": "e6a7124601f840f6a8707a6d013f2fcd92af70a68be7da5fb49cf077cd284c81",
+    "poster_sha256": "b44c03ca15556ebfe07d48252773b09d56dd21d3877b90d49f3c3b17c2de2059",
+    "dependencies": {
+      "examples/gallery/binding_pocket.py": "e2af50a07b925c97cdd72ab38101b292de28648653a6d2627d9b89d50a6f11bd",
+      "examples/data/2dri.cif": "e10e8bb4c75d762b657111f5cc7230cc7a0282a823c909459293a0815456fa16"
+    },
+    "code": "\"\"\"Open a ligand's binding pocket: fade the fold, grow the pocket side chains.\n\nInput: E. coli ribose-binding protein with bound β-D-ribose (RIP A272),\nPDB 2DRI. The pocket is every residue with an atom within 4 Å of the ligand.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Protein, ProteinScene, SetOpacity, ShowSideChains, StudioLook, Text, Unwrite, Write\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass BindingPocket(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"2dri.cif\", chains=\"A\").cartoon(color=\"#b8c4d6\").center()\n        ligand = protein.select(resname=\"RIP\")\n        pocket = protein.select(within=4.0, of=ligand)\n        theta, phi = self.camera.clearest_view(ligand)\n        self.camera.theta, self.camera.phi = theta, phi\n        self.camera.frame(protein, margin=0.95, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"Binding pocket\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\n            \"Ribose-binding protein · RIP A272\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\"\n        )\n        self.add(caption)\n        self.wait(0.5)\n        self.focus(ligand | pocket, margin=1.9, screen_position=(0.6, 0.52), run_time=1.8)\n        self.play(\n            caption.animate.set_text(\"protein.select(within=4.0, of=ligand)\"),\n            SetOpacity(~(pocket | ligand), 0.1),\n            ShowSideChains(pocket, residue_delay=0.08),\n            run_time=2,\n        )\n        labels = protein.label_residues(residues=[89, 141, 190, 215], font_size=30, color=\"#ffc46b\")\n        self.play(Write(labels, lag_ratio=0.1), self.camera.animate.orbit(0.3), run_time=1.5)\n        self.play(self.camera.animate.orbit(0.6), run_time=2.5)\n        self.play(Unwrite(labels), SetOpacity(protein, 1, scope=\"residues\"), run_time=1)\n        self.focus(protein, margin=0.95, screen_position=(0.6, 0.52), run_time=1.5)\n"
+  },
+  "side-chains": {
+    "id": "side-chains",
+    "category": "chemistry",
+    "file": "side_chains.py",
+    "scene": "SideChains",
+    "title": "Side chains",
+    "summary": "Grow every side chain from its Cα, N to C terminus, then remove them in reverse.",
+    "tags": [
+      "ShowSideChains",
+      "HideSideChains"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/side_chains.py",
+    "duration": 9.3,
+    "frames": 558,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/side-chains.mp4",
+    "poster": "media/gallery/side-chains.jpg",
+    "poster_time": 5.0,
+    "video_sha256": "ffbb21469f1d54e796f846f7157cca806c79bf600db1c41b75aa06be04bb9d7d",
+    "poster_sha256": "36f2c9fb8c3c299a6dc67e8a62a355d4202c4780ff58d928e6f7b86323994286",
+    "dependencies": {
+      "examples/gallery/side_chains.py": "13253f3ff2df28c13a32bcf726e1d7f780aa466c24394f501251e5227089e33c",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Grow every side chain from its Cα, N terminus to C terminus.\n\nInput: ubiquitin, PDB 1UBQ. ShowSideChains joins each side chain to the\ncartoon at Cα; residue_delay staggers the residues in seconds.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import HideSideChains, Protein, ProteinScene, ShowSideChains, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass SideChains(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1ubq.cif\").cartoon().center()\n        self.camera.frame(protein, margin=0.9, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"Side chains\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\n            \"ShowSideChains(protein, residue_delay=0.04)\",\n            position=(0.05, 0.145),\n            font_size=28,\n            color=\"#a3b3c7\",\n        )\n        self.add(caption)\n        self.wait(0.5)\n        self.play(ShowSideChains(protein, residue_delay=0.04), self.camera.animate.orbit(0.6), run_time=4)\n        self.play(self.camera.animate.orbit(0.6), run_time=2)\n        self.play(\n            caption.animate.set_text(\"HideSideChains(protein, reverse=True)\"),\n            HideSideChains(protein, residue_delay=0.02, reverse=True),\n            self.camera.animate.orbit(0.3),\n            run_time=2.5,\n        )\n        self.wait(0.3)\n"
+  },
+  "hydrogen-bonds": {
+    "id": "hydrogen-bonds",
+    "category": "chemistry",
+    "file": "hydrogen_bonds.py",
+    "scene": "HelixHydrogenBonds",
+    "title": "Hydrogen bonds",
+    "summary": "The i → i+4 backbone hydrogen bonds of an α helix, detected from the coordinates.",
+    "tags": [
+      "HydrogenBonds",
+      "highlight"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/hydrogen_bonds.py",
+    "duration": 8.0,
+    "frames": 480,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/hydrogen-bonds.mp4",
+    "poster": "media/gallery/hydrogen-bonds.jpg",
+    "poster_time": 4.5,
+    "video_sha256": "a2ea88fd34abc56f9b841a461896637b311b0ddc4493279eacb8e5c93a18b678",
+    "poster_sha256": "61237b362049808f4fcd3d772251faed4b3809cac77c469a3634e3814254547d",
+    "dependencies": {
+      "examples/gallery/hydrogen_bonds.py": "811a87b7f3c810a1dd6bb7dd609c0ba1176ed2b5e3fd1c0b7713c26968a390b1",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Backbone hydrogen bonds of an α helix, i to i+4.\n\nInput: ubiquitin, PDB 1UBQ, helix residues 23–34. Amide hydrogens are placed\non the backbone (hydrogens=\"backbone\"); bonds need N···O ≤ 3.5 Å and an\nN–H···O angle ≥ 150°.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import HydrogenBonds, Protein, ProteinScene, StudioLook, Text, Write\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass HelixHydrogenBonds(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = (\n            Protein.from_file(DATA / \"1ubq.cif\").ball_and_stick(atom_scale=0.26, bond_radius=0.1).center()\n        )\n        helix = protein.select(residues=(23, 34))\n        backbone = protein.select(atoms=[\"N\", \"CA\", \"C\", \"O\"])\n        (~helix).set_opacity(0.05)\n        (helix - backbone).set_opacity(0.2)\n        bonds = HydrogenBonds(\n            protein, donors=protein.select(residues=(23, 34), atoms=\"N\"), hydrogens=\"backbone\"\n        )\n        lines = bonds.highlight(mode=\"3d\", color=\"#ffd27a\", radius=0.13, dash_count=5)\n        self.camera.theta, self.camera.phi = 0.2, 0.1\n        self.camera.frame(helix, margin=0.95, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"Hydrogen bonds\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        self.add(\n            Text(\n                f\"Ubiquitin helix 23–34 · {len(bonds.pairs)} backbone N–H···O=C\",\n                position=(0.05, 0.145),\n                font_size=28,\n                color=\"#a3b3c7\",\n            )\n        )\n        self.wait(0.5)\n        self.play(Write(lines), run_time=2)\n        self.play(self.camera.animate.orbit(1.2), run_time=5)\n        self.wait(0.5)\n"
+  },
+  "electrostatics": {
+    "id": "electrostatics",
+    "category": "chemistry",
+    "file": "electrostatics.py",
+    "scene": "ChargePairs",
+    "title": "Charge interactions",
+    "summary": "Screened Coulomb estimates between charged side chains: attractive pairs in blue, repulsive in red.",
+    "tags": [
+      "Electrostatics",
+      "highlight",
+      "formal charges"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/electrostatics.py",
+    "duration": 8.5,
+    "frames": 510,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/electrostatics.mp4",
+    "poster": "media/gallery/electrostatics.jpg",
+    "poster_time": 5.5,
+    "video_sha256": "54b01304af604f2a5ad618df51e4c7b82fed898ad860ac2a7a0ab1a81163c73e",
+    "poster_sha256": "63b4a3a20b725ba3100186269b3e4893237d560b07065a245321f194c875247d",
+    "dependencies": {
+      "examples/gallery/electrostatics.py": "9a9872871d57079b4437748a4fd22e62e7265b8c61fae92d1038141e9d62a38d",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Screened Coulomb estimates between charged side chains.\n\nInput: ubiquitin, PDB 1UBQ, with formal charges on Lys, Arg, Asp, Glu, and\nthe termini. Energies use a Debye-screened Coulomb term (dielectric 80,\n8 Å screening): an illustrative estimate, not a Poisson–Boltzmann result.\nBlue lines attract; red lines repel.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Electrostatics, Protein, ProteinScene, ShowSideChains, StudioLook, Text, Write\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass ChargePairs(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1ubq.cif\").cartoon(color=\"#b8c4d6\").center()\n        charged = protein.select(resname=[\"LYS\", \"ARG\", \"ASP\", \"GLU\"])\n        field = Electrostatics(protein, charges=\"formal\", cutoff=7, min_energy=0.1)\n        contacts = field.highlight(mode=\"3d\", max_pairs=16, radius=0.2)\n        self.camera.frame(protein, margin=0.9, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"Charge interactions\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        self.add(\n            Text(\"Formal charges · screened Coulomb\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\")\n        )\n        self.add(Text(\"attractive\", position=(0.05, 0.84), font_size=28, color=\"#58b8fa\"))\n        self.add(Text(\"repulsive\", position=(0.05, 0.89), font_size=28, color=\"#ef7484\"))\n        self.play(ShowSideChains(charged, residue_delay=0.03), self.camera.animate.orbit(0.3), run_time=2)\n        self.play(Write(contacts), run_time=1.5)\n        self.play(self.camera.animate.orbit(1.1), run_time=5)\n"
+  },
+  "cutaway": {
+    "id": "cutaway",
+    "category": "reveal",
+    "file": "cutaway.py",
+    "scene": "Cutaway",
+    "title": "Cutaways",
+    "summary": "Cut a window through the surface onto a buried ribose; the window follows the camera.",
+    "tags": [
+      "Reveal",
+      "Conceal",
+      "Focus"
+    ],
+    "pdb": "2DRI",
+    "source": "examples/gallery/cutaway.py",
+    "duration": 9.0,
+    "frames": 540,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/cutaway.mp4",
+    "poster": "media/gallery/cutaway.jpg",
+    "poster_time": 4.5,
+    "video_sha256": "8bd850db7400857d718cc9ba46c2d0538fb54de36d5ca5d81e7c4e379bad0426",
+    "poster_sha256": "8721251a6f131ffe66b453142821e6035d420f34b35fedb417444752f3eec5b7",
+    "dependencies": {
+      "examples/gallery/cutaway.py": "8b11ce1959663aa574c5b3779d4ce407a9429083416b051da7b064818fee3d7f",
+      "examples/data/2dri.cif": "e10e8bb4c75d762b657111f5cc7230cc7a0282a823c909459293a0815456fa16"
+    },
+    "code": "\"\"\"Cut a window through the surface onto a buried ligand.\n\nInput: E. coli ribose-binding protein with bound β-D-ribose (RIP A272),\nPDB 2DRI, as a 0.6 Å voxel SES. The cone-shaped cutaway faces the camera and\nfollows it during the orbit; the atomic coordinates are not changed.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Conceal, Focus, Protein, ProteinScene, Reveal, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass Cutaway(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"dramatic\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"2dri.cif\", chains=\"A\").center()\n        protein.surface(kind=\"ses\", grid_spacing=0.6, color=\"#8fe3c0\")\n        ligand = protein.select(resname=\"RIP\")\n        ligand.filter(element=\"C\").set_color(\"#ffc46b\")\n        self.camera.theta, self.camera.phi = 1.5, 0.25\n        self.camera.frame(protein, margin=1.1, screen_position=(0.6, 0.53))\n        self.add(protein, Text(\"Cutaways\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\n            \"A buried ribose in its binding cleft\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\"\n        )\n        self.add(caption)\n        self.wait(1)\n        self.play(\n            Reveal(self.camera, ligand, window=1.8, padding=3, surface_keep=0.2),\n            Focus(self.camera, ligand, margin=5, screen_position=(0.6, 0.53)),\n            caption.animate.set_text(\"Reveal(camera, ligand)\"),\n            run_time=2,\n        )\n        self.play(self.camera.animate.orbit(0.9), run_time=4)\n        self.play(\n            Conceal(self.camera),\n            Focus(self.camera, protein, margin=1.1, screen_position=(0.6, 0.53)),\n            caption.animate.set_text(\"Conceal(camera)\"),\n            run_time=1.5,\n        )\n        self.wait(0.5)\n"
+  },
+  "depth-tunnel": {
+    "id": "depth-tunnel",
+    "category": "reveal",
+    "file": "depth_tunnel.py",
+    "scene": "DepthTunnel",
+    "title": "Depth tunnels",
+    "summary": "A tunnel with a ring every 5 Å shows how far a ligand lies below the surface.",
+    "tags": [
+      "Reveal",
+      "shape=\"tunnel\"",
+      "cutaway_geometry"
+    ],
+    "pdb": "2DRI",
+    "source": "examples/gallery/depth_tunnel.py",
+    "duration": 9.9,
+    "frames": 594,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/depth-tunnel.mp4",
+    "poster": "media/gallery/depth-tunnel.jpg",
+    "poster_time": 5.0,
+    "video_sha256": "27287478e624a1262c756e75f240e8f921080781d7b4518d541c5e922e754812",
+    "poster_sha256": "9eae2eb476b37e497919ec596390bdb4f4277c682b426fefad7674806d051f13",
+    "dependencies": {
+      "examples/gallery/depth_tunnel.py": "6066e243688af9e3d66df6dd90b49d101cdfc1b5376dddf63d0e867f5dd26b6a",
+      "examples/data/2dri.cif": "e10e8bb4c75d762b657111f5cc7230cc7a0282a823c909459293a0815456fa16"
+    },
+    "code": "\"\"\"Show how deep a buried site lies with a ringed tunnel.\n\nInput: E. coli ribose-binding protein with bound β-D-ribose (RIP A272),\nPDB 2DRI, as a 0.6 Å voxel SES. shape=\"tunnel\" draws a ring every 5 Å from\nthe outer surface to the ligand; the tunnel stays fixed to the protein.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Conceal, Focus, Protein, ProteinScene, Reveal, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass DepthTunnel(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"dramatic\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"2dri.cif\", chains=\"A\").center()\n        protein.surface(kind=\"ses\", grid_spacing=0.6, color=\"#9fb7e8\")\n        ligand = protein.select(resname=\"RIP\")\n        ligand.filter(element=\"C\").set_color(\"#ffc46b\")\n        self.camera.theta, self.camera.phi = 1.5, 0.25\n        self.camera.frame(protein, margin=1.1, screen_position=(0.6, 0.53))\n        self.add(protein, Text(\"Depth tunnels\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\n            'Reveal(camera, ligand, shape=\"tunnel\", rings=5)',\n            position=(0.05, 0.145),\n            font_size=28,\n            color=\"#a3b3c7\",\n        )\n        self.add(caption)\n        self.wait(0.8)\n        self.play(\n            Reveal(self.camera, ligand, window=1.6, shape=\"tunnel\", rings=5, padding=2, surface_keep=0.15),\n            Focus(self.camera, ligand, margin=5, screen_position=(0.6, 0.53)),\n            run_time=2,\n        )\n        depth = self.camera.cutaway_geometry()[3]\n        self.play(\n            caption.animate.set_text(f\"Ribose lies {depth:.0f} Å below the surface · ring every 5 Å\"),\n            run_time=0.6,\n        )\n        self.play(self.camera.animate.orbit(0.35, 0.15), run_time=3)\n        self.play(self.camera.animate.orbit(-0.35, -0.15), run_time=2)\n        self.play(\n            Conceal(self.camera),\n            Focus(self.camera, protein, margin=1.1, screen_position=(0.6, 0.53)),\n            run_time=1.5,\n        )\n"
+  },
+  "threading": {
+    "id": "threading",
+    "category": "reveal",
+    "file": "threading.py",
+    "scene": "Threading",
+    "title": "Threading",
+    "summary": "Thread the actual cartoon geometry into view with eased motion, then reverse it.",
+    "tags": [
+      "Thread",
+      "Unthread"
+    ],
+    "pdb": "2DRI",
+    "source": "examples/gallery/threading.py",
+    "duration": 10.8,
+    "frames": 648,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/threading.mp4",
+    "poster": "media/gallery/threading.jpg",
+    "poster_time": 6.0,
+    "video_sha256": "0f92c9d745121008e5002161277e2e1e193cc320cabc9a56ac612f9adbb179e2",
+    "poster_sha256": "17b976747fffb0d7f6b0f23b22f2b2d636eca7582f974371a3cc7e8c31233502",
+    "dependencies": {
+      "examples/gallery/threading.py": "6ced41d02db51ded0d958fbf2be13faa07a27a98e1cdd90cc4df87fc872fea06",
+      "examples/data/2dri.cif": "e10e8bb4c75d762b657111f5cc7230cc7a0282a823c909459293a0815456fa16"
+    },
+    "code": "\"\"\"Thread a cartoon into view, then reverse it.\n\nInput: E. coli ribose-binding protein, PDB 2DRI chain A. Thread moves the\nactual cartoon geometry along eased paths; it is an entrance animation, not a\nfolding simulation. Unthread plays the motion in reverse.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Protein, ProteinScene, StudioLook, Text, Thread, Unthread\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass Threading(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"soft\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"2dri.cif\", chains=\"A\").cartoon(color=\"rainbow\").center()\n        self.camera.frame(protein, margin=1.05, screen_position=(0.6, 0.53))\n        self.add(Text(\"Threading\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\n            'Thread(protein, easing=\"smooth\")', position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\"\n        )\n        self.add(caption)\n        self.play(Thread(protein, easing=\"smooth\", swirl=0.25, glow=0, seed=4), run_time=5)\n        self.play(self.camera.animate.orbit(0.5), run_time=2)\n        self.play(\n            caption.animate.set_text(\"Unthread(protein)\"),\n            Unthread(protein, easing=\"smooth\", glow=0, seed=4),\n            run_time=3.5,\n        )\n        self.wait(0.3)\n"
+  },
+  "thread-wire": {
+    "id": "thread-wire",
+    "category": "reveal",
+    "file": "thread_wire.py",
+    "scene": "ThreadWire",
+    "title": "Wire threading",
+    "summary": "Glowing wires trace the four chains of hemoglobin, then the cartoon fades in.",
+    "tags": [
+      "Thread",
+      "mode=\"wire\"",
+      "stagger"
+    ],
+    "pdb": "4HHB",
+    "source": "examples/gallery/thread_wire.py",
+    "duration": 9.5,
+    "frames": 570,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/thread-wire.mp4",
+    "poster": "media/gallery/thread-wire.jpg",
+    "poster_time": 4.0,
+    "video_sha256": "edacf99e1001eb06f693bac8589db9db44be35b4d64fab780358bad7f21cf90b",
+    "poster_sha256": "7da13757aef16acf86185a954e56223e34c633eb1d270480fce5e2af674065c7",
+    "dependencies": {
+      "examples/gallery/thread_wire.py": "610d9ba1c40fffc75535c5d3747aa39be8e11b95b354d559ce8aa8a1be1011b0",
+      "examples/data/4hhb.cif": "2d3ca1bf21ddff35af2e2bc5d331720f7bfc46a16c4829ea3ec1b41062d5f5a6"
+    },
+    "code": "\"\"\"Glowing wires trace each chain of a tetramer, then the cartoon fades in.\n\nInput: human deoxyhemoglobin, PDB 4HHB, chains A–D. mode=\"wire\" draws a wire\nthat runs along the backbone from the C terminus; stagger offsets the chains.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Protein, ProteinScene, StudioLook, Text, Thread\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass ThreadWire(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"film\", grain=\"off\")\n\n    def construct(self):\n        protein = (\n            Protein.from_file(DATA / \"4hhb.cif\", chains=[\"A\", \"B\", \"C\", \"D\"]).cartoon(color=\"chain\").center()\n        )\n        self.camera.frame(protein, margin=1.0, screen_position=(0.6, 0.53))\n        self.add(Text(\"Wire threading\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        self.add(\n            Text(\n                'Thread(protein, self.camera, mode=\"wire\")',\n                position=(0.05, 0.145),\n                font_size=28,\n                color=\"#a3b3c7\",\n            )\n        )\n        self.play(Thread(protein, self.camera, mode=\"wire\", stagger=0.16), run_time=7)\n        self.play(self.camera.animate.orbit(0.6), run_time=2.5)\n"
+  },
+  "b-factors": {
+    "id": "b-factors",
+    "category": "data",
+    "file": "b_factors.py",
+    "scene": "BFactors",
+    "title": "B factors",
+    "summary": "Color the cartoon by Cα B factor and widen it where the crystal structure is most mobile.",
+    "tags": [
+      "ResidueValues",
+      "ColorByProperty",
+      "ColorLegend",
+      "thickness"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/b_factors.py",
+    "duration": 8.5,
+    "frames": 510,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/b-factors.mp4",
+    "poster": "media/gallery/b-factors.jpg",
+    "poster_time": 4.0,
+    "video_sha256": "9e35a00d8ac12e80ca6b473f2daee796571e5856201764e2e610eca2ccaf8c55",
+    "poster_sha256": "787e83fa0f755b8df777ccd4d1392d73e19f0f157eb94bcbd12bd8a461b97183",
+    "dependencies": {
+      "examples/gallery/b_factors.py": "973f26878ec96f6bfb3999610a0e13b76685dd24d6484b034a94b79ac499f79a",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Color and thicken the cartoon by crystallographic B factor.\n\nInput: ubiquitin, PDB 1UBQ, Cα B factors from the deposited file. Higher B\nfactors mark atoms with more displacement or disorder in the crystal; the\nC-terminal tail is the most mobile.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import (\n    ColorByProperty,\n    ColorLegend,\n    ColorScale,\n    Protein,\n    ProteinScene,\n    ResidueValues,\n    StudioLook,\n    Text,\n)\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass BFactors(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1ubq.cif\").cartoon(color=\"#b8c4d6\").center()\n        values = ResidueValues.b_factors(protein)\n        scale = ColorScale(2, 30)\n        self.camera.frame(protein, margin=0.9, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"B factors\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        self.add(\n            Text(\n                \"Color and cartoon width by Cα B factor\",\n                position=(0.05, 0.145),\n                font_size=28,\n                color=\"#a3b3c7\",\n            )\n        )\n        legend = ColorLegend(scale, title=\"B factor\", unit=\"Å²\", position=(0.05, 0.8))\n        self.wait(0.5)\n        self.add(legend)\n        self.play(\n            ColorByProperty(protein, values, scale=scale, thickness=(0.6, 2.0), residue_delay=0.02),\n            self.camera.animate.orbit(0.5),\n            run_time=3,\n        )\n        self.play(self.camera.animate.orbit(1.2), run_time=5)\n"
+  },
+  "alphafold": {
+    "id": "alphafold",
+    "category": "data",
+    "file": "alphafold.py",
+    "scene": "AlphaFoldConfidence",
+    "title": "AlphaFold confidence",
+    "summary": "Color a predicted model by pLDDT beside its predicted aligned error heatmap.",
+    "tags": [
+      "plddt",
+      "Heatmap.pae",
+      "ColorLegend"
+    ],
+    "pdb": "AF-P0DP23-F1",
+    "source": "examples/gallery/alphafold.py",
+    "duration": 8.2,
+    "frames": 492,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/alphafold.mp4",
+    "poster": "media/gallery/alphafold.jpg",
+    "poster_time": 3.0,
+    "video_sha256": "d571a31ac29a0d2c82bb09ef304f13fc2d91ee72cf26c87586235b64fed1ad99",
+    "poster_sha256": "1e7ea7785d97bee203ea31601a0eaf5fc0c97547bcd2e48a9a457be8acf3c107",
+    "dependencies": {
+      "examples/gallery/alphafold.py": "3f4b06bff0a6ebc3d1881942ff002edd6e20513790afd9cd46e247e9eab213d3",
+      "examples/data/AF-P0DP23-F1-model_v6.cif": "e698114902202d87b9cf6ea7656fbf433db61571d085593905885de6389b475f",
+      "examples/data/AF-P0DP23-F1-predicted_aligned_error_v6.json": "44c3f6c438ee29fe9d6c7da72e916904f3103c5471aae93747a586f7d1b49652"
+    },
+    "code": "\"\"\"AlphaFold confidence: pLDDT on the model and predicted aligned error.\n\nInput: AlphaFold DB model of human calmodulin, AF-P0DP23-F1 v6, with its PAE\nfile (CC BY 4.0). Each lobe is predicted with confidence, but the high PAE\nbetween lobes shows that their relative position is not.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import ColorLegend, FadeIn, Heatmap, Protein, ProteinScene, ResidueValues, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass AlphaFoldConfidence(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        model = Protein.from_file(DATA / \"AF-P0DP23-F1-model_v6.cif\").cartoon().center()\n        model.color_by(\"plddt\")\n        c_lobe = model.select(residues=(82, 148))\n        pae = Heatmap.pae(\n            model,\n            DATA / \"AF-P0DP23-F1-predicted_aligned_error_v6.json\",\n            highlight=c_lobe,\n            position=(0.63, 0.16),\n            size=(0.34, 0.6),\n        ).with_panel()\n        self.camera.frame(model, margin=0.85, screen_position=(0.31, 0.52))\n        self.add(model, Text(\"AlphaFold confidence\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        self.add(Text(\"Calmodulin · AF-P0DP23-F1\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\"))\n        self.play(\n            FadeIn(pae), FadeIn(ColorLegend(ResidueValues.plddt(model), position=(0.05, 0.82))), run_time=1.2\n        )\n        self.play(self.camera.animate.orbit(1.4), run_time=7)\n"
+  },
+  "conservation": {
+    "id": "conservation",
+    "category": "data",
+    "file": "conservation.py",
+    "scene": "Conservation",
+    "title": "Hydropathy and conservation",
+    "summary": "Paint the surface by hydropathy, then by conservation across a Pfam family alignment.",
+    "tags": [
+      "hydropathy",
+      "conservation",
+      "ColorByProperty"
+    ],
+    "pdb": "1UBQ · PF00240",
+    "source": "examples/gallery/conservation.py",
+    "duration": 10.0,
+    "frames": 600,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/conservation.mp4",
+    "poster": "media/gallery/conservation.jpg",
+    "poster_time": 7.5,
+    "video_sha256": "342204895af5d8fbd3c546d5e269683fd1fa86e3e0ad5ba397bbce77bc288bc2",
+    "poster_sha256": "ed4b81f6b54c26e5426c16c0b46620ceb79bc6fdcbe670252ebb74cbcb9234a6",
+    "dependencies": {
+      "examples/gallery/conservation.py": "4a07923627273262a1071083cf8716e19e824bfd21a0a46d2bd761e5ded054e8",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6",
+      "examples/data/pf00240-seed.sto": "75e8c78cb7b0b30434ff7f5c568f8c5e4d036811bd09a16819b7430439d9e250"
+    },
+    "code": "\"\"\"Hydropathy, then sequence conservation, painted on a molecular surface.\n\nInput: ubiquitin, PDB 1UBQ, and the Pfam PF00240 seed alignment (CC0).\nConservation is 1 − H/ln 20 per alignment column with Henikoff weights; the\nConSurf palette runs from turquoise (variable) to maroon (conserved).\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import (\n    ColorByProperty,\n    ColorLegend,\n    FadeIn,\n    FadeOut,\n    Protein,\n    ProteinScene,\n    ResidueValues,\n    StudioLook,\n    Text,\n)\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass Conservation(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"soft\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1ubq.cif\").surface(color=\"hydropathy\").center()\n        hydropathy = ResidueValues.hydropathy(protein)\n        conservation = ResidueValues.conservation(protein, DATA / \"pf00240-seed.sto\")\n        self.camera.frame(protein, margin=0.95, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"Residue properties\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\"Kyte–Doolittle hydropathy\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\")\n        first = ColorLegend(hydropathy, position=(0.05, 0.8))\n        second = ColorLegend(conservation, position=(0.05, 0.8))\n        self.add(caption, first)\n        self.play(self.camera.animate.orbit(1.0), run_time=3.5)\n        self.play(\n            ColorByProperty(protein, conservation, stagger=0.4),\n            caption.animate.set_text(\"Conservation · Pfam PF00240, 59 sequences\"),\n            FadeOut(first),\n            FadeIn(second),\n            run_time=2.5,\n        )\n        self.play(self.camera.animate.orbit(1.2), run_time=4)\n"
+  },
+  "plots": {
+    "id": "plots",
+    "category": "data",
+    "file": "plots.py",
+    "scene": "SynchronizedPlots",
+    "title": "Synchronized plots",
+    "summary": "A live contact map, distance trace, and sequence track that follow an NMR ensemble.",
+    "tags": [
+      "ContactMap",
+      "TimeSeriesPlot",
+      "SequenceTrack",
+      "rmsf"
+    ],
+    "pdb": "2K39",
+    "source": "examples/gallery/plots.py",
+    "duration": 10.0,
+    "frames": 600,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/plots.mp4",
+    "poster": "media/gallery/plots.jpg",
+    "poster_time": 5.0,
+    "video_sha256": "73cbc3f996c9ef9ac443c5a077a0922a41e0ff09cc141e8e891b4eabf221869c",
+    "poster_sha256": "10cb3f178be6fbb7b092f887324467ac415d2f7547c2937ac81500ee7a05dffd",
+    "dependencies": {
+      "examples/gallery/plots.py": "5647698956fa5a939e736fee1ef9c1b9c24155abf137a014fac3370d50aaa60a",
+      "examples/data/2k39.cif": "a6bf4eed6d432c37089a81aba2ef1ef1bf6500e819ac628c5a5258460e1bb824"
+    },
+    "code": "\"\"\"An NMR ensemble with a live contact map, distance trace, and sequence track.\n\nInput: ubiquitin NMR ensemble, PDB 2K39, aligned on Cα 1–70 and colored by\nper-residue RMSF across the models. The plots follow the interpolated state;\nstate order is the deposited model order, not physical time.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import (\n    ColorScale,\n    ContactMap,\n    PlayTrajectory,\n    Protein,\n    ProteinScene,\n    ResidueValues,\n    SequenceTrack,\n    StudioLook,\n    Text,\n    TimeSeriesPlot,\n    linear,\n)\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass SynchronizedPlots(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"2k39.cif\").cartoon().center()\n        core = protein.select(residues=(1, 70), atoms=\"CA\")\n        protein.trajectory = protein.trajectory.aligned(indices=core.atom_indices)\n        protein.color_by(ResidueValues.rmsf(protein, align=False), scale=ColorScale(0, 8))\n        tail = protein.select(residues=(66, 76))\n        self.camera.frame(protein, margin=0.85, screen_position=(0.31, 0.48))\n        self.add(protein, Text(\"Synchronized plots\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        self.add(\n            Text(\"2K39 · colored by ensemble RMSF\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\")\n        )\n        self.add(ContactMap(protein, selection=tail, position=(0.62, 0.08), size=(0.34, 0.4)).with_panel())\n        self.add(\n            TimeSeriesPlot.distance(\n                protein.select(residues=1, atoms=\"CA\"),\n                protein.select(residues=76, atoms=\"CA\"),\n                title=\"N to C terminus (Cα)\",\n                position=(0.62, 0.52),\n                size=(0.34, 0.28),\n            ).with_panel()\n        )\n        self.add(\n            SequenceTrack(\n                protein,\n                selection=tail,\n                title=\"C-terminal tail 66–76\",\n                position=(0.05, 0.84),\n                size=(0.91, 0.12),\n            )\n        )\n        self.wait(0.5)\n        self.play(PlayTrajectory(protein, end=30), run_time=9, rate_func=linear)\n        self.wait(0.5)\n"
+  },
+  "density": {
+    "id": "density",
+    "category": "data",
+    "file": "density.py",
+    "scene": "DensityMaps",
+    "title": "Density maps",
+    "summary": "An electron-density contour at two σ levels and a density slice moving through a helix.",
+    "tags": [
+      "DensityMap",
+      "isosurface",
+      "slice",
+      "set_level"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/density.py",
+    "duration": 9.8,
+    "frames": 588,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/density.mp4",
+    "poster": "media/gallery/density.jpg",
+    "poster_time": 7.0,
+    "video_sha256": "5872ddcf78d8084437194c041a4fc235aaa3450e625b02685d92dd764e072a1a",
+    "poster_sha256": "afef2b7adc8a0a0cf6b260e3e8a6d1f246a56e413ea7a77053f9001451604827",
+    "dependencies": {
+      "examples/gallery/density.py": "bd24eb911135ee1c117c381d5ae5a2ead78e181b2018876b12f60a8be061cd0c",
+      "examples/data/1ubq.ccp4": "ffa129de6ba72a0980b7724abfec132ee952334c92e1b57023876e38f24c4153",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"An electron-density contour and a sliding density plane around a helix.\n\nInput: ubiquitin, PDB 1UBQ, and its 2mFo–DFc map from PDBe (1ubq.ccp4). The\ncontour level is in σ of the full map; the slice samples map values on a\nplane that moves through the cropped box.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import (\n    ColorLegend,\n    ColorScale,\n    DensityMap,\n    FadeIn,\n    FadeOut,\n    Protein,\n    ProteinScene,\n    StudioLook,\n    Text,\n)\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass DensityMaps(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = (\n            Protein.from_file(DATA / \"1ubq.cif\").ball_and_stick(atom_scale=0.25, bond_radius=0.11).center()\n        )\n        helix = protein.select(residues=(23, 34))\n        (~helix).set_opacity(0.06)\n        local = DensityMap.from_file(DATA / \"1ubq.ccp4\").crop(helix, padding=1.8)\n        shell = local.isosurface(1.5, opacity=0.3, color=\"#7fc8ff\", follow=protein)\n        scale = ColorScale(-0.5, 2, colors=(\"#10243d\", \"#438ca4\", \"#f5df93\"))\n        section = local.slice(\"z\", 0.15, scale=scale, opacity=0.9, follow=protein, resolution=96)\n        self.camera.frame(helix, margin=1.6, screen_position=(0.6, 0.52))\n        self.camera.orbit(theta=0.22, phi=0.18)\n        self.add(protein, Text(\"Density maps\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\"isosurface(1.5 σ)\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\")\n        self.add(caption)\n        self.play(FadeIn(shell), run_time=1)\n        self.play(\n            shell.animate.set_level(2.5),\n            caption.animate.set_text(\"set_level(2.5 σ)\"),\n            self.camera.animate.orbit(0.3),\n            run_time=2,\n        )\n        self.play(shell.animate.set_level(1.5), caption.animate.set_text(\"set_level(1.5 σ)\"), run_time=1.5)\n        self.play(\n            FadeIn(section),\n            FadeIn(ColorLegend(scale, title=\"Map value\", position=(0.05, 0.8))),\n            caption.animate.set_text('slice(\"z\")'),\n            run_time=1,\n        )\n        self.play(section.animate.set_slice(0.85), run_time=3.5)\n        self.play(FadeOut(section), run_time=0.8)\n"
+  },
+  "nmr": {
+    "id": "nmr",
+    "category": "motion",
+    "file": "nmr_ensemble.py",
+    "scene": "NMREnsemble",
+    "title": "NMR ensembles",
+    "summary": "Play through deposited NMR models as a cartoon, then with every atom.",
+    "tags": [
+      "PlayTrajectory",
+      "trajectory.aligned"
+    ],
+    "pdb": "2K39",
+    "source": "examples/gallery/nmr_ensemble.py",
+    "duration": 11.5,
+    "frames": 690,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/nmr.mp4",
+    "poster": "media/gallery/nmr.jpg",
+    "poster_time": 8.0,
+    "video_sha256": "c7723fcbe1ff448fbf8634bb965ac434a952b8fd16ab3288176abbedcb9075d5",
+    "poster_sha256": "91c2a9f462ad29db76cb46bdd9d8c4d078296fb2c67751930f72ee07e4b80e3c",
+    "dependencies": {
+      "examples/gallery/nmr_ensemble.py": "5bfc97c8ee0b672ff3fc53ed14d617ff59e4acb0acc56246ad86e6b4150f3c26",
+      "examples/data/2k39.cif": "a6bf4eed6d432c37089a81aba2ef1ef1bf6500e819ac628c5a5258460e1bb824"
+    },
+    "code": "\"\"\"Play through the models of an NMR ensemble, side chains included.\n\nInput: ubiquitin, PDB 2K39, 116 deposited models aligned on Cα 1–70.\nPlayTrajectory interpolates between consecutive models; this illustrates the\nspread of the ensemble, not motion over time.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import PlayTrajectory, Protein, ProteinScene, ShowSideChains, StudioLook, Text, linear\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass NMREnsemble(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"2k39.cif\").cartoon().center()\n        core = protein.select(residues=(1, 70), atoms=\"CA\")\n        protein.trajectory = protein.trajectory.aligned(indices=core.atom_indices)\n        self.camera.frame(protein, margin=0.95, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"NMR ensembles\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\n            \"PlayTrajectory(protein) · 2K39, 116 models\",\n            position=(0.05, 0.145),\n            font_size=28,\n            color=\"#a3b3c7\",\n        )\n        self.add(caption)\n        self.play(\n            PlayTrajectory(protein, end=24), self.camera.animate.orbit(0.4), run_time=5, rate_func=linear\n        )\n        self.play(\n            ShowSideChains(protein, residue_delay=0.01),\n            PlayTrajectory(protein, start=24, end=29),\n            caption.animate.set_text(\"Side chains follow the models\"),\n            run_time=1.5,\n            rate_func=linear,\n        )\n        self.play(\n            PlayTrajectory(protein, start=29, end=41),\n            self.camera.animate.orbit(0.4),\n            run_time=5,\n            rate_func=linear,\n        )\n"
+  },
+  "structure-morph": {
+    "id": "structure-morph",
+    "category": "motion",
+    "file": "structure_morph.py",
+    "scene": "AdenylateKinase",
+    "title": "Domain closure",
+    "summary": "Adenylate kinase closes around its inhibitor in a morph between two crystal structures.",
+    "tags": [
+      "StructureMorph",
+      "domain_motion",
+      "look_along"
+    ],
+    "pdb": "4AKE → 1AKE",
+    "source": "examples/gallery/structure_morph.py",
+    "duration": 9.5,
+    "frames": 570,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/structure-morph.mp4",
+    "poster": "media/gallery/structure-morph.jpg",
+    "poster_time": 6.5,
+    "video_sha256": "0b19a4bda6afcb2635ad32320e275c5dd7ced7eb77cc8ae582eb12f9982db762",
+    "poster_sha256": "bc0f0e9da2c5cf02b1a3767ae26817dac00bd264efa19d22e97e0d03309ec2d2",
+    "dependencies": {
+      "examples/gallery/structure_morph.py": "ea5af54bd6977a7a4b04b43491f1e09992b58d30dcf4848e13fae206fe33abca",
+      "examples/data/1ake.cif": "01f41b1b42318a1a5df7f650dbab881677aa0e8d825f7c42dd26ae16a94c0948",
+      "examples/data/4ake.cif": "fcb2ff49a3e255797fee277ce28e0acace67f6e6ddf432841f8451f00cbde9e9"
+    },
+    "code": "\"\"\"Adenylate kinase closes: a morph between two crystal structures.\n\nInputs: E. coli adenylate kinase, open (PDB 4AKE) and closed around the\ninhibitor Ap5A (PDB 1AKE), chain A, superposed on the CORE domain. Residues\nfollow screw paths between the endpoints; the path is an illustration, not a\ncomputed transition. Ap5A exists only in 1AKE, so it fades in.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Protein, ProteinScene, StructureMorph, StudioLook, Text, domain_motion\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass AdenylateKinase(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"soft\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        open_ = Protein.from_file(DATA / \"4ake.cif\", chains=\"A\").cartoon(color=\"#7f93b3\")\n        closed = Protein.from_file(DATA / \"1ake.cif\", chains=\"A\").cartoon()\n        core = open_.select(residues=[*range(1, 30), *range(60, 122), *range(160, 215)])\n        lid, nmp = open_.select(residues=(122, 159)), open_.select(residues=(30, 59))\n        lid.set_color(\"#f5d477\")\n        nmp.set_color(\"#50e0d0\")\n        swing = domain_motion(open_, closed, moving=lid, fixed=core)\n        open_.center()\n        self.camera.look_along(swing.axis, open_)\n        self.camera.frame(open_, margin=0.8, screen_position=(0.6, 0.53))\n        self.add(open_, Text(\"Structure morphs\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\n            \"Adenylate kinase · open, PDB 4AKE\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\"\n        )\n        self.add(caption)\n        self.add(Text(\"LID\", position=(0.05, 0.78), font_size=30, color=\"#f5d477\"))\n        self.add(Text(\"NMP-binding\", position=(0.05, 0.83), font_size=30, color=\"#50e0d0\"))\n        self.add(Text(\"CORE\", position=(0.05, 0.88), font_size=30, color=\"#7f93b3\"))\n        self.wait(1)\n        self.play(\n            StructureMorph(open_, closed, align=core),\n            caption.animate.set_text(f\"Closed around Ap5A, PDB 1AKE · LID turns {swing.angle:.0f}°\"),\n            run_time=5,\n        )\n        self.wait(0.5)\n        self.play(self.camera.animate.orbit(0.8), run_time=3)\n"
+  },
+  "hemoglobin-morph": {
+    "id": "hemoglobin-morph",
+    "category": "motion",
+    "file": "hemoglobin_morph.py",
+    "scene": "HemoglobinMorph",
+    "title": "Quaternary change",
+    "summary": "Hemoglobin goes from T to R as one αβ dimer turns against the other.",
+    "tags": [
+      "StructureMorph",
+      "assembly",
+      "domain_motion"
+    ],
+    "pdb": "2DN2 → 2DN1",
+    "source": "examples/gallery/hemoglobin_morph.py",
+    "duration": 9.5,
+    "frames": 570,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/hemoglobin-morph.mp4",
+    "poster": "media/gallery/hemoglobin-morph.jpg",
+    "poster_time": 6.5,
+    "video_sha256": "5039b6201dd7327328f6a03ead62a8bfaa9c24611b6f4013be6b8d9cf0cd3863",
+    "poster_sha256": "d1f69652d3774ee5a3f02f04704ad3f5e638dec77ffa1719a05a0c1b0afbdb3c",
+    "dependencies": {
+      "examples/gallery/hemoglobin_morph.py": "1d8f43a5bcc14aabc979491f7a388b8a749e246162c33f6a6ffc11b3fc2a1d56",
+      "examples/data/2dn1.cif": "cd114c21d276ad69d7e0b667e0edae1161e089c25c04bcfe7468e4102e484bc9",
+      "examples/data/2dn2.cif": "b228200cbc09d0cfa6c147d49ded52917cb028d177e6780544e8028c0d5bc6ca"
+    },
+    "code": "\"\"\"Hemoglobin T to R: one αβ dimer turns against the other.\n\nInputs: human deoxyhemoglobin (T state, PDB 2DN2) and oxyhemoglobin (R\nstate, PDB 2DN1, expanded to the tetramer with assembly 1). Superposed on\nα1β1, so the change appears as the rotation of α2β2, viewed down its axis.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Protein, ProteinScene, StructureMorph, StudioLook, Text, domain_motion\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass HemoglobinMorph(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"soft\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        deoxy = Protein.from_file(DATA / \"2dn2.cif\").cartoon()\n        oxy = Protein.from_file(DATA / \"2dn1.cif\", assembly=\"1\").cartoon()\n        oxy.select(resname=\"MBN\").hide_atoms()  # toluene from crystallization\n        for chain, color in ((\"A\", \"#7f93b3\"), (\"B\", \"#9fb0c9\"), (\"C\", \"#50e0d0\"), (\"D\", \"#f5d477\")):\n            deoxy.select(chain=chain, polymer=True).set_color(color)\n        dimer = deoxy.select(chain=[\"A\", \"B\"])\n        motion = domain_motion(deoxy, oxy, moving=deoxy.select(chain=[\"C\", \"D\"]), fixed=dimer)\n        deoxy.center()\n        self.camera.look_along(motion.axis, deoxy)\n        self.camera.frame(deoxy, margin=1.0, screen_position=(0.6, 0.55))\n        self.add(deoxy, Text(\"Quaternary change\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\n            \"Deoxyhemoglobin, T state · PDB 2DN2\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\"\n        )\n        self.add(caption)\n        self.add(Text(\"α1β1\", position=(0.05, 0.83), font_size=30, color=\"#9fb0c9\"))\n        self.add(Text(\"α2β2\", position=(0.05, 0.88), font_size=30, color=\"#f5d477\"))\n        self.wait(1)\n        self.play(\n            StructureMorph(deoxy, oxy, align=dimer),\n            caption.animate.set_text(f\"Oxyhemoglobin, R state · α2β2 turns {motion.angle:.0f}°\"),\n            run_time=5,\n        )\n        self.wait(0.5)\n        self.play(self.camera.animate.orbit(0.6), run_time=3)\n"
+  },
+  "backbone-morph": {
+    "id": "backbone-morph",
+    "category": "motion",
+    "file": "backbone_morph.py",
+    "scene": "ContactMorph",
+    "title": "Contact-guided morph",
+    "summary": "Morph calmodulin into troponin C through 114 residues matched by their contact maps.",
+    "tags": [
+      "BackboneMorph",
+      "ContactMatch"
+    ],
+    "pdb": "1CLL → 1NCX",
+    "source": "examples/gallery/backbone_morph.py",
+    "duration": 10.0,
+    "frames": 600,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/backbone-morph.mp4",
+    "poster": "media/gallery/backbone-morph.jpg",
+    "poster_time": 5.0,
+    "video_sha256": "ff8333011d1516ea0f2c0b2f9d1602fa6d8c04b06a11eb40e329a24f0cfcaf14",
+    "poster_sha256": "4676cb9e634fdba892914621b74a8aa3af45e7eacb94f379141bc8dc024a3e67",
+    "dependencies": {
+      "examples/gallery/backbone_morph.py": "aa42e0ef932737c588bb12fb4578c9ff84fc106cbfbd4e70ce6558f525a503be",
+      "examples/data/1cll.cif": "a8be375d00d2d5d47ffacae491f775167d1c0488ab8485cabd269410e596d3aa",
+      "examples/data/1ncx.cif": "136c21ca3189d5713844ce23fce141b793242ee4d7d5f51492d7771223a961e4",
+      "examples/data/calmodulin-troponin-match.json": "ecc87dee65168f8309783cd093a23d64c21382ba3507a1b95e8d96b9ff9cbcff"
+    },
+    "code": "\"\"\"Morph one protein into a different one through matched contacts.\n\nInputs: calmodulin (PDB 1CLL) and troponin C (PDB 1NCX). A contact-map\nsearch pairs 114 Cα residues; matched residues move N to C with a 25 ms\ndelay, while unmatched residues fade out or in. The path is illustrative.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import BackboneMorph, ContactMatch, Protein, ProteinScene, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass ContactMorph(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        source = Protein.from_file(DATA / \"1cll.cif\", chains=\"A\").cartoon(color=\"rainbow\").center()\n        target = Protein.from_file(DATA / \"1ncx.cif\", chains=\"A\").cartoon(color=\"rainbow\").center()\n        match = ContactMatch.load(DATA / \"calmodulin-troponin-match.json\")\n        self.camera.frame(source, target, margin=1.0, screen_position=(0.6, 0.52))\n        self.add(source, Text(\"Contact-guided morphs\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\"Calmodulin · PDB 1CLL\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\")\n        self.add(caption)\n        self.play(self.camera.animate.orbit(0.3), run_time=1.5)\n        self.play(\n            BackboneMorph(source, target, match=match, residue_delay=0.025),\n            caption.animate.set_text(\"Troponin C · PDB 1NCX · 114 matched Cα\"),\n            run_time=6,\n        )\n        self.play(self.camera.animate.orbit(0.6), run_time=2.5)\n"
+  },
+  "deform": {
+    "id": "deform",
+    "category": "motion",
+    "file": "deform.py",
+    "scene": "Deformation",
+    "title": "Deformations",
+    "summary": "Twist the coordinates with any Python function, then morph back to the saved structure.",
+    "tags": [
+      "Deform",
+      "Morph"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/deform.py",
+    "duration": 9.0,
+    "frames": 540,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/deform.mp4",
+    "poster": "media/gallery/deform.jpg",
+    "poster_time": 3.5,
+    "video_sha256": "4e64fe348f33e310edd3b9b3e659ea6d469ee4847269f135314e0cd3fd92b60d",
+    "poster_sha256": "900cda1fa7f9a061fe55ffbd58e6a493f6193f79c308ed9056cc3c0c606e8161",
+    "dependencies": {
+      "examples/gallery/deform.py": "d739eab2f76d93742a4743739919755b849cf68d998b49fe031f45e7a208ab1a",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Deform coordinates with any function, then morph back.\n\nInput: ubiquitin, PDB 1UBQ. Deform passes the current coordinates (N × 3, in\nÅ) to a Python function each frame; Morph returns to the saved array.\n\"\"\"\n\nfrom pathlib import Path\n\nimport numpy as np\n\nfrom proteinmotion import Deform, Morph, Protein, ProteinScene, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\ndef twist(xyz):\n    \"\"\"Turn each slab about the y axis in proportion to its height.\"\"\"\n    center = xyz.mean(axis=0)\n    local = xyz - center\n    angle = 0.1 * local[:, 1]\n    cos, sin = np.cos(angle), np.sin(angle)\n    x = cos * local[:, 0] + sin * local[:, 2]\n    z = -sin * local[:, 0] + cos * local[:, 2]\n    return center + np.column_stack((x, local[:, 1], z))\n\n\nclass Deformation(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1ubq.cif\").cartoon().center()\n        rest = protein.positions.copy()\n        self.camera.frame(protein, margin=1.0, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"Deformations\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\"Deform(protein, twist)\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\")\n        self.add(caption)\n        self.wait(0.5)\n        self.play(Deform(protein, twist), run_time=2.5)\n        self.play(self.camera.animate.orbit(0.6), run_time=2)\n        self.play(\n            caption.animate.set_text(\"Morph(protein, rest, align=False)\"),\n            Morph(protein, rest, align=False),\n            run_time=2.5,\n        )\n        self.play(self.camera.animate.orbit(0.4), run_time=1.5)\n"
+  },
+  "torsion-markers": {
+    "id": "torsion-markers",
+    "category": "torsions",
+    "file": "torsion_marker.py",
+    "scene": "TorsionMarkers",
+    "title": "Torsion angles",
+    "summary": "Turn φ and then ψ of one residue, with arcs on the bonds and its point on a Ramachandran plot.",
+    "tags": [
+      "SetTorsions",
+      "torsion_marker",
+      "RamachandranPlot",
+      "Protein.build"
+    ],
+    "pdb": "Built peptide",
+    "source": "examples/gallery/torsion_marker.py",
+    "duration": 9.2,
+    "frames": 552,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/torsion-markers.mp4",
+    "poster": "media/gallery/torsion-markers.jpg",
+    "poster_time": 6.5,
+    "video_sha256": "3c2e507ec2fd0849dc6f73b0f4d7dc0676fa0264f97e39847536727c26528b9b",
+    "poster_sha256": "1796c6b3974e0cda4d8e7329b2636a9c86110ff3aa429fcc2d3025cfbea0f841",
+    "dependencies": {
+      "examples/gallery/torsion_marker.py": "2a2a3ec85aa8538558df7203962d16c078e59b0eeb457de7e7bfc8c98f705c10"
+    },
+    "code": "\"\"\"Turn φ and ψ of one residue and watch it move on a Ramachandran plot.\n\nInput: a 12-residue alanine peptide built as a β strand. Atoms rotate about\nthe N–Cα (φ) and Cα–C (ψ) bonds, so bond lengths and angles stay fixed.\nTorsion angles are in degrees.\n\"\"\"\n\nfrom proteinmotion import (\n    FadeIn,\n    Protein,\n    ProteinScene,\n    RamachandranPlot,\n    SetTorsions,\n    StudioLook,\n    Text,\n    Unwrite,\n    Write,\n)\n\n\nclass TorsionMarkers(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        peptide = Protein.build(\"AAAAAAAAAAAA\", \"strand\").cartoon()\n        middle = peptide.select(residues=6)\n        middle.show_atoms()\n        self.camera.phi = 0.3\n        self.camera.frame(peptide.select(residues=(3, 9)), margin=1.0, screen_position=(0.3, 0.55))\n        plot = RamachandranPlot(\n            peptide, highlight=middle, position=(0.62, 0.14), size=(0.35, 0.7)\n        ).with_panel()\n        self.add(peptide, Text(\"Torsion angles\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        phi = middle.torsion_marker(\"phi\", radius=1.4, color=\"#f5d477\")\n        psi = middle.torsion_marker(\"psi\", radius=1.4, color=\"#7fd4ff\")\n        self.play(FadeIn(plot), Write(phi), run_time=1.2)\n        self.play(SetTorsions(middle, phi=-60, anchor=\"n\"), run_time=2.5)\n        self.play(Unwrite(phi), Write(psi), run_time=1)\n        self.play(SetTorsions(middle, psi=-45, anchor=\"n\"), run_time=2.5)\n        self.play(self.camera.animate.orbit(0.6), run_time=2)\n"
+  },
+  "helix-winding": {
+    "id": "helix-winding",
+    "category": "torsions",
+    "file": "helix_winding.py",
+    "scene": "HelixWinding",
+    "title": "Strand to helix",
+    "summary": "Wind a peptide from a β strand into an α helix while the cartoon follows DSSP.",
+    "tags": [
+      "SetTorsions",
+      "stagger",
+      "RamachandranPlot",
+      "DSSP"
+    ],
+    "pdb": "Built peptide",
+    "source": "examples/gallery/helix_winding.py",
+    "duration": 11.5,
+    "frames": 690,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/helix-winding.mp4",
+    "poster": "media/gallery/helix-winding.jpg",
+    "poster_time": 7.5,
+    "video_sha256": "fe68465380323414f2e6589df14c4eac2731378227d31d87b08724aa6ecdcd22",
+    "poster_sha256": "7f1734b6236d1fec07fae81a322721ff895cdad722f7a24cf0e04235faf62509",
+    "dependencies": {
+      "examples/gallery/helix_winding.py": "27f4abc6e4093ba90f51afe05b3ed24c10a353510b7968e0ffdc536c24664124"
+    },
+    "code": "\"\"\"Wind a β strand into an α helix, residue by residue.\n\nInput: Baldwin's peptide AEAAAKEAAAKEAAAKA, built as an extended strand.\nBackbone atoms are drawn over the cartoon. SetTorsions moves every φ, ψ to α-helix values (−57°, −47°) from the N\nterminus; DSSP of the new coordinates turns the cartoon into a helix.\n\"\"\"\n\nfrom proteinmotion import FadeIn, Protein, ProteinScene, RamachandranPlot, SetTorsions, StudioLook, Text\n\n\nclass HelixWinding(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        peptide = Protein.build(\"AEAAAKEAAAKEAAAKA\", \"strand\").cartoon()\n        peptide.select(atoms=[\"N\", \"CA\", \"C\", \"O\"]).show_atoms()\n        self.camera.phi = 0.25\n        self.camera.frame(peptide, margin=1.0, screen_position=(0.33, 0.55))\n        plot = RamachandranPlot(peptide, position=(0.62, 0.14), size=(0.35, 0.7)).with_panel()\n        self.add(peptide, Text(\"Secondary structure\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\n            'SetTorsions(peptide, conformation=\"helix\", stagger=0.5)',\n            position=(0.05, 0.145),\n            font_size=28,\n            color=\"#a3b3c7\",\n        )\n        self.add(caption)\n        self.play(FadeIn(plot), run_time=1)\n        self.play(SetTorsions(peptide, conformation=\"helix\", stagger=0.5), run_time=6)\n        self.focus(peptide, margin=0.75, screen_position=(0.33, 0.55), run_time=1.5)\n        self.play(self.camera.animate.orbit(1.5), run_time=3)\n"
+  },
+  "rotamers": {
+    "id": "rotamers",
+    "category": "torsions",
+    "file": "rotamers.py",
+    "scene": "Rotamers",
+    "title": "Side-chain rotamers",
+    "summary": "Spin χ1 and χ2 of three hydrophobic side chains through full turns.",
+    "tags": [
+      "RotateTorsions",
+      "chi1",
+      "torsion_marker"
+    ],
+    "pdb": "1UBQ",
+    "source": "examples/gallery/rotamers.py",
+    "duration": 11.0,
+    "frames": 660,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/rotamers.mp4",
+    "poster": "media/gallery/rotamers.jpg",
+    "poster_time": 4.0,
+    "video_sha256": "fd9fa7d64310b2c15760c8cdf8091651fd8741e3499c19dfe2c8fbd6cbaac6e1",
+    "poster_sha256": "d130668f5f1ad0a03d17363dcc138890a0f35915a08f61507bf3e9e9d9867ca2",
+    "dependencies": {
+      "examples/gallery/rotamers.py": "79859123d8f5d38f27f9e6d2b5188a000328bc37f41e47ab5da9dd33069f2ad0",
+      "examples/data/1ubq.cif": "056f98710cb2b36f633c45e41902a02eb446e82871da21ff2dd44f74a56ca0f6"
+    },
+    "code": "\"\"\"Spin side-chain χ angles through full turns.\n\nInput: ubiquitin, PDB 1UBQ. RotateTorsions turns χ1 and χ2 of Leu8, Ile44,\nand Val70 by the given amounts in degrees. Rotation alone can pass atoms\nthrough neighbors; this shows the geometry of a χ angle, not an allowed path.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import Protein, ProteinScene, RotateTorsions, ShowSideChains, StudioLook, Text, Write\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass Rotamers(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        protein = Protein.from_file(DATA / \"1ubq.cif\").cartoon().center()\n        patch = protein.select(residues=[8, 44, 70])\n        self.camera.theta = 0.6\n        self.camera.frame(protein, margin=0.85, screen_position=(0.6, 0.52))\n        self.add(protein, Text(\"Side-chain rotamers\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        caption = Text(\n            \"RotateTorsions(patch, chi1=360)\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\"\n        )\n        self.add(caption)\n        self.play(ShowSideChains(patch, residue_delay=0.2), run_time=1.2)\n        self.focus(patch, margin=2.0, screen_position=(0.6, 0.52), run_time=1.5)\n        marker = protein.select(residues=44).torsion_marker(\"chi1\", radius=1.2, color=\"#f5d477\")\n        self.play(Write(marker), run_time=0.8)\n        self.play(RotateTorsions(patch, chi1=360), run_time=3.5)\n        self.play(caption.animate.set_text(\"RotateTorsions(patch, chi2=360)\"), run_time=0.5)\n        self.play(RotateTorsions(patch, chi2=360), self.camera.animate.orbit(0.4), run_time=3.5)\n"
+  },
+  "dna-bases": {
+    "id": "dna-bases",
+    "category": "nucleic",
+    "file": "dna_bases.py",
+    "scene": "DNABases",
+    "title": "DNA base styles",
+    "summary": "Blend a double helix between base slabs, filled rings, sticks, and ladder rods.",
+    "tags": [
+      "NucleicAcid",
+      "BaseStyle"
+    ],
+    "pdb": "1BNA",
+    "source": "examples/gallery/dna_bases.py",
+    "duration": 8.0,
+    "frames": 480,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/dna-bases.mp4",
+    "poster": "media/gallery/dna-bases.jpg",
+    "poster_time": 3.5,
+    "video_sha256": "3243b77eed09d981bc10c5a2a3175c9e75c1abb835fb25b1ae9d402e1c52c4de",
+    "poster_sha256": "75c21163b41f4e28db87b69111f13a04abfaa22a7e9bb6bc47a971b668fc041c",
+    "dependencies": {
+      "examples/gallery/dna_bases.py": "c6f7df71d30c42de24f3db42202361dfa0e3eef1d1b7cfe91ac55e6191573cc3",
+      "examples/data/1bna.cif": "76d550f32963de46f4f3c63caacb530f91a24f333fbc4312766d240b14e8cf30"
+    },
+    "code": "\"\"\"DNA base styles: slabs, filled rings, sticks, and ladder rods.\n\nInput: B-DNA dodecamer, PDB 1BNA, in four copies. Slabs and rings follow the\ndeposited base planes; ladder rods are schematic. BaseStyle(dna, style)\nanimates a change from one style to another.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import NucleicAcid, ProteinScene, Rotate, StudioLook, Text\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass DNABases(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        dna = NucleicAcid.from_file(DATA / \"1bna.cif\").center()\n        dna.rotate(1.35, axis=(1, 0, 0)).rotate(-0.28, axis=(0, 0, 1))\n        styles = (\"slabs\", \"rings\", \"sticks\", \"ladder\")\n        copies = [\n            dna.copy().cartoon(bases=style).shift(((i - 1.5) * 32, 0, 0)) for i, style in enumerate(styles)\n        ]\n        self.camera.theta, self.camera.phi = 0, 0\n        self.camera.frame(*copies, margin=0.95, screen_position=(0.5, 0.5))\n        self.camera.zoom(1.8)\n        self.add(*copies, Text(\"DNA base styles\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        for i, style in enumerate(styles):\n            self.add(\n                Text(\n                    f'bases=\"{style}\"', position=(0.5 + (i - 1.5) * 0.236, 0.9), font_size=28, align=\"center\"\n                )\n            )\n        self.play(*(Rotate(p, 3.14) for p in copies), run_time=8)\n"
+  },
+  "trna": {
+    "id": "trna",
+    "category": "nucleic",
+    "file": "trna.py",
+    "scene": "TransferRNA",
+    "title": "Transfer RNA",
+    "summary": "Highlight the anticodon loop of tRNA-Phe, change the base style, and show its surface.",
+    "tags": [
+      "NucleicAcid",
+      "callout",
+      "Colorize",
+      "surface"
+    ],
+    "pdb": "1EHZ",
+    "source": "examples/gallery/trna.py",
+    "duration": 10.1,
+    "frames": 606,
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "video": "media/gallery/trna.mp4",
+    "poster": "media/gallery/trna.jpg",
+    "poster_time": 4.0,
+    "video_sha256": "7aba1f2163eaa37245ec7ba7f7d0692f28197fa400625c417c0154fc75a43e4d",
+    "poster_sha256": "d4e94a4f44ba81ab286fe3c4ed22498f8fa72e42a9ef850d181060f20fb21e33",
+    "dependencies": {
+      "examples/gallery/trna.py": "625d4f0733a5572fceb8f87529eed6d120ebc08d6d567d27e104554624875b13",
+      "examples/data/1ehz.cif": "3021dd2b6461f850bb66d6748d3c22a5e1bb6cc891c625c15d793f38215b28ab"
+    },
+    "code": "\"\"\"Transfer RNA: highlight the anticodon loop, then show the surface.\n\nInput: yeast tRNA-Phe, PDB 1EHZ. Modified nucleotides keep their names and\ntake their parent base's color.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom proteinmotion import (\n    Colorize,\n    NucleicAcid,\n    ProteinScene,\n    Representation,\n    SetOpacity,\n    StudioLook,\n    Text,\n    Unwrite,\n    Write,\n)\n\nDATA = Path(__file__).resolve().parent.parent / \"data\"\n\n\nclass TransferRNA(ProteinScene):\n    renderer = \"studio\"\n    look = StudioLook(lighting=\"studio\", material=\"medium\", effects=\"subtle\")\n\n    def construct(self):\n        rna = NucleicAcid.from_file(DATA / \"1ehz.cif\").cartoon(bases=\"rings\").center()\n        rna.rotate(-0.5, axis=(0, 1, 0)).rotate(0.15, axis=(0, 0, 1))\n        loop = rna.select(residues=(32, 38))\n        self.camera.frame(rna, margin=1.0, screen_position=(0.6, 0.52))\n        self.add(rna, Text(\"Transfer RNA\", position=(0.05, 0.08), font_size=46, font=\"semibold\"))\n        self.add(Text(\"Yeast tRNA-Phe · PDB 1EHZ\", position=(0.05, 0.145), font_size=28, color=\"#a3b3c7\"))\n        self.play(self.camera.animate.orbit(0.35), run_time=2)\n        note = loop.callout(\n            \"Anticodon loop\", subtitle=\"Residues 32–38\", position=(0.12, 0.45), font_size=36, color=\"#ffd47b\"\n        )\n        self.play(\n            Colorize(loop, \"#ffd47b\", residue_delay=0.08), SetOpacity(~loop, 0.2), Write(note), run_time=1.8\n        )\n        self.play(self.camera.animate.orbit(0.25), run_time=1.5)\n        self.play(Unwrite(note), SetOpacity(~loop, 1), run_time=1)\n        self.play(Representation(rna, \"surface\"), self.camera.animate.orbit(0.3), run_time=1.8)\n        self.play(self.camera.animate.orbit(0.4), run_time=2)\n"
+  }
+}
