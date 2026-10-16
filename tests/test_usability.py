@@ -416,3 +416,63 @@ def test_grouped_focus_tracks_delayed_molecular_motion(protein):
     positions = protein.positions @ protein.model_matrix[:3, :3].T + protein.position
     center = (positions.min(0) + positions.max(0)) / 2
     np.testing.assert_allclose(scene.camera.target, (initial + center) / 2)
+
+
+def test_camera_chain_tracks_motion_in_either_argument_order(structure_path):
+    from proteinmotion import Focus, FocusPull, Protein
+
+    def camera_at_half(chained, camera_first):
+        protein = Protein.from_file(structure_path).center()
+        scene = ProteinScene().add(protein)
+        scene.camera.frame(protein)
+        region = protein.select(residue_range=(23, 34))
+        if chained:
+            camera = (scene.camera.animate.focus(region).set_focus(region),)
+        else:
+            camera = (Focus(scene.camera, region), FocusPull(scene.camera, region))
+        move = (protein.animate.shift((10, 0, 0)),)
+        scene.play(*(camera + move if camera_first else move + camera))
+        scene.seek(0.5)
+        return scene.camera.target.copy(), scene.camera.focus_point
+
+    # Bare Focus and FocusPull follow the region where it is in this frame; a chain
+    # must do the same wherever it is listed.
+    expected = camera_at_half(chained=False, camera_first=True)
+    for camera_first in (True, False):
+        target, focus = camera_at_half(chained=True, camera_first=camera_first)
+        np.testing.assert_allclose(target, expected[0])
+        np.testing.assert_allclose(focus, expected[1])
+
+
+def test_clip_rate_func_eases_chained_animations_once(structure_path):
+    from proteinmotion import Focus, Protein
+
+    results = []
+    for chained in (True, False):
+        protein = Protein.from_file(structure_path).center()
+        region = protein.select(residue_range=(23, 34))
+        scene = ProteinScene().add(protein)
+        scene.camera.frame(protein)
+        if chained:
+            animations = (
+                scene.camera.animate.focus(region),
+                protein.animate.representation("ball_and_stick"),
+            )
+        else:
+            animations = (Focus(scene.camera, region), Representation(protein, "ball_and_stick"))
+        scene.play(*animations, rate_func="smooth")
+        scene.seek(0.25)
+        results.append((scene.camera.distance, protein.representation.copy()))
+    assert results[0][0] == pytest.approx(results[1][0])
+    np.testing.assert_allclose(results[0][1], results[1][1])
+
+
+def test_clearest_view_prefers_the_nearest_clear_view(protein):
+    camera = ProteinScene().add(protein).camera
+    camera.frame(protein)
+    # Nothing lies outside the whole protein, so every view is clear and the
+    # turn penalty must pick the sample nearest the current view.
+    theta, phi = camera.clearest_view(protein.select(residue_range=(1, 76)))
+    view = np.array([np.cos(phi) * np.sin(theta), np.sin(phi), np.cos(phi) * np.cos(theta)])
+    current = (camera.eye - camera.target) / camera.distance
+    assert np.arccos(np.clip(view @ current, -1, 1)) < 0.3

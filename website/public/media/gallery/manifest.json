@@ -464,7 +464,7 @@
     "video": "media/gallery/distances.mp4",
     "poster": "media/gallery/distances.jpg",
     "poster_time": 5.0,
-    "video_sha256": "77e3ed0bb57101fb09f676eafe63a34a3472f71cfb84dcd8ed923e664750b885",
+    "video_sha256": "f4111474b827762114cb6ca5e2e6836b06284b7305791fcc96942af5302db93f",
     "poster_sha256": "0005de49a201f235e48e905837a3a4d9fa731ff7340e06707155202903e72951",
     "dependencies": {
       "examples/gallery/distances.py": "3e5a068701b7b9b3667f3111263c0165d89e6e834dc225854c17c897b8002caa",

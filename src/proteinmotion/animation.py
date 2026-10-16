@@ -40,7 +40,8 @@ class Animation:
     # Other attributes and hooks the scene and AnimationGroup look for:
     #   run_time, start_time      clip length and start in scene seconds, set before bind()
     #   late = True               apply after the clip's other animations, so a camera move
-    #                             sees where the molecule is in this frame
+    #                             sees where the molecule is in this frame; anything that
+    #                             changes a Camera runs late too (timeline.runs_late)
     #   requires_linear_timeline  timing is scheduled in seconds inside the clip, so play()
     #                             refuses a rate_func override that would warp the clock
     #   duration                  default run_time for play() (groups set it)
@@ -636,7 +637,8 @@ class Animate(Animation):
     # Operations (shift, rotate, scale, set_opacity on a protein; orbit, zoom, depth_cue on
     # a camera) are applied in chained order and eased by transform_easing. Other chained
     # calls add a separate "extra" animation, such as Colorize or Focus, that runs in the
-    # same clip with its own easing.
+    # same clip with its own easing. play(rate_func=...) replaces transform_easing and
+    # every extra's easing with linear, so the clip clock is the only easing.
 
     def __init__(self, target):
         # The subject is what .animate was called on; for a Region, the protein owns the transform.

@@ -161,7 +161,8 @@ class Camera:
 
         Counts atoms of ``objects`` (default: the region's protein) that project inside the
         region's silhouette and lie in front of it, from the current distance. Nearby views
-        win ties through ``turn_penalty``, a fractional cost per radian of camera turn.
+        win ties through ``turn_penalty``, a fractional cost per radian of camera turn. It
+        also decides between views with no atoms in front, so the nearest clear view wins.
         """
         objects = objects or (region.protein,)
         # The region's silhouette is its bounding sphere, with 2 Å to spare.
@@ -183,7 +184,7 @@ class Camera:
         # azimuths a golden angle apart starting from the current azimuth. Views steeper than
         # max_elevation radians are skipped.
         golden = np.pi * (3 - np.sqrt(5))
-        best, best_cost = (self.theta, self.phi), np.inf
+        best, best_cost = (self.theta, self.phi), (np.inf, np.inf)
         for i in range(samples):
             y = 1 - 2 * (i + 0.5) / samples
             phi = float(np.arcsin(y))
@@ -197,7 +198,8 @@ class Camera:
             count = float(np.count_nonzero((depth > radius * 0.5) & (lateral < radius)))
             # Angle in radians between this view direction and the current one.
             turn = np.arccos(np.clip(np.dot(direction, (self.eye - self.target) / self.distance), -1, 1))
-            cost = count * (1 + turn_penalty * turn)
+            # Every clear view costs 0 atoms, so the turn penalty alone decides between them.
+            cost = (count * (1 + turn_penalty * turn), turn_penalty * turn)
             if cost < best_cost:
                 best, best_cost = (theta, phi), cost
         theta, phi = best

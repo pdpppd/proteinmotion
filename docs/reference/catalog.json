@@ -809,7 +809,10 @@
     },
     "scene.Scene": {
       "description": "Alias for ProteinScene.",
-      "alias": "scene.ProteinScene"
+      "alias": "scene.ProteinScene",
+      "parameters": {
+        "supersampling": "Native and Studio renderers draw each frame at this multiple of the width and height (1, 2, 3, or 4) and average down in linear light. None uses 2 for outputs up to 1920 × 1080 and 1 for larger ones; EEVEE uses EEVEEOptions.supersampling instead."
+      }
     },
     "protein.Protein": {
       "description": "A molecular structure with fixed atom identities, coordinates, and display settings.",
@@ -946,7 +949,8 @@
             "kwargs": "FocusPull options, including chain, residues, atoms, fstop and follow."
           },
           "returns": "FocusPull"
-        }
+        },
+        "frame": "Animate the camera to frame a protein or region over the clip; use lens_focus for depth of field."
       }
     },
     "animation.Rotate": {
@@ -1466,6 +1470,9 @@
             "background": "Three RGB floats in [0, 1], such as scene.background."
           }
         }
+      },
+      "parameters": {
+        "supersampling": "Draw each frame at this multiple of the width and height (1, 2, 3, or 4), then average down to the requested size."
       }
     },
     "eevee.EEVEEOptions": {
@@ -1815,6 +1822,12 @@
       "description": "Reusable representation name and keyword options for Protein.set_style() and Representation().",
       "parameters": {
         "options": "Keyword options accepted by the named Protein representation method."
+      },
+      "members": {
+        "apply": {
+          "description": "Apply these representation options to a protein immediately, as set_style() does.",
+          "returns": "The protein, for chaining."
+        }
       }
     },
     "styles.TextStyle": {

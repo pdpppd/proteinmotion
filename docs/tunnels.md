@@ -61,4 +61,4 @@ Distance fog darkens geometry far from the camera. `self.camera.animate.depth_cu
 self.play(self.camera.animate.orbit(0.3).depth_cue(0.7), run_time=2)
 ```
 
-`self.camera.clearest_view(region)` returns the camera angles `(theta, phi)` with the fewest atoms between the camera and the region. Use it to choose a starting view before a `Reveal`.
+`self.camera.clearest_view(region)` returns the camera angles `(theta, phi)` with the fewest atoms between the camera and the region. Among equally clear views it picks the one nearest the current view. Use it to choose a starting view before a `Reveal`.

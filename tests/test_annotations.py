@@ -12,7 +12,9 @@ from proteinmotion import (
     PlayTrajectory,
     Protein,
     Scene,
+    SequenceTrack,
     Text,
+    TimeSeriesPlot,
     Trajectory,
     Unwrite,
     Write,
@@ -105,6 +107,38 @@ def test_residue_names_author_numbering_insertion_codes_and_ca(protein):
     assert Region(p, region.atom_indices).label().title.text == "A · Leu 108B"
     with pytest.raises(ValueError, match="exactly one residue"):
         protein.select(residues=(8, 10)).label()
+
+
+def test_one_letter_names_use_x_for_residues_without_a_code(protein):
+    # Gemmi gives waters and unknown names a blank code; a modified residue keeps its parent's.
+    residues = list(protein.topology.residues)
+    for index, name in enumerate(("MSE", "HOH", "XYZ")):
+        residues[index] = replace(residues[index], name=name)
+    p = Protein(replace(protein.topology, residues=tuple(residues)), protein.positions)
+    labels = [p.select(chain="A", residues=r).label(format="one_letter").title.text for r in (1, 2, 3)]
+    assert labels == ["A · M 1", "A · X 2", "A · X 3"]
+    track = SequenceTrack(p, region=p.select(chain="A", residues=(1, 4)))
+    texts = [placement.text.text for placement in track.layout(Camera(), 1920, 1080).text]
+    assert texts[1:5] == ["M", "X", "X", "F"]
+
+
+def test_plot_glyph_count_is_what_the_layout_draws():
+    plot = TimeSeriesPlot(np.arange(50.0), np.sin(np.arange(50.0)), title="Trace", size=(0.32, 0.32))
+    # Made before any frame is drawn, as in construct().
+    write = Write(plot)
+
+    def placed(width, height):
+        return sum(placement.text.glyph_count for placement in plot.layout(Camera(), width, height).text)
+
+    count = placed(1920, 1080)
+    assert count > 20 and write.lag_ratio == pytest.approx(min(4 / count, 0.2))
+    # A portrait frame has fewer x ticks, and a hidden value draws no text. Labels that an
+    # earlier frame drew do not count.
+    portrait = placed(1080, 1920)
+    assert portrait < count and plot.glyph_count == portrait
+    plot.show_value = False
+    hidden = placed(1080, 1920)
+    assert hidden < portrait and plot.glyph_count == hidden
 
 
 def test_callout_anchor_follows_state_transform_camera_and_parent_visibility(protein):

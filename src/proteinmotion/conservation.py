@@ -17,6 +17,16 @@ import numpy as np
 AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY"
 
 
+def _one_letter(name):
+    """One-letter amino-acid code of a residue name from gemmi's table; X when it has none.
+
+    Gemmi gives a modified residue its parent's code in lower case (MSE is "m"), hence
+    upper(). Waters, ligands and names it does not know get a blank code, which becomes X.
+    Residue labels and sequence tracks use this too, so every view spells a residue alike.
+    """
+    return gemmi.find_tabulated_residue(name).one_letter_code.strip().upper() or "X"
+
+
 def _interleaved_rows(lines):
     """(name, sequence) rows from "name sequence ..." lines.
 
@@ -52,26 +62,33 @@ def _fasta_rows(lines):
 def read_alignment(source):
     """[(name, aligned sequence)] from FASTA, A3M, Stockholm or Clustal text or a file path.
 
-    When rows differ in length (A3M), insertions (lowercase letters and ".") are
-    removed so every row has the query's columns. A list of sequences or
-    (name, sequence) pairs is also accepted.
+    A Path or a one-line string is a file path, and a missing file raises
+    FileNotFoundError; text with several lines is the alignment itself. When rows
+    differ in length (A3M), insertions (lowercase letters and ".") are removed so
+    every row has the query's columns. Stockholm input with several alignments gives
+    the first one. A list of sequences or (name, sequence) pairs is also accepted.
     """
     if not isinstance(source, (str, Path)):
         rows = [
             (f"seq{i}", s) if isinstance(s, str) else (str(s[0]), str(s[1])) for i, s in enumerate(source)
         ]
     else:
-        # A string names a file when that file exists; otherwise it is the alignment text.
-        text = Path(source).read_text() if Path(str(source)).is_file() else str(source)
+        # Every alignment format has a header or name line above its rows, so one line of
+        # text can only be a path. Multi-line text never goes to the file system, which
+        # would reject it as a file name once a line is longer than 255 bytes.
+        is_path = isinstance(source, Path) or len(source.splitlines()) == 1
+        text = Path(source).read_text() if is_path else source
         lines = text.splitlines()
-        first = next((line for line in lines if line.strip()), "")
+        # The first line with text identifies the format; drop any blank lines above it.
+        lines = lines[next((i for i, line in enumerate(lines) if line.strip()), len(lines)) :]
+        first = lines[0] if lines else ""
         if first.startswith("# STOCKHOLM"):
             # Stockholm: "#" lines are the header and markup (#=GF, #=GS, #=GR, #=GC) and
-            # "//" is the terminator; every other line is "name sequence".
+            # every other line is "name sequence". "//" ends the alignment, so rows of a
+            # second alignment in the same file are not joined to the first one's.
+            end = next((i for i, line in enumerate(lines) if line.startswith("//")), len(lines))
             rows = _interleaved_rows(
-                line
-                for line in lines
-                if line.strip() and not line.startswith("#") and not line.startswith("//")
+                line for line in lines[:end] if line.strip() and not line.startswith("#")
             )
         elif first.upper().startswith("CLUSTAL"):
             # Clustal: after the header line, skip blank lines and the indented consensus
@@ -198,14 +215,10 @@ def residue_conservation(protein, alignment, *, chain=None, query=None, weightin
             chains.setdefault(residue.chain, []).append(ri)
     if not chains:
         raise ValueError("The structure has no amino-acid chain to map the alignment onto")
-
-    def letters(indices):
-        # One-letter codes from gemmi's residue table. Modified residues have their parent's
-        # code in lower case, so upper() maps MSE to M; unknown names become X.
-        codes = [gemmi.find_tabulated_residue(topology.residues[i].name) for i in indices]
-        return "".join((c.one_letter_code.upper() if c is not None else "X") or "X" for c in codes)
-
-    sequences = {name: letters(ids) for name, ids in chains.items()}
+    # Each chain's one-letter sequence, to match the alignment's query against.
+    sequences = {
+        name: "".join(_one_letter(topology.residues[i].name) for i in ids) for name, ids in chains.items()
+    }
     query = _query_index(rows, query, sequences)
     # columns[k] is the alignment column of the query's k-th residue.
     aligned = rows[query][1]

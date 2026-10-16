@@ -34,6 +34,29 @@ def bond_lengths(protein):
     return np.linalg.norm(xyz[bonds[:, 0]] - xyz[bonds[:, 1]], axis=1)
 
 
+def write_chains(path, *peptides):
+    """Write built peptides to one PDB file as separate chains, 30 Å apart."""
+    model = gemmi.Model("1")
+    for k, peptide in enumerate(peptides):
+        topology = peptide.topology
+        chain = gemmi.Chain(topology.residues[0].chain)
+        for r, names in zip(topology.residues, topology.residue_atoms):
+            residue = gemmi.Residue()
+            residue.name, residue.seqid = r.name, gemmi.SeqId(r.resid, " ")
+            for name, index in names.items():
+                atom = gemmi.Atom()
+                atom.name, atom.element = name, gemmi.Element(topology.atoms[index].element)
+                atom.pos = gemmi.Position(*(peptide.positions[index] + [0, 30 * k, 0]))
+                residue.add_atom(atom)
+            chain.add_residue(residue)
+        model.add_chain(chain)
+    st = gemmi.Structure()
+    st.add_model(model)
+    st.setup_entities()
+    st.write_pdb(str(path))
+    return path
+
+
 def test_dssp_reproduces_reference_assignment(structure_path):
     p = Protein.from_file(structure_path, secondary="file")
     assert assign(p.topology, p.positions) == UBIQUITIN_DSSP
@@ -136,6 +159,32 @@ def test_paths_stay_in_allowed_regions_and_shortest_is_available():
     t = np.linspace(0, 1, 30)[:, None]
     chosen, direct = wrap(180 + t * [123, -227]), wrap(180 + t * [123, 133])
     assert np.mean(classify(*chosen.T) != "outlier") > np.mean(classify(*direct.T) != "outlier")
+
+
+def test_only_a_peptide_bond_to_proline_makes_a_residue_preproline(tmp_path):
+    # A4 ends chain A, and chain B starts with a proline that is not bonded to it, so A4
+    # turns as it does with chain A alone. Bonded to a proline, it scores its path on the
+    # pre-proline regions, which here prefer the other direction.
+    def turn(protein):
+        animation = SetTorsions(protein.select(chain="A", residues=4), phi=178)
+        animation.bind()
+        return np.degrees(animation.plan.deltas)
+
+    a, b = Protein.build("AAAA", psi=140), Protein.build("PAAA", psi=140, chain="B")
+    alone = turn(Protein.from_file(write_chains(tmp_path / "one.pdb", a)))
+    assert len(alone) == 1
+    np.testing.assert_allclose(turn(Protein.from_file(write_chains(tmp_path / "two.pdb", a, b))), alone)
+    assert not np.allclose(turn(Protein.build("AAAAPAAA", psi=140)), alone)
+
+
+def test_torsion_names_accept_the_symbols_used_as_labels():
+    residue = Protein.build("ARA").select(residues=2)
+    # A marker's label, such as "χ₁", names its torsion again.
+    for kind in ("phi", "psi", "omega", "chi1", "chi2", "chi3", "chi4", "chi5"):
+        assert residue.torsion_marker(residue.torsion_marker(kind).symbol).kind == kind
+    assert residue.torsion_marker("ϕ").kind == "phi"
+    residue.set_torsions(**{"χ₂": -60})
+    assert residue.torsions().chi2[0] == pytest.approx(-60, abs=1e-3)
 
 
 def test_anchors_keep_the_chosen_part_still():
@@ -245,6 +294,18 @@ def test_ramachandran_regions_and_live_plot(protein):
     np.testing.assert_allclose(live.angles, [[-57, -47]] * len(live.ids), atol=1e-3)
     with pytest.raises(ValueError, match="background"):
         RamachandranPlot(protein, background="beta")
+
+
+def test_residues_without_phi_or_psi_are_undefined(protein):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # NaN once warned when cast to a grid cell
+        assert classify(np.nan, np.nan) == "undefined"
+        assert list(classify([np.nan, -63, -63], [-42, np.nan, -42])) == ["undefined", "undefined", "favored"]
+        assert list(classify(-63, [np.nan, -42])) == ["undefined", "favored"]
+        # Ubiquitin's first residue has no φ and its last no ψ.
+        angles = protein.torsions()
+        undefined = classify(angles.phi, angles.psi) == "undefined"
+    assert np.flatnonzero(undefined).tolist() == [0, len(angles) - 1]
 
 
 def test_torsion_table_rejects_nucleotides_and_handles_chain_breaks(structure_path):

@@ -25,10 +25,10 @@ glyph into outlines that draw and then fill.
 
 from dataclasses import dataclass
 
-import gemmi
 import numpy as np
 
 from .animation import Animation
+from .conservation import _one_letter
 from .math3d import color as parse_color
 from .rates import linear, smooth
 from .regions import Region
@@ -443,12 +443,8 @@ def residue_name(region, format="three_letter", include_chain=True):
     if format == "three_letter":
         name = residue.name if residue.is_nucleic else residue.name.title()
     elif format == "one_letter":
-        # Gemmi gives lowercase codes for modified residues (MSE is "m"), hence upper().
-        name = (
-            residue.base
-            if residue.is_nucleic
-            else gemmi.find_tabulated_residue(residue.name).one_letter_code.upper() or "X"
-        )
+        # A modified residue gets its parent's code (MSE is M); anything else without one is X.
+        name = residue.base if residue.is_nucleic else _one_letter(residue.name)
     else:
         raise ValueError("format must be three_letter or one_letter")
     prefix = f"{residue.chain} · " if include_chain else ""

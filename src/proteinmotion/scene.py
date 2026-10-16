@@ -75,7 +75,7 @@ class ProteinScene:
         #   _view_states    id(object) -> snapshot right after the last seek(), or None when
         #                   no seek() happened since the last authoring call
         self._objects, self._clips = [], []
-        self._built, self._building = False, False  # construct() has run / is running
+        self._built = False  # construct() has run
         self._camera_base = None
         self._author_states = {}
         self._view_states = None
@@ -132,7 +132,7 @@ class ProteinScene:
     def play(self, *animations, run_time=None, rate_func=None, easing=None):
         """Run animations together for ``run_time`` seconds, then advance the timeline."""
         from .rates import resolve
-        from .timeline import AnimationGroup
+        from .timeline import AnimationGroup, runs_late
 
         # Timed actions (from .during()) share one clock, so wrap the whole call in one group.
         if any(isinstance(a, AnimationGroup) for a in animations):
@@ -159,11 +159,15 @@ class ProteinScene:
             # Let the animation read scene settings, such as the camera, before it binds.
             if hasattr(anim, "_prepare"):
                 anim._prepare(self)
-            # With a clip-wide rate_func, fluent transforms take it instead of their own easing.
+            # With a clip-wide rate_func, a fluent chain takes it instead of its own easing,
+            # for the operations and for every chained animation, so each eases once, as it
+            # would on its own.
             if rate_func is not None and hasattr(anim, "transform_easing"):
                 from .rates import linear
 
                 anim.transform_easing = linear
+                for extra in anim.extras:
+                    extra.rate_func = linear
             # Delays scheduled in seconds would be distorted by a warped clip clock.
             if getattr(anim, "requires_linear_timeline", False) and rate_func not in (None, anim.rate_func):
                 raise ValueError(
@@ -188,8 +192,8 @@ class ProteinScene:
             anim.run_time = float(run_time)
             anim.start_time = self.duration
             anim.bind()
-        # Late (camera) animations run after the others, so they see this frame's molecule.
-        ordered = tuple(sorted(animations, key=lambda a: bool(getattr(a, "late", False))))
+        # Camera animations run after the others, so they see this frame's molecule.
+        ordered = tuple(sorted(animations, key=runs_late))
         self._clips.append((self.duration, float(run_time), ordered, rate_func))
         # Leave every object at the end of the clip, where the next authoring call starts.
         for anim in ordered:
@@ -231,15 +235,11 @@ class ProteinScene:
     def build(self):
         """Run construct() once and record any edits made after its last play() or wait()."""
         if not self._built:
-            self._building = True
-            try:
-                self.construct()
-                self._capture_edits()
-                # Without any play() or wait(), the timeline starts from the camera as set up.
-                self._camera_base = self._camera_base or self.camera.snapshot()
-                self._built = True
-            finally:
-                self._building = False
+            self.construct()
+            self._capture_edits()
+            # Without any play() or wait(), the timeline starts from the camera as set up.
+            self._camera_base = self._camera_base or self.camera.snapshot()
+            self._built = True
         return self
 
     def seek(self, time):

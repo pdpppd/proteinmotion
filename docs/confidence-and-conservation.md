@@ -148,7 +148,7 @@ Hydrophobic residues are orange, hydrophilic residues blue, and residues near ze
 
 ## Conservation
 
-`ResidueValues.conservation(protein, alignment)` reads a FASTA, A3M, Stockholm, or Clustal alignment, or a list of aligned sequences.
+`ResidueValues.conservation(protein, alignment)` reads a FASTA, A3M, Stockholm, or Clustal alignment, or a list of aligned sequences. A Stockholm file with several alignments contributes only the first, and a path that does not exist raises `FileNotFoundError`.
 
 ```python
 conservation = ResidueValues.conservation(protein, "family.sto")

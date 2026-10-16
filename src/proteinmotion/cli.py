@@ -111,7 +111,10 @@ def _build_parser():
                 f"--{effect}", help=f"Studio {effect}: preset name or numeric strength (0 disables)"
             )
         subparser.add_argument("--blender", help="Blender executable path (EEVEE only)")
-        subparser.add_argument("--samples", type=int, default=64, help="EEVEE samples per pixel")
+        # None when not given, so a scene's own EEVEE options keep their sample count.
+        subparser.add_argument(
+            "--samples", type=int, default=None, help="EEVEE samples per pixel (default 64)"
+        )
         subparser.add_argument(
             "--supersampling",
             type=float,
@@ -155,11 +158,11 @@ def main():
     else:
         # render, still and preview. Bad Studio options are reported before the scene file runs.
         look = _studio_look(parser, args)
-        scene, eevee_supersampling = _load_command_scene(parser, args)
+        scene = _load_command_scene(parser, args)
         if args.command == "render":
-            _render_command(args, scene, look, eevee_supersampling)
+            _render_command(args, scene, look, _eevee_options(parser, args, scene))
         elif args.command == "still":
-            _still_command(args, scene, look, eevee_supersampling)
+            _still_command(args, scene, look, _eevee_options(parser, args, scene))
         else:
             _preview_command(args, scene, look)
 
@@ -266,7 +269,7 @@ def _studio_look(parser, args):
 
 
 def _load_command_scene(parser, args):
-    """Load the scene named on the command line; return it and the EEVEE supersampling factor."""
+    """Load the scene named on the command line, with the size and sampling options given."""
     # Native and Studio supersample by a whole factor from 1 to 4; any other factor is
     # valid for EEVEE only.
     factor = getattr(args, "supersampling", None)
@@ -283,35 +286,47 @@ def _load_command_scene(parser, args):
     # Checked after loading, because the scene class may choose EEVEE itself.
     if factor is not None and not whole and (args.renderer or scene.renderer) != "eevee":
         parser.error("--supersampling must be 1, 2, 3, or 4 for the native and Studio renderers")
-    eevee_supersampling = 1.5 if factor is None else factor
-    return scene, eevee_supersampling
+    return scene
 
 
-def _render_command(args, scene, look, eevee_supersampling):
+def _eevee_options(parser, args, scene):
+    """EEVEE options for render and still, or None when another renderer draws the scene.
+
+    --renderer chooses the renderer, or else the scene's own setting does. The options are
+    the scene's own (or the defaults), with --blender, --samples and --supersampling in
+    place of their values when given. A bad value is a usage error, not a traceback.
+    """
+    from dataclasses import replace
+
     from .eevee import EEVEEOptions
 
-    # The EEVEE options are built (and validated) for any renderer, but passed on only with
-    # --renderer eevee.
-    options = EEVEEOptions(blender=args.blender, samples=args.samples, supersampling=eevee_supersampling)
+    if (args.renderer or scene.renderer) != "eevee":
+        return None
+    flags = {"blender": args.blender, "samples": args.samples, "supersampling": args.supersampling}
+    given = {name: value for name, value in flags.items() if value is not None}
+    try:
+        return replace(scene.eevee or EEVEEOptions(), **given)
+    except ValueError as error:
+        parser.error(str(error))
+
+
+def _render_command(args, scene, look, eevee):
     scene.render(
         args.output,
         codec=args.codec,
         bitrate=args.bitrate,
         renderer=args.renderer,
-        eevee=options if args.renderer == "eevee" else None,
+        eevee=eevee,
         look=look,
     )
 
 
-def _still_command(args, scene, look, eevee_supersampling):
-    from .eevee import EEVEEOptions
-
-    options = EEVEEOptions(blender=args.blender, samples=args.samples, supersampling=eevee_supersampling)
+def _still_command(args, scene, look, eevee):
     scene.render_frame(
         args.time,
         output=args.output,
         renderer=args.renderer,
-        eevee=options if args.renderer == "eevee" else None,
+        eevee=eevee,
         look=look,
     )
 

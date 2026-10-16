@@ -36,6 +36,8 @@ Three highlight styles are available:
 | `"box"` | Wire box aligned with the protein's local axes | `opacity=0.9`, `padding=2.0`, `line_width=0.12` |
 | `"atoms"` | Enlarged tinted halos around selected atoms | `opacity=0.18`, `padding=0.3` |
 
+Each `"atoms"` halo is the drawn atom sphere, including the 1.3× enlargement of ions, plus `padding` Å.
+
 ```python output=highlights
 p = ubiquitin()
 frame(self, p)
@@ -70,7 +72,7 @@ self.play(
 )
 ```
 
-`Focus` updates after molecular motion in the same `play()` call and preserves the camera angles and field of view. `self.camera.animate.focus(region, ...)` is also available. Put camera focus and orbit or zoom in separate calls because each changes the camera state.
+`Focus`, `FocusPull`, and `self.camera.animate` chains update after molecular motion in the same `play()` call, in any argument order. `Focus` preserves the camera angles and field of view. `self.camera.animate.focus(region, ...)` is also available. To focus and orbit or zoom in one clip, chain them on the camera, as in `self.camera.animate.focus(region).orbit(0.5)`; two separate camera animations in one `play()` call are rejected.
 
 ## Text labels and callouts
 

@@ -31,6 +31,19 @@ def same_state(a, b):
     return type(a) is type(b) and isinstance(a, (str, int, float, bool, type(None))) and a == b
 
 
+def runs_late(animation):
+    """True when ``animation`` runs after the other animations of its clip.
+
+    These are animations that set ``late``, such as Focus, and any that change a Camera,
+    such as a ``camera.animate`` chain. A camera track then reads where the molecule is
+    in the same frame. play() and AnimationGroup both order animations by this rule, so
+    the order of play()'s arguments does not change the result.
+    """
+    from .camera import Camera
+
+    return bool(getattr(animation, "late", False)) or any(isinstance(t, Camera) for t in animation.targets)
+
+
 class RestoreState(Animation):
     """Put ``target`` back into a saved ``state`` (a ``target.snapshot()`` dict) at any alpha."""
 
@@ -115,7 +128,7 @@ class AnimationGroup(Animation):
         # late (camera) animations go after the others, then the original order decides.
         self._schedule = sorted(
             [(start, span, i, a) for i, (start, span, a) in enumerate(flatten(self, 0, scale))],
-            key=lambda item: (item[0], bool(getattr(item[3], "late", False)), item[2]),
+            key=lambda item: (item[0], runs_late(item[3]), item[2]),
         )
         # Reject two children that write the same channel of the same object at the same
         # time. The 1e-10 s tolerance lets one child start exactly where another ends.
@@ -155,8 +168,6 @@ class AnimationGroup(Animation):
     @staticmethod
     def _apply_at(time, schedule):
         """Evaluate schedule rows (start, span, index, animation) at ``time`` seconds into the group."""
-        from .camera import Camera
-
         # Establish entrance states before delayed actions start. Do this only for
         # first writers, otherwise a later move would overwrite an earlier one.
         seen = set()
@@ -167,14 +178,7 @@ class AnimationGroup(Animation):
             seen.update(keys)
         # Evaluate molecular motion before camera tracks, while retaining the
         # chronological order of successive frame/orbit/zoom actions.
-        ordered = sorted(
-            schedule,
-            key=lambda item: (
-                bool(getattr(item[3], "late", False)) or any(isinstance(t, Camera) for t in item[3].targets),
-                item[0],
-                item[2],
-            ),
-        )
+        ordered = sorted(schedule, key=lambda item: (runs_late(item[3]), item[0], item[2]))
         # Children that have started run at their local progress; finished ones hold at 1.
         for start, duration, _, animation in ordered:
             if time >= start:

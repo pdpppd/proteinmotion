@@ -377,6 +377,10 @@ class Renderer:
             raise ValueError("NV12 export requires even width and height")
         if supersampling not in (1, 2, 3, 4):
             raise ValueError("supersampling must be 1, 2, 3, or 4")
+        # WebGPU guarantees only 1 and 4 samples for the render target formats. Check here,
+        # before a GPU is opened, rather than fail later inside pipeline creation.
+        if msaa not in (1, 4):
+            raise ValueError("msaa must be 1 or 4")
         self.readback_format = readback_format
         # Frames are drawn at supersampling times the output size and averaged down, so
         # every scene target, overlay and post-processing pass uses the larger size.

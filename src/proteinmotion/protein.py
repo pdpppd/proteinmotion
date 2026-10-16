@@ -125,8 +125,8 @@ class Protein:
 
         self._secondary = weights("".join(r.secondary for r in topology.residues))
         # The (φ, ψ) paths of a running torsion animation, read by Ramachandran plots.
-        # None, or (residue indices, start (φ, ψ), change in (φ, ψ), per-residue progress,
-        # clip progress), with angles in degrees.
+        # None, or (residue indices, start (φ, ψ), change in (φ, ψ), clip progress), with
+        # angles in degrees.
         self._torsion_motion = None
 
     def select(

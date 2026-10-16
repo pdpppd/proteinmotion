@@ -23,11 +23,12 @@ triangles first, then all lines, then all text. Within each kind, later calls pa
 earlier ones, so the order of drawing calls inside a layout method decides what is on top.
 """
 
-import gemmi
 import numpy as np
 from scipy.spatial.distance import cdist
 
 from .annotations import Annotation, AnnotationLayout, Leader, Placement, Text, _point2
+from .camera import Camera
+from .conservation import _one_letter
 from .geometry import atom_metadata, residue_colors
 from .math3d import color as parse_color
 from .properties import ColorScale, ResidueValues
@@ -111,7 +112,16 @@ class _Plot(Annotation):
 
     @property
     def glyph_count(self):
-        return sum(t.glyph_count for t in self._texts.values()) or 1
+        """Glyphs placed by the latest layout, the count that Write staggers over.
+
+        Labels that an earlier frame drew and this one does not (old tick labels, a
+        hidden value) are not counted. Before the first frame, a layout at 1920 × 1080
+        gives the count, so that a Write made in construct() times the real labels.
+        """
+        # Sizes are in design pixels, so the count is the same at any 16:9 resolution.
+        if not hasattr(self, "_offset"):
+            self.layout(Camera(), 1920, 1080)
+        return self._offset
 
     def _begin(self, width, height):
         """Start a frame's layout: clear the drawing lists and convert position and size to pixels."""
@@ -635,14 +645,10 @@ class SequenceTrack(_Plot):
                     [[bx, strip_y + 13 * s], [bx + cell, strip_y + 13 * s]], self.highlight_color, width=2
                 )
             if letters:
-                letter = (
-                    residue.base
-                    if residue.is_nucleic
-                    else gemmi.find_tabulated_residue(residue.name).one_letter_code or "X"
-                )
+                letter = residue.base if residue.is_nucleic else _one_letter(residue.name)
                 self._text(
                     f"letter{j}",
-                    letter.upper(),
+                    letter,
                     [left + (j + 0.5) * cell, top + 2 * s],
                     size=22,
                     tint=self.highlight_color if residue_index in selected else "#cdd6e3",

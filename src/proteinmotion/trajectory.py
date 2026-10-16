@@ -25,8 +25,8 @@ class Trajectory:
         if len(frames) < 1:
             raise ValueError("Trajectory must contain at least one frame")
         self._times = None if times is None else self._validate_times(times, len(frames))
-        # A callable that returns the timestamps, read on first use of ``times``. MD readers
-        # must seek through the whole file to collect them, so they wait until needed.
+        # A callable that returns the timestamps or None, read on first use of ``times``. MD
+        # readers must seek through the whole file to collect them, so they wait until needed.
         self._time_reader = None
         self.time_unit = str(time_unit)
         # Any object with len() and indexing that returns one (atoms, 3) frame.
@@ -180,14 +180,19 @@ class _MDFrames:
         return (len(self.universe.trajectory) + self.stride - 1) // self.stride
 
     def times(self):
-        """Timestamps in ps of the strided frames."""
+        """Timestamps in ps of the strided frames, or None when the file has no clock."""
         # Indexing the reader seeks it. Return to the frame it was on afterwards.
         reader = self.universe.trajectory
         current = reader.frame
         try:
-            return [reader[i * self.stride].time for i in range(len(self))]
+            values = [reader[i * self.stride].time for i in range(len(self))]
         finally:
             reader[current]
+        # A file written without a clock, such as an XTC saved from static models, reports
+        # time 0 for every frame. Times that do not strictly increase are not a clock.
+        if (np.diff(values) <= 0).any():
+            return None
+        return values
 
     def __getitem__(self, i):
         # Seeking loads the frame into universe.atoms.positions, which the next seek

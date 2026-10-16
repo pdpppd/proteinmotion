@@ -1,6 +1,7 @@
 """Heatmaps, AlphaFold confidence, and hydropathy and conservation color presets."""
 
 import json
+from dataclasses import replace
 
 import numpy as np
 import pytest
@@ -185,6 +186,35 @@ def test_conservation_scores_parsers_and_mapping(protein, tmp_path):
     assert 0 <= values.scale.vmin < values.scale.vmax <= 1
     with pytest.raises(ValueError, match="does not match"):
         ResidueValues.conservation(protein, [("x", "WWWWWWWW"), ("y", "WWWWWWWW")])
+
+
+def test_alignment_paths_blank_lines_and_stockholm_end(tmp_path):
+    # Blank lines above the Clustal header.
+    clustal = read_alignment("\n\nCLUSTAL W\n\nq MKV\nb MRV\n   * *\n")
+    assert [s for _, s in clustal] == ["MKV", "MRV"]
+    # "//" ends a Stockholm alignment, so a second one with the same names is not joined on.
+    two = "# STOCKHOLM 1.0\nq MKV\nb MRV\n//\n# STOCKHOLM 1.0\nq AAA\nb AAA\n//\n"
+    assert read_alignment(two) == [("q", "MKV"), ("b", "MRV")]
+    # A mistyped path is a missing file, not alignment text.
+    with pytest.raises(FileNotFoundError):
+        read_alignment(tmp_path / "missing.sto")
+    with pytest.raises(FileNotFoundError):
+        read_alignment(str(tmp_path / "missing.fasta"))
+    # Text whose lines are longer than a file name can be is still read as text.
+    long = ">q\n" + "M" * 300 + "\n>b\n" + "M" * 300 + "\n"
+    assert [len(s) for _, s in read_alignment(long)] == [300, 300]
+
+
+def test_conservation_spells_residues_without_a_code_as_x(protein):
+    # Gemmi has no code for XYZ. The chain's sequence must spell it X, as the alignment
+    # does, or a chain of mostly such residues no longer matches its own query.
+    residues = list(protein.topology.residues)
+    for index in range(60):
+        residues[index] = replace(residues[index], name="XYZ")
+    p = Protein(replace(protein.topology, residues=tuple(residues)), protein.positions)
+    query = "X" * 60 + "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"[60:]
+    values = ResidueValues.conservation(p, [("query", query), ("copy", query)])
+    np.testing.assert_allclose(values.values[60:76], 1)
 
 
 def test_plddt_bands_and_confidence_files(protein, tmp_path):

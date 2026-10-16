@@ -261,8 +261,9 @@ def _pair_atoms(source, target, residue_pairs, xs, xt):
 def _rigid_core(moving, reference, cutoff=2.0):
     """Pairs that superpose within ``cutoff`` Å, found by pruning the worst pairs and refitting.
 
-    Each round removes the worst tenth of the pairs beyond the cutoff, as in ChimeraX
-    matchmaker, so a large moving domain cannot drag the fit away from the rest.
+    Each round drops the farthest pairs beyond the cutoff, up to a tenth of the pairs still
+    kept, and refits, as in ChimeraX matchmaker. So a large moving domain cannot drag the
+    fit away from the rest.
     """
     keep = np.ones(len(moving), bool)
     # Keep at least 5% of the pairs, and never fewer than the three a rotation needs.

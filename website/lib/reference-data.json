@@ -473,7 +473,7 @@
           "returns": "The scene.",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
-          "line": 202
+          "line": 206
         },
         {
           "name": "wait",
@@ -495,7 +495,7 @@
           "returns": "The scene.",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
-          "line": 221
+          "line": 225
         },
         {
           "name": "build",
@@ -508,7 +508,7 @@
           "returns": "The scene.",
           "notes": "",
           "source": "src/proteinmotion/scene.py",
-          "line": 231
+          "line": 235
         },
         {
           "name": "seek",
@@ -754,7 +754,7 @@
           "annotation": false,
           "default": "None",
           "kind": "keyword only",
-          "description": "Spatial resolution multiplier of at least 1. Output is downsampled to the requested size."
+          "description": "Native and Studio renderers draw each frame at this multiple of the width and height (1, 2, 3, or 4) and average down in linear light. None uses 2 for outputs up to 1920 × 1080 and 1 for larger ones; EEVEE uses EEVEEOptions.supersampling instead."
         },
         {
           "name": "renderer",
@@ -2507,7 +2507,7 @@
               "description": "Fractional cost per radian of camera turn, which favors nearby views."
             }
           ],
-          "description": "Return (theta, phi) with the fewest atoms between the camera and ``region``.\n\nCounts atoms of ``objects`` (default: the region's protein) that project inside the\nregion's silhouette and lie in front of it, from the current distance. Nearby views\nwin ties through ``turn_penalty``, a fractional cost per radian of camera turn.",
+          "description": "Return (theta, phi) with the fewest atoms between the camera and ``region``.\n\nCounts atoms of ``objects`` (default: the region's protein) that project inside the\nregion's silhouette and lie in front of it, from the current distance. Nearby views\nwin ties through ``turn_penalty``, a fractional cost per radian of camera turn. It\nalso decides between views with no atoms in front, so the nearest clear view wins.",
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
@@ -2556,7 +2556,7 @@
           "returns": "The camera.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 208
+          "line": 210
         },
         {
           "name": "focus",
@@ -2610,7 +2610,7 @@
           "returns": "The camera.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 227
+          "line": 229
         },
         {
           "name": "update_tracking",
@@ -2623,7 +2623,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 233
+          "line": 235
         },
         {
           "name": "look_along",
@@ -2653,7 +2653,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 241
+          "line": 243
         },
         {
           "name": "orbit",
@@ -2683,7 +2683,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 260
+          "line": 262
         },
         {
           "name": "zoom",
@@ -2705,7 +2705,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 266
+          "line": 268
         },
         {
           "name": "eye",
@@ -2718,7 +2718,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 273
+          "line": 275
         },
         {
           "name": "matrix",
@@ -2740,7 +2740,7 @@
           "returns": "4 × 4 array.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 278
+          "line": 280
         },
         {
           "name": "animate",
@@ -2753,7 +2753,7 @@
           "returns": "Animate",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 286
+          "line": 288
         },
         {
           "name": "snapshot",
@@ -2766,7 +2766,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 291
+          "line": 293
         },
         {
           "name": "restore",
@@ -2788,7 +2788,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/camera.py",
-          "line": 296
+          "line": 298
         }
       ],
       "extra_parameters": []
@@ -2870,7 +2870,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "bind",
@@ -2883,7 +2883,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 64
+          "line": 65
         },
         {
           "name": "targets",
@@ -2896,7 +2896,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         },
         {
           "name": "apply",
@@ -2918,7 +2918,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 80
+          "line": 81
         }
       ],
       "extra_parameters": []
@@ -2945,7 +2945,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 633,
+      "line": 634,
       "bases": [
         "animation.Animation"
       ],
@@ -2965,7 +2965,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 657
+          "line": 659
         },
         {
           "name": "shift",
@@ -2987,7 +2987,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 688
+          "line": 690
         },
         {
           "name": "rotate",
@@ -3017,7 +3017,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 692
+          "line": 694
         },
         {
           "name": "scale",
@@ -3039,7 +3039,7 @@
           "returns": "The protein or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 697
+          "line": 699
         },
         {
           "name": "set_opacity",
@@ -3068,7 +3068,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 703
+          "line": 705
         },
         {
           "name": "orbit",
@@ -3098,7 +3098,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 715
+          "line": 717
         },
         {
           "name": "zoom",
@@ -3120,7 +3120,7 @@
           "returns": "The camera or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 719
+          "line": 721
         },
         {
           "name": "depth_cue",
@@ -3142,7 +3142,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 725
+          "line": 727
         },
         {
           "name": "set_color",
@@ -3171,7 +3171,7 @@
           "returns": "The object or a Colorize animation.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 731
+          "line": 733
         },
         {
           "name": "show_atoms",
@@ -3192,7 +3192,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 736
+          "line": 738
         },
         {
           "name": "hide_atoms",
@@ -3213,7 +3213,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 741
+          "line": 743
         },
         {
           "name": "representation",
@@ -3242,7 +3242,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 746
+          "line": 748
         },
         {
           "name": "focus",
@@ -3296,7 +3296,7 @@
           "returns": "The camera, scene, or Focus animation.",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 749
+          "line": 751
         },
         {
           "name": "frame",
@@ -3321,11 +3321,11 @@
               "description": "Additional keyword options described below or in the linked constructor."
             }
           ],
-          "description": "Frame the supplied protein objects immediately.",
+          "description": "Animate the camera to frame a protein or region over the clip; use lens_focus for depth of field.",
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 761
+          "line": 763
         },
         {
           "name": "set_focus",
@@ -3354,7 +3354,7 @@
           "returns": "FocusPull",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 765
+          "line": 767
         },
         {
           "name": "lens_focus",
@@ -3383,7 +3383,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 769
+          "line": 771
         },
         {
           "name": "bind",
@@ -3396,7 +3396,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 772
+          "line": 774
         },
         {
           "name": "apply",
@@ -3418,7 +3418,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 784
+          "line": 786
         },
         {
           "name": "during",
@@ -3448,7 +3448,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -3461,7 +3461,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": []
@@ -3511,7 +3511,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 85,
+      "line": 86,
       "bases": [
         "animation.Animation"
       ],
@@ -3531,7 +3531,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 95
+          "line": 96
         },
         {
           "name": "apply",
@@ -3553,7 +3553,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 103
+          "line": 104
         },
         {
           "name": "during",
@@ -3583,7 +3583,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -3596,7 +3596,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": [
@@ -3663,7 +3663,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 111,
+      "line": 112,
       "bases": [
         "animation.Animation"
       ],
@@ -3683,7 +3683,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 126
+          "line": 127
         },
         {
           "name": "apply",
@@ -3705,7 +3705,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 169
+          "line": 170
         },
         {
           "name": "during",
@@ -3735,7 +3735,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -3748,7 +3748,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": [
@@ -3799,7 +3799,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 174,
+      "line": 175,
       "bases": [
         "animation.Morph"
       ],
@@ -3819,7 +3819,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 181
+          "line": 182
         },
         {
           "name": "apply",
@@ -3841,7 +3841,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 169
+          "line": 170
         },
         {
           "name": "during",
@@ -3871,7 +3871,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -3884,7 +3884,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": [
@@ -3968,7 +3968,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 187,
+      "line": 188,
       "bases": [
         "animation.Animation"
       ],
@@ -3997,7 +3997,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 217
+          "line": 218
         },
         {
           "name": "during",
@@ -4027,7 +4027,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "bind",
@@ -4040,7 +4040,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 64
+          "line": 65
         },
         {
           "name": "targets",
@@ -4053,7 +4053,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": []
@@ -4127,7 +4127,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 235,
+      "line": 236,
       "bases": [
         "animation.Animation"
       ],
@@ -4147,7 +4147,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 253
+          "line": 254
         },
         {
           "name": "apply",
@@ -4169,7 +4169,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 272
+          "line": 273
         },
         {
           "name": "during",
@@ -4199,7 +4199,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -4212,7 +4212,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": [
@@ -4264,7 +4264,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 465,
+      "line": 466,
       "bases": [
         "animation.Animation"
       ],
@@ -4284,7 +4284,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 470
+          "line": 471
         },
         {
           "name": "apply",
@@ -4306,7 +4306,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 475
+          "line": 476
         },
         {
           "name": "during",
@@ -4336,7 +4336,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -4349,7 +4349,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": []
@@ -4392,7 +4392,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 479,
+      "line": 480,
       "bases": [
         "animation.Animation"
       ],
@@ -4412,7 +4412,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 484
+          "line": 485
         },
         {
           "name": "apply",
@@ -4434,7 +4434,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 491
+          "line": 492
         },
         {
           "name": "during",
@@ -4464,7 +4464,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -4477,7 +4477,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": []
@@ -4543,7 +4543,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 499,
+      "line": 500,
       "bases": [
         "animation.Animation"
       ],
@@ -4563,7 +4563,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 529
+          "line": 530
         },
         {
           "name": "apply",
@@ -4585,7 +4585,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 575
+          "line": 576
         },
         {
           "name": "during",
@@ -4615,7 +4615,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -4628,7 +4628,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": []
@@ -4742,7 +4742,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 345,
+      "line": 346,
       "bases": [
         "animation.Animation"
       ],
@@ -4762,7 +4762,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 407
+          "line": 408
         },
         {
           "name": "apply",
@@ -4784,7 +4784,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 449
+          "line": 450
         },
         {
           "name": "during",
@@ -4814,7 +4814,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -4827,7 +4827,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": []
@@ -4941,7 +4941,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 459,
+      "line": 460,
       "bases": [
         "animation.Reveal"
       ],
@@ -4961,7 +4961,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 407
+          "line": 408
         },
         {
           "name": "apply",
@@ -4983,7 +4983,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 449
+          "line": 450
         },
         {
           "name": "during",
@@ -5013,7 +5013,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -5026,7 +5026,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": []
@@ -5138,7 +5138,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -5151,7 +5151,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": [
@@ -5312,7 +5312,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -5325,7 +5325,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": [
@@ -5470,7 +5470,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -5483,7 +5483,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": [
@@ -5630,7 +5630,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -5643,7 +5643,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": [
@@ -5774,7 +5774,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -5787,7 +5787,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": [
@@ -5918,7 +5918,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -5931,7 +5931,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": [
@@ -6212,7 +6212,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         }
       ],
       "extra_parameters": []
@@ -6468,7 +6468,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         }
       ],
       "extra_parameters": []
@@ -7500,7 +7500,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/annotations.py",
-      "line": 469,
+      "line": 465,
       "bases": [
         "annotations.Callout"
       ],
@@ -7529,7 +7529,7 @@
           "returns": "The label or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 506
+          "line": 502
         },
         {
           "name": "glyph_count",
@@ -7854,7 +7854,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/annotations.py",
-      "line": 512,
+      "line": 508,
       "bases": [
         "annotations.Annotation"
       ],
@@ -7874,7 +7874,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 548
+          "line": 544
         },
         {
           "name": "text_progress",
@@ -7887,7 +7887,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 552
+          "line": 548
         },
         {
           "name": "layout",
@@ -7925,7 +7925,7 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 591
+          "line": 587
         },
         {
           "name": "set_opacity",
@@ -8147,7 +8147,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/annotations.py",
-      "line": 615,
+      "line": 611,
       "bases": [
         "animation.Animation"
       ],
@@ -8167,7 +8167,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/annotations.py",
-          "line": 653
+          "line": 649
         },
         {
           "name": "apply",
@@ -8189,7 +8189,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 665
+          "line": 661
         },
         {
           "name": "during",
@@ -8219,7 +8219,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -8232,7 +8232,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": []
@@ -8307,7 +8307,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/annotations.py",
-      "line": 673,
+      "line": 669,
       "bases": [
         "annotations.Write"
       ],
@@ -8336,7 +8336,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 676
+          "line": 672
         },
         {
           "name": "bind",
@@ -8349,7 +8349,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/annotations.py",
-          "line": 653
+          "line": 649
         },
         {
           "name": "during",
@@ -8379,7 +8379,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -8392,7 +8392,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": []
@@ -8419,7 +8419,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/annotations.py",
-      "line": 680,
+      "line": 676,
       "bases": [
         "animation.Animation"
       ],
@@ -8448,7 +8448,7 @@
           "returns": "The annotation or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 689
+          "line": 685
         },
         {
           "name": "shift",
@@ -8470,7 +8470,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 696
+          "line": 692
         },
         {
           "name": "set_offset",
@@ -8492,7 +8492,7 @@
           "returns": "The label or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 703
+          "line": 699
         },
         {
           "name": "set_opacity",
@@ -8514,7 +8514,7 @@
           "returns": "The object or animation builder.",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 710
+          "line": 706
         },
         {
           "name": "set_text",
@@ -8536,7 +8536,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 717
+          "line": 713
         },
         {
           "name": "bind",
@@ -8549,7 +8549,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/annotations.py",
-          "line": 725
+          "line": 721
         },
         {
           "name": "apply",
@@ -8571,7 +8571,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 729
+          "line": 725
         },
         {
           "name": "during",
@@ -8601,7 +8601,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -8614,7 +8614,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": []
@@ -9387,7 +9387,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/regions.py",
-          "line": 479
+          "line": 473
         },
         {
           "name": "select",
@@ -11105,7 +11105,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/matching.py",
-      "line": 421,
+      "line": 442,
       "bases": [],
       "attributes": {
         "source_indices": "Strictly increasing zero-based source topology residue indices.",
@@ -11154,7 +11154,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/matching.py",
-          "line": 442
+          "line": 463
         },
         {
           "name": "from_pairs",
@@ -11200,7 +11200,7 @@
           "returns": "ContactMatch",
           "notes": "",
           "source": "src/proteinmotion/matching.py",
-          "line": 464
+          "line": 485
         },
         {
           "name": "load",
@@ -11222,7 +11222,7 @@
           "returns": "ContactMatch",
           "notes": "",
           "source": "src/proteinmotion/matching.py",
-          "line": 499
+          "line": 520
         },
         {
           "name": "save",
@@ -11244,7 +11244,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/matching.py",
-          "line": 512
+          "line": 533
         }
       ],
       "extra_parameters": []
@@ -11335,7 +11335,7 @@
       ],
       "returns": "ContactMatch",
       "source": "src/proteinmotion/matching.py",
-      "line": 560,
+      "line": 581,
       "bases": [],
       "attributes": {},
       "guide": "morphing",
@@ -11551,7 +11551,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         }
       ],
       "extra_parameters": []
@@ -12959,7 +12959,7 @@
           "annotation": false,
           "default": "1",
           "kind": "keyword only",
-          "description": "Spatial resolution multiplier of at least 1. Output is downsampled to the requested size."
+          "description": "Draw each frame at this multiple of the width and height (1, 2, 3, or 4), then average down to the requested size."
         },
         {
           "name": "require_metal",
@@ -13041,7 +13041,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 1056
+          "line": 1060
         },
         {
           "name": "enqueue",
@@ -13079,7 +13079,7 @@
           "returns": "Frame array, or None while the readback pipeline fills.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 1060
+          "line": 1064
         },
         {
           "name": "drain",
@@ -13092,7 +13092,7 @@
           "returns": "Iterator of frame arrays.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 1116
+          "line": 1120
         },
         {
           "name": "render",
@@ -13130,7 +13130,7 @@
           "returns": "RGBA uint8 array or NV12 array, according to readback_format.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 1121
+          "line": 1125
         },
         {
           "name": "close",
@@ -13143,7 +13143,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 1129
+          "line": 1133
         },
         {
           "name": "__enter__",
@@ -13156,7 +13156,7 @@
           "returns": "The renderer.",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 1161
+          "line": 1165
         },
         {
           "name": "__exit__",
@@ -13177,7 +13177,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/renderer.py",
-          "line": 1164
+          "line": 1168
         }
       ],
       "extra_parameters": []
@@ -13518,7 +13518,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 292,
+      "line": 293,
       "bases": [
         "animation.Animation"
       ],
@@ -13538,7 +13538,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 321
+          "line": 322
         },
         {
           "name": "apply",
@@ -13560,7 +13560,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 330
+          "line": 331
         },
         {
           "name": "during",
@@ -13590,7 +13590,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -13603,7 +13603,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": [
@@ -14392,7 +14392,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -14405,7 +14405,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": []
@@ -14464,7 +14464,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/plots.py",
-      "line": 185,
+      "line": 195,
       "bases": [],
       "attributes": {},
       "guide": "numerical-properties",
@@ -14507,7 +14507,7 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 201
+          "line": 211
         },
         {
           "name": "with_panel",
@@ -14545,7 +14545,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 67
+          "line": 68
         },
         {
           "name": "snapshot",
@@ -14558,7 +14558,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 99
+          "line": 100
         },
         {
           "name": "glyph_count",
@@ -14571,7 +14571,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 113
+          "line": 114
         },
         {
           "name": "set_opacity",
@@ -14832,7 +14832,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/plots.py",
-      "line": 241,
+      "line": 251,
       "bases": [],
       "attributes": {},
       "guide": "synchronized-plots",
@@ -14898,7 +14898,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 318
+          "line": 328
         },
         {
           "name": "current_value",
@@ -14911,7 +14911,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 378
+          "line": 388
         },
         {
           "name": "layout",
@@ -14949,7 +14949,7 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 493
+          "line": 503
         },
         {
           "name": "with_panel",
@@ -14987,7 +14987,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 67
+          "line": 68
         },
         {
           "name": "snapshot",
@@ -15000,7 +15000,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 99
+          "line": 100
         },
         {
           "name": "glyph_count",
@@ -15013,7 +15013,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 113
+          "line": 114
         },
         {
           "name": "set_opacity",
@@ -15234,7 +15234,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/plots.py",
-      "line": 559,
+      "line": 569,
       "bases": [],
       "attributes": {},
       "guide": "synchronized-plots",
@@ -15277,7 +15277,7 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 612
+          "line": 622
         },
         {
           "name": "with_panel",
@@ -15315,7 +15315,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 67
+          "line": 68
         },
         {
           "name": "snapshot",
@@ -15328,7 +15328,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 99
+          "line": 100
         },
         {
           "name": "glyph_count",
@@ -15341,7 +15341,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 113
+          "line": 114
         },
         {
           "name": "set_opacity",
@@ -15578,7 +15578,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/plots.py",
-      "line": 664,
+      "line": 670,
       "bases": [],
       "attributes": {},
       "guide": "synchronized-plots",
@@ -15596,7 +15596,7 @@
           "returns": "4 × 4 array.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 705
+          "line": 711
         },
         {
           "name": "layout",
@@ -15634,7 +15634,7 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 718
+          "line": 724
         },
         {
           "name": "with_panel",
@@ -15672,7 +15672,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 67
+          "line": 68
         },
         {
           "name": "snapshot",
@@ -15685,7 +15685,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 99
+          "line": 100
         },
         {
           "name": "glyph_count",
@@ -15698,7 +15698,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 113
+          "line": 114
         },
         {
           "name": "set_opacity",
@@ -18219,7 +18219,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -18232,7 +18232,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": [
@@ -18703,8 +18703,8 @@
               "description": "Protein object to read or animate."
             }
           ],
-          "description": "Evaluate the animation at eased progress alpha. Called by the timeline.",
-          "returns": "None",
+          "description": "Apply these representation options to a protein immediately, as set_style() does.",
+          "returns": "The protein, for chaining.",
           "notes": "",
           "source": "src/proteinmotion/styles.py",
           "line": 28
@@ -18809,7 +18809,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/annotations.py",
-      "line": 739,
+      "line": 735,
       "bases": [
         "annotations.Annotation"
       ],
@@ -18829,7 +18829,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 755
+          "line": 751
         },
         {
           "name": "snapshot",
@@ -18842,7 +18842,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 758
+          "line": 754
         },
         {
           "name": "restore",
@@ -18864,7 +18864,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 766
+          "line": 762
         },
         {
           "name": "layout",
@@ -18902,7 +18902,7 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/annotations.py",
-          "line": 771
+          "line": 767
         },
         {
           "name": "set_opacity",
@@ -19036,7 +19036,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/timeline.py",
-      "line": 48,
+      "line": 61,
       "bases": [
         "animation.Animation"
       ],
@@ -19056,7 +19056,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/timeline.py",
-          "line": 91
+          "line": 104
         },
         {
           "name": "bind",
@@ -19069,7 +19069,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/timeline.py",
-          "line": 95
+          "line": 108
         },
         {
           "name": "apply",
@@ -19091,7 +19091,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/timeline.py",
-          "line": 183
+          "line": 187
         },
         {
           "name": "during",
@@ -19121,7 +19121,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         }
       ],
       "extra_parameters": []
@@ -19268,7 +19268,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/torsions.py",
-      "line": 670,
+      "line": 678,
       "bases": [
         "animation.Animation"
       ],
@@ -19288,7 +19288,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/torsions.py",
-          "line": 734
+          "line": 742
         },
         {
           "name": "bind",
@@ -19301,7 +19301,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/torsions.py",
-          "line": 738
+          "line": 746
         },
         {
           "name": "apply",
@@ -19323,7 +19323,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/torsions.py",
-          "line": 784
+          "line": 792
         },
         {
           "name": "during",
@@ -19353,7 +19353,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -19366,7 +19366,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": []
@@ -19513,7 +19513,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/torsions.py",
-      "line": 806,
+      "line": 813,
       "bases": [
         "torsions.SetTorsions"
       ],
@@ -19533,7 +19533,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/torsions.py",
-          "line": 734
+          "line": 742
         },
         {
           "name": "bind",
@@ -19546,7 +19546,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/torsions.py",
-          "line": 738
+          "line": 746
         },
         {
           "name": "apply",
@@ -19568,7 +19568,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/torsions.py",
-          "line": 784
+          "line": 792
         },
         {
           "name": "during",
@@ -19598,7 +19598,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -19611,7 +19611,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": []
@@ -19654,7 +19654,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/torsions.py",
-      "line": 178,
+      "line": 183,
       "bases": [],
       "attributes": {},
       "guide": "torsions",
@@ -19672,7 +19672,7 @@
           "returns": "int",
           "notes": "",
           "source": "src/proteinmotion/torsions.py",
-          "line": 192
+          "line": 197
         },
         {
           "name": "residue_ids",
@@ -19685,7 +19685,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/torsions.py",
-          "line": 201
+          "line": 206
         }
       ],
       "extra_parameters": []
@@ -19800,7 +19800,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/torsions.py",
-      "line": 822,
+      "line": 829,
       "bases": [
         "annotations.Annotation"
       ],
@@ -19820,7 +19820,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/torsions.py",
-          "line": 877
+          "line": 884
         },
         {
           "name": "glyph_count",
@@ -19833,7 +19833,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/torsions.py",
-          "line": 885
+          "line": 892
         },
         {
           "name": "text_progress",
@@ -19846,7 +19846,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/torsions.py",
-          "line": 889
+          "line": 896
         },
         {
           "name": "layout",
@@ -19884,7 +19884,7 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/torsions.py",
-          "line": 893
+          "line": 900
         },
         {
           "name": "set_opacity",
@@ -20137,7 +20137,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/ramachandran.py",
-      "line": 95,
+      "line": 103,
       "bases": [],
       "attributes": {},
       "guide": "torsions",
@@ -20155,7 +20155,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/ramachandran.py",
-          "line": 152
+          "line": 160
         },
         {
           "name": "layout",
@@ -20193,7 +20193,7 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/ramachandran.py",
-          "line": 189
+          "line": 197
         },
         {
           "name": "with_panel",
@@ -20231,7 +20231,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 67
+          "line": 68
         },
         {
           "name": "snapshot",
@@ -20244,7 +20244,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 99
+          "line": 100
         },
         {
           "name": "glyph_count",
@@ -20257,7 +20257,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 113
+          "line": 114
         },
         {
           "name": "set_opacity",
@@ -20413,7 +20413,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/animation.py",
-      "line": 597,
+      "line": 598,
       "bases": [
         "animation.Animation"
       ],
@@ -20433,7 +20433,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/animation.py",
-          "line": 617
+          "line": 618
         },
         {
           "name": "apply",
@@ -20455,7 +20455,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 626
+          "line": 627
         },
         {
           "name": "during",
@@ -20485,7 +20485,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         },
         {
           "name": "targets",
@@ -20498,7 +20498,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 76
+          "line": 77
         }
       ],
       "extra_parameters": []
@@ -20637,7 +20637,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/plots.py",
-      "line": 797,
+      "line": 803,
       "bases": [],
       "attributes": {},
       "guide": "confidence-and-conservation",
@@ -20687,7 +20687,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 869
+          "line": 875
         },
         {
           "name": "distances",
@@ -20764,7 +20764,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 886
+          "line": 892
         },
         {
           "name": "matrix",
@@ -20777,7 +20777,7 @@
           "returns": "4 × 4 array.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 983
+          "line": 989
         },
         {
           "name": "layout",
@@ -20815,7 +20815,7 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 1184
+          "line": 1190
         },
         {
           "name": "with_panel",
@@ -20853,7 +20853,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 67
+          "line": 68
         },
         {
           "name": "snapshot",
@@ -20866,7 +20866,7 @@
           "returns": "State dictionary.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 99
+          "line": 100
         },
         {
           "name": "glyph_count",
@@ -20879,7 +20879,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 113
+          "line": 114
         },
         {
           "name": "set_opacity",
@@ -21092,7 +21092,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/conformations.py",
-      "line": 519,
+      "line": 520,
       "bases": [
         "animation.Animation"
       ],
@@ -21112,7 +21112,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/conformations.py",
-          "line": 581
+          "line": 582
         },
         {
           "name": "result",
@@ -21125,7 +21125,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/conformations.py",
-          "line": 586
+          "line": 587
         },
         {
           "name": "bind",
@@ -21138,7 +21138,7 @@
           "returns": "None",
           "notes": "Called by ProteinScene.play(). An animation instance can be bound once.",
           "source": "src/proteinmotion/conformations.py",
-          "line": 590
+          "line": 591
         },
         {
           "name": "apply",
@@ -21160,7 +21160,7 @@
           "returns": "None",
           "notes": "",
           "source": "src/proteinmotion/conformations.py",
-          "line": 843
+          "line": 844
         },
         {
           "name": "during",
@@ -21190,7 +21190,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/animation.py",
-          "line": 55
+          "line": 56
         }
       ],
       "extra_parameters": []
@@ -21388,7 +21388,7 @@
       ],
       "returns": "DomainMotion",
       "source": "src/proteinmotion/conformations.py",
-      "line": 896,
+      "line": 897,
       "bases": [],
       "attributes": {},
       "guide": "morphing",
@@ -21443,7 +21443,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/conformations.py",
-      "line": 883,
+      "line": 884,
       "bases": [],
       "attributes": {
         "angle": "Rotation in degrees.",
@@ -21459,35 +21459,35 @@
     }
   ],
   "dependencies": {
-    "docs/reference/catalog.json": "d90798d3b7d4a927ab7b9848aba14202a822649547e3c3132c8133f53ad17659",
+    "docs/reference/catalog.json": "a9a3620b550100e970c4be45e76d99e387b3bfd7dd2cf14f961ffa81410208a7",
     "scripts/build_reference.py": "a50a8ba9cbfb80c7e1ccbcb39351b1f52d57d4aa9af559a08dab9fca7ea4b8ed",
     "src/proteinmotion/__init__.py": "2f8ab777a9a4a8c27cf6941ed4f80e419fb5f63628f86a907353ad6a059ebf95",
-    "src/proteinmotion/animation.py": "b4cef2d0be9a6f9b2155e35f51b102905b6b93911423c62502c8ad7dee7e5bcd",
-    "src/proteinmotion/annotations.py": "248f819b8f6aa594e0f6488881d0b8abdccb87bbec39d65028b5d8cf37c15077",
+    "src/proteinmotion/animation.py": "0f900d36e7301f9139371c1fb2c3cc62ebe2bd5bdcdec18d6ce0f8ed7c5318eb",
+    "src/proteinmotion/annotations.py": "075b12875286c43db59d0288df5f1efceef80e16d103af091681f9c7d456e201",
     "src/proteinmotion/backbone.py": "0f6035cadef931ff286abbfa38d73d4ad49cd50748f36c3dddeab027177b65e8",
-    "src/proteinmotion/camera.py": "d61c5228b25bca214195d5ef658d25518ed892e79be96adef7c91064a37a3eaa",
-    "src/proteinmotion/conformations.py": "e4034c9eb72dd473b9cb0b98fc9ee4d6925ef342814a179cf87d0eb01c52bef0",
+    "src/proteinmotion/camera.py": "b86cb6ebb696925676393aa46d5c1820e316ab6ca3af514853b9bff5f75e70b8",
+    "src/proteinmotion/conformations.py": "415216fb64f0eaaff417d5f35e856fc0a40a19cfd53fef0f8c81a52df7744976",
     "src/proteinmotion/density.py": "ec1d995930e4a0e466cfa22b7ce59ea7c568ab881cd9f0e09e349d47767e67f3",
     "src/proteinmotion/distances.py": "a61c97f5b3bc495e1d59bc304f74f97e3716f3976d919780a4b3de778c817d53",
     "src/proteinmotion/eevee.py": "059b6d16b31180e7d991187b25d6a807be8ca123a153bedd9baad9fe4e682234",
     "src/proteinmotion/interactions.py": "c173ab98bb0e58523708cf8516fbef6d619b91d8962c079b32460bcb46e8eb85",
     "src/proteinmotion/looks.py": "08e6e088836016dd5427414d3ea151ab1be94e22383d8864467a20c76551989e",
-    "src/proteinmotion/matching.py": "7fd23999ad81ce14a70182497b2ef82af91ae28ec542aa78900fb9d6772f536f",
+    "src/proteinmotion/matching.py": "2277bd38488c1d4c9dbf23beed24faf47adca892c87086d6454cf4393a0e227d",
     "src/proteinmotion/mesh.py": "6b1d6a5d305e1ee3125b01d0b119c7db8f6799f0d10922beefbacb8efaad582b",
     "src/proteinmotion/nucleic.py": "6fd934be2c00392d369244efdd033204e82f882322a9f620640898d10ca9b020",
-    "src/proteinmotion/plots.py": "fc91bf967debe64e048376942f3371045b6b688b168a4c6d4e954b5695bdda0f",
+    "src/proteinmotion/plots.py": "c6490c821b2a7dbe8a965d8f675949b943300fc81c4ec604bbb8b50fba53f2e9",
     "src/proteinmotion/properties.py": "05a547a59968be43b282067f74afba2652531972c6bc5cc9d9d4d2053a19d59e",
-    "src/proteinmotion/protein.py": "b842511ded0d45b0e18535ccc4696063c55adc98dbbaabbe19c4aa7b752bb6f4",
-    "src/proteinmotion/ramachandran.py": "c1f6a6858c74315315aec3cd54de29d98181cd0de25309b3c737b67569908756",
+    "src/proteinmotion/protein.py": "9cdf18a555dc0bd9c6b353bb844b0133680bb1393fb9940c90beeec87eb9c275",
+    "src/proteinmotion/ramachandran.py": "da0de3d377417e9369dbaca9b23cdad6a2659981282828f18cd169452a3c7e05",
     "src/proteinmotion/rates.py": "c59ca03eb705a0c66c9c309cd10fee75c61c9eac727119c91cf1560703033fea",
-    "src/proteinmotion/regions.py": "1f65d146bec139f0a60587b2a52bbd6e777215bebba73139a5e632588d15e40c",
-    "src/proteinmotion/renderer.py": "6e01fe14db76c3c0a471cbccd933839c5959ddb169905ca08e8ed33f69a3c87b",
-    "src/proteinmotion/scene.py": "26cf75ead5305fa3ef2116d34b4e9a4ac1db67c1aa6e24a7527117ade10c7d2b",
+    "src/proteinmotion/regions.py": "9f376cfaf2f454ef24b7441786aa58477cb0f0902d92bf8b885ba9405281eaad",
+    "src/proteinmotion/renderer.py": "06041e69c19bba7d6ed1bea04a0b5de4d1d528eeb8c07d5d21906933014b4519",
+    "src/proteinmotion/scene.py": "cb6b0f22bbeeb216bae37cf7a6f08c2c88e61d0fbfa4300abdab8488395f5559",
     "src/proteinmotion/styles.py": "2356f580d4c6aad2aa9378447686063373b7dddb3bcc2e20ea142ecae63a430e",
     "src/proteinmotion/styling.py": "32a40eff07ed77cabcad931e3b85c33612e25fd5b2a82c401235c2d9a1142bc1",
     "src/proteinmotion/thread.py": "207a02c7d675be99770fcf4cf1db9d440b2894efd47bbb0104e894db455e5ffc",
-    "src/proteinmotion/timeline.py": "b6cbadaaadeee57479b17e41b681a6dcc9288d16359ddad6f1ca8c080aeb4541",
-    "src/proteinmotion/torsions.py": "484b9b7b023b0a4dc157896fc252e58bd2f28c779c4a4adf024f7772f647742e",
-    "src/proteinmotion/trajectory.py": "1720ce109d3840af987d7bff246f6595dd2859427fc66787fe966076f4fc8cbb"
+    "src/proteinmotion/timeline.py": "3394be0317a8452c008cc2e9129bc643b07ca80ea0a46322e167aa7f76a61146",
+    "src/proteinmotion/torsions.py": "371f2a9965f37c0f0bd3b5f3139859c9b82aeffb6a8ef82266c6458ad261be41",
+    "src/proteinmotion/trajectory.py": "86408c891c64bf591b31d3f664e0e57b4c61f71c5a33078e23ceeb182a0a67b9"
   }
 }

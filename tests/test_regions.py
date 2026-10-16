@@ -76,6 +76,19 @@ def test_highlight_follows_deformation_transform_and_seek(protein, style):
         np.testing.assert_array_equal(actual, reference)
 
 
+def test_atom_halos_pad_the_drawn_spheres_of_ions(structure_path):
+    from proteinmotion.geometry import atom_metadata
+
+    p = Protein.from_file(structure_path.parent / "1cll.cif").ball_and_stick(atom_scale=0.4)
+    # Calmodulin's four calcium ions are drawn ION_SCALE times larger than other atoms.
+    ions = p.select(resname="CA")
+    assert {p.topology.residue_categories[i] for i in ions.residue_indices} == {"ion"}
+    region = ions | p.select(residues=20)
+    halo = region.highlight(style="atoms", padding=0.5)
+    drawn = atom_metadata(p)[region.atom_indices, 3] * p.atom_scale
+    np.testing.assert_allclose(halo._metadata_override[:, 3], drawn + 0.5, rtol=1e-6)
+
+
 def test_focus_evaluates_after_motion_and_tracks_later_clips(protein):
     region = protein.select(residues=(23, 34))
     scene = ProteinScene(width=400, height=600)

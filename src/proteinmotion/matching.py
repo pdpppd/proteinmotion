@@ -36,6 +36,9 @@ from .math3d import kabsch as fit_transform
 
 # Slack on the contact-error bound, so a pair that meets the bound exactly is not lost to rounding.
 _TOLERANCE_SLACK = 1e-10
+# Values per block of contact differences in _contact_disagreement: 64 MB of float64. The
+# difference and its absolute value exist together, so a block peaks near 128 MB.
+_DISAGREEMENT_BLOCK = 2**23
 
 
 def morph_anchors(protein, ids):
@@ -218,6 +221,25 @@ def _fragment_seeds(x, y, width):
     return mappings
 
 
+def _contact_disagreement(ca, cb, ia, ib, block=_DISAGREEMENT_BLOCK):
+    """(n, m) mean of |ca[i, ia] − cb[j, ib]| over the k anchor pairs (ia, ib).
+
+    The whole (n, m, k) array of differences would take about 4 GB at n = m = k = 800,
+    and only the shorter chain is limited to 800 anchors. So it is made a few rows at a
+    time, each block holding at most ``block`` values, or one row if a row is larger. A
+    row has m × k values, no more than the m × m contact map ``cb``. Every mean is taken
+    over the same k values in the same order as with the whole array, so the result is
+    identical.
+    """
+    a, b = ca[:, ia], cb[:, ib]
+    rows = max(1, block // b.size)
+    disagreement = np.empty((len(a), len(b)))
+    for start in range(0, len(a), rows):
+        stop = start + rows
+        disagreement[start:stop] = np.mean(np.abs(a[start:stop, None, :] - b[None, :, :]), axis=2)
+    return disagreement
+
+
 def _seeds(x, y, ca, cb, tolerance):
     """Feasible starting correspondences and candidate pairs for the clique search.
 
@@ -256,8 +278,7 @@ def _seeds(x, y, ca, cb, tolerance):
             if len(mapping) > width:
                 ia, ib = mapping.T
                 # Contact disagreement against all current anchors refines each possible match.
-                disagreement = np.mean(np.abs(ca[:, ia][:, None, :] - cb[:, ib][None, :, :]), axis=2)
-                scores -= 1.5 * disagreement
+                scores -= 1.5 * _contact_disagreement(ca, cb, ia, ib)
             mapping = _dp(scores)
             if len(mapping) < 3:
                 break

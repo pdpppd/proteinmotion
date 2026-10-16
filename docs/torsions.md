@@ -137,7 +137,7 @@ self.play(SetTorsions(residue, phi=-60), run_time=2)
 
 | Option | Default | Meaning |
 |---|---|---|
-| `torsion` | `"phi"` | `phi`, `psi`, `omega`, or `chi1`–`chi5` |
+| `torsion` | `"phi"` | `phi`, `psi`, `omega`, or `chi1`–`chi5`, or a symbol such as `"φ"` or `"χ₁"` |
 | `radius` | `1.25` | Arc radius in Å |
 | `color`, `font_size`, `precision` | gold, 30, 0 | Line and label style; decimals in the label |
 | `label` | symbol | Text before the value, for example `"ψ"` |

@@ -48,14 +48,22 @@ def regions(background="general"):
 
 
 def classify(phi, psi, background="general"):
-    """'favored', 'allowed' or 'outlier' for each (φ, ψ) in degrees."""
+    """'favored', 'allowed' or 'outlier' for each (φ, ψ) in degrees.
+
+    A residue whose φ or ψ is NaN, such as a chain end, is 'undefined'.
+    """
     levels = regions(background)
     step = 360 / levels.shape[0]
+    phi, psi = np.asarray(phi, dtype=float), np.asarray(psi, dtype=float)
+    # A residue without φ or ψ has no class, and the plot draws no point for it. NaN has
+    # no grid cell, so look such residues up at −180° and replace the result.
+    defined = np.isfinite(phi) & np.isfinite(psi)
+    phi, psi = np.where(defined, phi, -180.0), np.where(defined, psi, -180.0)
     # Cell index of each angle; +180° falls past the last cell, so clip it back in.
-    rows = np.clip(((np.asarray(psi) + 180) // step).astype(int), 0, levels.shape[0] - 1)
-    cols = np.clip(((np.asarray(phi) + 180) // step).astype(int), 0, levels.shape[1] - 1)
-    names = np.array(["outlier", "allowed", "favored"])
-    return names[levels[rows, cols]]
+    rows = np.clip(((psi + 180) // step).astype(int), 0, levels.shape[0] - 1)
+    cols = np.clip(((phi + 180) // step).astype(int), 0, levels.shape[1] - 1)
+    names = np.array(["outlier", "allowed", "favored", "undefined"])
+    return names[np.where(defined, levels[rows, cols], 3)]
 
 
 def _runs(mask):
@@ -272,7 +280,7 @@ class RamachandranPlot(_Plot):
     def _draw_paths(self, project, motion, colors):
         """Each moving residue's (φ, ψ) path during SetTorsions, from a hollow start ring."""
         s = self._pixel_scale
-        residues, start, delta, _, clip = motion
+        residues, start, delta, clip = motion
         # Paths fade in and out with the clip: zero at its start and end, full halfway.
         strength = float(np.sin(np.pi * np.clip(clip, 0, 1)))
         rows = {int(ri): k for k, ri in enumerate(self.ids)}

@@ -226,7 +226,7 @@ proteinmotion preview scene.py SceneName
 
 `init` creates a starter scene and a 1UBQ structure in a new folder. `install-skill` copies the AI agent skill; `--path` selects its destination folder and `--force` replaces modified bundled files. The default destination is the Codex skills directory. All commands are also available through `python -m proteinmotion`.
 
-Shared render/still/preview options: `--width`, `--height`, `--fps`, `--msaa 1|4`, `--supersampling` (1–4 for the native and Studio renderers, by default 2 up to 1920 × 1080; any value of at least 1 for EEVEE, by default 1.5). Rendering also accepts `--codec` and `--bitrate`. Preview controls: drag to orbit, wheel to zoom, Space to pause, arrows to seek, Home to rewind, R to reset the camera, Escape to close.
+Shared render/still/preview options: `--width`, `--height`, `--fps`, `--msaa 1|4`, `--supersampling` (1–4 for the native and Studio renderers, by default 2 up to 1920 × 1080; any value of at least 1 for EEVEE, by default 1.5). Rendering also accepts `--codec` and `--bitrate`. With EEVEE, chosen by `--renderer eevee` or by the scene class, `--blender`, `--samples`, and `--supersampling` replace those fields of the scene's own `eevee` options; other renderers ignore `--blender` and `--samples`. Preview controls: drag to orbit, wheel to zoom, Space to pause, arrows to seek, Home to rewind, R to reset the camera, Escape to close.
 
 
 ## Numerical properties

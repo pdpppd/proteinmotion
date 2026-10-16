@@ -78,8 +78,9 @@ def _configure_encoder(ctx, codec, width, height, rate, bits, pixel_format):
     else:
         # Constant-quality mode; CRF 18 is near visually lossless for x264.
         ctx.options = {"crf": "18", "preset": "fast"}
-    if codec.startswith("hevc_"):
-        # Apple players need the hvc1 sample entry to play HEVC from an MP4.
+    if ctx.codec.canonical_name == "hevc":
+        # Apple players need the hvc1 sample entry to play HEVC from an MP4. Test the codec,
+        # not the encoder name, so libx265 (which otherwise writes hev1) is tagged as well.
         ctx.codec_tag = "hvc1"
     if pixel_format == "nv12":
         # Tag the stream with the conversion that shaders/nv12.wgsl applied.

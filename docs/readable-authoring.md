@@ -192,7 +192,7 @@ scene.play(PlayTrajectory(protein, trajectory))
 
 `Distance` and `TimeSeriesPlot.distance` now share the same default backbone anchors. Pass `anchor="centroid"` for the old distance-plot behavior. The plot uses model-space distances in Å. Explicit `trajectory=` binds the plot to the same trajectory being played without mutating `protein.trajectory`.
 
-`Trajectory(..., times=physical_times, time_unit="ns")` stores a physical clock. MDAnalysis trajectories expose physical timestamps in ps, read lazily. Plots use those timestamps automatically; inputs without them use frame indices. `trajectory.aligned(selection=protein.select(atoms="CA"))` accepts a Region and preserves timestamps.
+`Trajectory(..., times=physical_times, time_unit="ns")` stores a physical clock. MDAnalysis trajectories expose physical timestamps in ps, read lazily. Plots use those timestamps automatically; inputs without them use frame indices. An MD file whose frame times do not strictly increase, such as an XTC written with time 0 in every frame, has no timestamps. `trajectory.aligned(selection=protein.select(atoms="CA"))` accepts a Region and preserves timestamps.
 
 Manual morph correspondence can use author residue identities:
 

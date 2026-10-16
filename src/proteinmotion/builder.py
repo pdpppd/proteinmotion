@@ -291,7 +291,8 @@ def _add_side_chains(names, frames):
     heavy = [np.array([v for k, v in f.items() if k != "H"]) for f in frames]
     for i, name in enumerate(names):
         own = frames[i]
-        others = np.concatenate([h for k, h in enumerate(heavy) if k != i])
+        # A single residue has no others, so nothing can clash and it keeps its usual rotamer.
+        others = np.concatenate([np.empty((0, 3))] + [h for k, h in enumerate(heavy) if k != i])
         default = ROTAMERS.get(name, ())
         best = None
         # Try the residue's usual χ1 first, then the three staggered rotamers (m, t, p).
@@ -305,9 +306,11 @@ def _add_side_chains(names, frames):
             # Clearance is the closest approach of this side chain to any other residue's
             # heavy atoms. A later rotamer must be clearly better (by 0.05 Å) to replace
             # an earlier, more common one. 2.9 Å, about the closest heavy-atom contact in
-            # real structures, counts as free of clashes and stops the search.
+            # real structures, counts as free of clashes and stops the search. With no
+            # other atoms the clearance is infinite.
             clearance = np.min(
-                np.linalg.norm(np.array(list(atoms_i.values()))[:, None] - others[None], axis=2)
+                np.linalg.norm(np.array(list(atoms_i.values()))[:, None] - others[None], axis=2),
+                initial=np.inf,
             )
             if best is None or clearance > best[0] + 0.05:
                 best = (clearance, atoms_i)

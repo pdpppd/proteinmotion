@@ -23,6 +23,8 @@ draws one torsion on screen. ``StructureMorph`` (conformations.py) reuses ``_tre
 ``SetTorsions`` stores in ``Protein._torsion_motion``.
 """
 
+import unicodedata
+
 import numpy as np
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
@@ -168,8 +170,11 @@ def torsion_atoms(topology):
 
 
 def _kind(name):
-    """The KINDS key for a torsion name, accepting Greek letters such as "φ" or "χ1"."""
-    key = str(name).lower().replace("χ", "chi").replace("φ", "phi").replace("ψ", "psi").replace("ω", "omega")
+    """The KINDS key for a torsion name, accepting Greek letters such as "φ", "χ1" or "χ₁"."""
+    # NFKC turns subscript digits into plain ones, so the SYMBOLS labels ("χ₁") read
+    # back, and the variant ϕ into φ.
+    key = unicodedata.normalize("NFKC", str(name)).lower()
+    key = key.replace("χ", "chi").replace("φ", "phi").replace("ψ", "psi").replace("ω", "omega")
     if key not in KINDS:
         raise ValueError(f"Unknown torsion {name!r}; choose from {', '.join(KINDS)}")
     return key
@@ -518,6 +523,7 @@ def _allowed_paths(protein, residues, current, changes):
     from .ramachandran import regions
 
     topology = protein.topology
+    table = torsion_atoms(topology)
     # 49 samples along each candidate path, from start (t = 0) to target (t = 1).
     t = np.linspace(0, 1, 49)[:, None]
     for k, ri in enumerate(residues):
@@ -533,7 +539,9 @@ def _allowed_paths(protein, residues, current, changes):
         if len(options[0]) == len(options[1]) == 1:
             continue
         name = topology.residues[ri].name
-        following = topology.residues[ri + 1].name if ri + 1 < len(topology.residues) else ""
+        # Pre-proline means peptide-bonded to the proline. ψ is defined only across such a
+        # bond in the same chain, so a chain end or a break is never pre-proline.
+        following = topology.residues[ri + 1].name if table[ri, 1, 0] >= 0 else ""
         background = (
             "glycine"
             if name == "GLY"
@@ -797,10 +805,9 @@ class SetTorsions(Animation):
             weights = weights.astype(np.float32)
             weights.flags.writeable = False
             protein._secondary = weights
-        # For RamachandranPlot: (residues, start (φ, ψ), change (Δφ, Δψ), each residue's
-        # progress, clip progress), angles in degrees.
-        phases = np.array([fractions[self.residue_rows[ri]].mean() for ri in self.path_residues])
-        protein._torsion_motion = (self.path_residues, self.path_start, self.path_delta, phases, float(alpha))
+        # For RamachandranPlot: (residues, start (φ, ψ), change (Δφ, Δψ), clip progress),
+        # angles in degrees.
+        protein._torsion_motion = (self.path_residues, self.path_start, self.path_delta, float(alpha))
 
 
 class RotateTorsions(SetTorsions):

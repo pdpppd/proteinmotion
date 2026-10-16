@@ -8,10 +8,10 @@ box or atom halos around a region; it is a small synthetic Protein that copies t
 region's geometry and its parent's transform every frame.
 """
 
-import gemmi
 import numpy as np
 from scipy.spatial import cKDTree
 
+from .geometry import _element_data
 from .math3d import color as parse_color
 from .protein import Protein
 from .structure import Atom, Residue, Topology
@@ -449,19 +449,13 @@ class RegionHighlight(Protein):
             # Corner spheres as thick as the edges round off the joints.
             radii = np.full(8, self.bond_radius)
         else:
-            # Each halo is the atom's van der Waals radius (at least 1 Å) at the parent's
-            # atom_scale, grown by the padding.
+            # Each halo is the drawn sphere grown by the padding. The sphere radius comes from
+            # the table the renderer uses (van der Waals, at least 1 Å, ions × ION_SCALE), at
+            # the parent's atom_scale. The sum is taken in float64 and rounded once, in the
+            # float32 metadata below.
             xyz = points
-            radii = (
-                np.array(
-                    [
-                        max(float(gemmi.Element(parent.topology.atoms[i].element).vdw_r), 1.0)
-                        for i in self.region.atom_indices
-                    ]
-                )
-                * parent.atom_scale
-                + self.padding
-            )
+            spheres = _element_data(parent.topology)[self.region.atom_indices, 3].astype(np.float64)
+            radii = spheres * parent.atom_scale + self.padding
         xyz = np.asarray(xyz, np.float32)
         # Replace coordinates and metadata only when they change, so the renderer keeps
         # its uploaded copies (it compares array identity).

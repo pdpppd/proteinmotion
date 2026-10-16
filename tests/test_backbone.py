@@ -16,7 +16,7 @@ from proteinmotion import (
     match_backbones,
     smooth,
 )
-from proteinmotion.matching import _CliqueSearch, contact_map, fit_transform
+from proteinmotion.matching import _CliqueSearch, _contact_disagreement, contact_map, fit_transform
 from proteinmotion.structure import Atom, Residue, Topology
 
 
@@ -57,6 +57,36 @@ def test_clique_matches_independent_exhaustive_oracle(seed):
     assert len(selected) == best_count
     assert solver.best_error == pytest.approx(best_error, abs=1e-12)
     assert (np.diff(selected, axis=0) > 0).all()
+
+
+def test_contact_disagreement_blocks_match_the_whole_array():
+    # _seeds used to build the whole (n, m, k) array of contact differences, about 4 GB
+    # at n = m = k = 800. Built in row blocks, the means must stay exactly the same.
+    rng = np.random.default_rng(3)
+    ca, cb = rng.random((23, 23)), rng.random((31, 31))
+    ia, ib = np.sort(rng.choice(23, 11, replace=False)), np.sort(rng.choice(31, 11, replace=False))
+    whole = np.mean(np.abs(ca[:, ia][:, None, :] - cb[:, ib][None, :, :]), axis=2)
+    row = 31 * 11
+    # One row per block, blocks of 7 and 5 rows that end inside the chain, and one block.
+    for block in (1, 7 * row, 6 * row - 1, 10**9):
+        np.testing.assert_array_equal(_contact_disagreement(ca, cb, ia, ib, block), whole)
+
+
+def test_contact_disagreement_memory_is_bounded():
+    import tracemalloc
+
+    rng = np.random.default_rng(4)
+    ca = cb = rng.random((150, 150))
+    ia = ib = np.arange(150)
+    tracemalloc.start()
+    try:
+        # Four rows of 150 × 150 differences per block, 0.7 MB.
+        _contact_disagreement(ca, cb, ia, ib, block=4 * 150 * 150)
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    # The whole array of differences would be 27 MB, and its absolute value as much again.
+    assert peak < 4e6
 
 
 def test_matching_insertion_rigid_invariance_and_save(tmp_path):

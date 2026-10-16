@@ -585,8 +585,8 @@
     "video": "media/docs/rna-styles.mp4",
     "poster": "media/docs/rna-styles.jpg",
     "poster_time": 6.5,
-    "video_sha256": "308b64fee0a6b445b37e6a5d1f8ca5dd7de4cd91386f8b04b27f1fdb75209fa6",
-    "poster_sha256": "29f56a927f45dfc5d24a2931314c41629e941de349499914443d9d9b51e9dbd1",
+    "video_sha256": "1c7b4efe66031efab5018ab97729d1c666bc155434354f1d503221bcc3b38021",
+    "poster_sha256": "ebc85c22161efd7489cefc22fd15f4fc4c9253d6a4b7c6f8045ead9100a1c4f7",
     "dependencies": {
       "examples/rna_styles.py": "07a4f8d299f53533478bbbc9197e435c911511e9bb4f805fe9b70d3f9bb84469",
       "examples/data/1ehz.cif": "3021dd2b6461f850bb66d6748d3c22a5e1bb6cc891c625c15d793f38215b28ab"

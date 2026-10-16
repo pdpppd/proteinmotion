@@ -17,9 +17,11 @@ from proteinmotion import (
     linear,
     there_and_back,
 )
+from proteinmotion.builder import ONE_LETTER, ROTAMERS, SIDE_CHAINS
 from proteinmotion.geometry import state_data
 from proteinmotion.math3d import align_coordinates, rotation
 from proteinmotion.structure import Topology
+from proteinmotion.torsions import dihedrals
 from proteinmotion.trajectory import FrameCache
 
 
@@ -176,6 +178,20 @@ def test_trajectory_npy_units_reverse_and_cache(protein, tmp_path):
     bad = Trajectory(np.zeros((2, 3, 3)))
     with pytest.raises(ValueError, match="atom count"):
         PlayTrajectory(protein, bad)
+
+
+def test_build_single_residue():
+    # With no other residue to clash with, each side chain keeps its usual χ1.
+    for letter, name in ONE_LETTER.items():
+        p = Protein.build(letter)
+        names = p.topology.residue_atoms[0]
+        assert [r.name for r in p.topology.residues] == [name] and "OXT" in names
+        assert np.isfinite(p.positions).all()
+        if name in SIDE_CHAINS:
+            # The first side-chain atom past Cβ is the one χ1 places.
+            gamma = SIDE_CHAINS[name][0][0]
+            quad = [[names["N"], names["CA"], names["CB"], names[gamma]]]
+            assert dihedrals(p.positions, quad)[0] == pytest.approx(ROTAMERS[name][0], abs=1e-3)
 
 
 def test_frames_finite_and_unit_guides(protein):
