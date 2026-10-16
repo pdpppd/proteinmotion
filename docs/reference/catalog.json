@@ -1690,7 +1690,7 @@
           "parameters": {
             "origin": "auto prefers a nonzero ORIGIN field, otherwise grid starts; header or start forces that convention."
           },
-          "notes": "Full crystallographic unit-cell grids are periodic. Cropped maps and EM volumes retain their stored extent. No symmetry expansion is performed."
+          "notes": "Full crystallographic unit-cell grids are periodic. Cropped maps and EM volumes retain their stored extent; a space group 1 map with 90° cell angles is read as an EM volume, as MRC2014 writes them. No symmetry expansion is performed."
         },
         "slice": {
           "description": "Create a trilinearly sampled, colored slice plane.",
@@ -1710,7 +1710,7 @@
         },
         "crop": {
           "description": "Crop a box around a selected region in its protein’s local coordinates, with padding in ångströms.",
-          "notes": "Periodic maps wrap across cell boundaries. Crops preserve the original mean and standard deviation for sigma contours."
+          "notes": "Periodic maps wrap across cell boundaries. A crop may hold up to the map's max_voxels values. Crops preserve the original mean and standard deviation for sigma contours."
         }
       }
     },
@@ -1957,7 +1957,7 @@
         "distances": {
           "description": "Live residue distances in ångströms, or their change from a reference structure.",
           "parameters": {
-            "region": "Region limiting the residues; None uses every polymer residue.",
+            "region": "Region limiting the residues; its ligands, ions and water are left out. None uses every polymer residue.",
             "anchor": "\"backbone\" uses Cα (C4′ for nucleotides); \"centroid\" uses residue centroids.",
             "reference": "Protein with the same residues, or coordinates in this protein's atom order; the plot shows the change.",
             "max_distance": "Upper color limit in ångströms; None rounds the largest initial value up.",

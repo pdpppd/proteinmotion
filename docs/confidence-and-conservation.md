@@ -122,7 +122,7 @@ self.add(pae.with_panel())
 
 `Heatmap.pae(protein, source)` reads AlphaFold DB (`predicted_aligned_error_v*.json`), ColabFold (`scores*.json`), and AlphaFold 3 (`full_data*.json`) files, a `.npy` file, or an array. Rows are the residue each prediction is aligned on, and columns the residue whose error is shown, as on AlphaFold DB pages. The matrix must have one row per polymer residue of the loaded model. AlphaFold 3 tokens for ligand atoms are averaged onto their residues. The default scale runs from 0 Å (dark green) to the file's maximum error (near white).
 
-`Heatmap.distances(protein)` shows Cα (or C4′) distances from the current coordinates. `anchor="centroid"` uses residue centroids. With `reference=` (a Protein with the same residues, or coordinates in the same atom order), the plot shows the change in distance: blue where residues moved closer, red where they moved apart. Live matrices are limited to 600 residues by default (`max_residues`).
+`Heatmap.distances(protein)` shows Cα (or C4′) distances from the current coordinates. Rows and columns are polymer residues; ligands, ions and water in `region` are left out. `anchor="centroid"` uses residue centroids. With `reference=` (a Protein with the same residues, or coordinates in the same atom order), the plot shows the change in distance: blue where residues moved closer, red where they moved apart. Live matrices are limited to 600 residues by default (`max_residues`).
 
 ## AlphaFold pLDDT
 

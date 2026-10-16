@@ -80,7 +80,7 @@ The reader supports MRC/CCP4 files and their `.gz` versions. It preserves cell d
 
 Map origin conventions vary. `origin="auto"` uses a nonzero MRC ORIGIN field, otherwise the grid-start fields. Use `origin="header"` or `origin="start"` when your source uses another convention. Compare the map with known atoms before using an unfamiliar file. The [MRC specification](https://www.ccpem.ac.uk/mrc-format/mrc2014/) defines these fields.
 
-Complete crystallographic unit-cell maps are periodic. Sampling and cropping can wrap across their boundaries. Cropped maps and EM volumes use their stored extent. ProteinMotion reads the stored grid and performs no crystallographic symmetry expansion.
+Complete crystallographic unit-cell maps are periodic. Sampling and cropping can wrap across their boundaries. Cropped maps and EM volumes use their stored extent. A map in space group 1 with 90° cell angles is read as an EM volume, because MRC2014 files store single cryo-EM volumes that way; a P1 crystal map has a triclinic cell. ProteinMotion reads the stored grid and performs no crystallographic symmetry expansion.
 
 For an in-memory array:
 

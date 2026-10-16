@@ -15913,7 +15913,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/density.py",
-          "line": 72
+          "line": 74
         },
         {
           "name": "from_file",
@@ -15949,9 +15949,9 @@
           ],
           "description": "Read MRC/CCP4, optionally gzip-compressed, using Gemmi with map axes and physical coordinates preserved.",
           "returns": "Protein",
-          "notes": "Full crystallographic unit-cell grids are periodic. Cropped maps and EM volumes retain their stored extent. No symmetry expansion is performed.",
+          "notes": "Full crystallographic unit-cell grids are periodic. Cropped maps and EM volumes retain their stored extent; a space group 1 map with 90° cell angles is read as an EM volume, as MRC2014 writes them. No symmetry expansion is performed.",
           "source": "src/proteinmotion/density.py",
-          "line": 82
+          "line": 84
         },
         {
           "name": "bounds",
@@ -15964,7 +15964,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/density.py",
-          "line": 141
+          "line": 152
         },
         {
           "name": "sample",
@@ -15986,7 +15986,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/density.py",
-          "line": 146
+          "line": 157
         },
         {
           "name": "crop",
@@ -16014,9 +16014,9 @@
           ],
           "description": "Crop a box around a selected region in its protein’s local coordinates, with padding in ångströms.",
           "returns": "",
-          "notes": "Periodic maps wrap across cell boundaries. Crops preserve the original mean and standard deviation for sigma contours.",
+          "notes": "Periodic maps wrap across cell boundaries. A crop may hold up to the map's max_voxels values. Crops preserve the original mean and standard deviation for sigma contours.",
           "source": "src/proteinmotion/density.py",
-          "line": 167
+          "line": 178
         },
         {
           "name": "isosurface",
@@ -16078,7 +16078,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/density.py",
-          "line": 203
+          "line": 215
         },
         {
           "name": "slice",
@@ -16148,7 +16148,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/density.py",
-          "line": 215
+          "line": 227
         }
       ],
       "extra_parameters": []
@@ -16223,7 +16223,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/density.py",
-      "line": 247,
+      "line": 259,
       "bases": [],
       "attributes": {},
       "guide": "density-maps",
@@ -16241,7 +16241,7 @@
           "returns": "Array with shape (selected atoms, 3), in ångströms.",
           "notes": "",
           "source": "src/proteinmotion/density.py",
-          "line": 267
+          "line": 279
         },
         {
           "name": "set_level",
@@ -16263,7 +16263,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/density.py",
-          "line": 270
+          "line": 282
         },
         {
           "name": "mesh_data",
@@ -16276,7 +16276,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/density.py",
-          "line": 277
+          "line": 289
         },
         {
           "name": "set_opacity",
@@ -16508,7 +16508,7 @@
       ],
       "returns": "",
       "source": "src/proteinmotion/density.py",
-      "line": 318,
+      "line": 330,
       "bases": [],
       "attributes": {},
       "guide": "density-maps",
@@ -16526,7 +16526,7 @@
           "returns": "Array with shape (selected atoms, 3), in ångströms.",
           "notes": "",
           "source": "src/proteinmotion/density.py",
-          "line": 340
+          "line": 352
         },
         {
           "name": "set_slice",
@@ -16548,7 +16548,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/density.py",
-          "line": 343
+          "line": 355
         },
         {
           "name": "mesh_data",
@@ -16561,7 +16561,7 @@
           "returns": "",
           "notes": "",
           "source": "src/proteinmotion/density.py",
-          "line": 350
+          "line": 362
         },
         {
           "name": "set_opacity",
@@ -20710,7 +20710,7 @@
               "annotation": false,
               "default": "None",
               "kind": "keyword only",
-              "description": "Region limiting the residues; None uses every polymer residue."
+              "description": "Region limiting the residues; its ligands, ions and water are left out. None uses every polymer residue."
             },
             {
               "name": "anchor",
@@ -20777,7 +20777,7 @@
           "returns": "4 × 4 array.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 971
+          "line": 983
         },
         {
           "name": "layout",
@@ -20815,7 +20815,7 @@
           "returns": "AnnotationLayout containing glyph placements and line paths.",
           "notes": "",
           "source": "src/proteinmotion/plots.py",
-          "line": 1172
+          "line": 1184
         },
         {
           "name": "with_panel",
@@ -21459,7 +21459,7 @@
     }
   ],
   "dependencies": {
-    "docs/reference/catalog.json": "94875385318c1b16e30ec9ef6661dc76be8930225d69737ea62ffbb9caa6c151",
+    "docs/reference/catalog.json": "d90798d3b7d4a927ab7b9848aba14202a822649547e3c3132c8133f53ad17659",
     "scripts/build_reference.py": "a50a8ba9cbfb80c7e1ccbcb39351b1f52d57d4aa9af559a08dab9fca7ea4b8ed",
     "src/proteinmotion/__init__.py": "2f8ab777a9a4a8c27cf6941ed4f80e419fb5f63628f86a907353ad6a059ebf95",
     "src/proteinmotion/animation.py": "b4cef2d0be9a6f9b2155e35f51b102905b6b93911423c62502c8ad7dee7e5bcd",
@@ -21467,7 +21467,7 @@
     "src/proteinmotion/backbone.py": "0f6035cadef931ff286abbfa38d73d4ad49cd50748f36c3dddeab027177b65e8",
     "src/proteinmotion/camera.py": "d61c5228b25bca214195d5ef658d25518ed892e79be96adef7c91064a37a3eaa",
     "src/proteinmotion/conformations.py": "e4034c9eb72dd473b9cb0b98fc9ee4d6925ef342814a179cf87d0eb01c52bef0",
-    "src/proteinmotion/density.py": "b9c6e5827bf4ce1558dcbce000ad41a16dc57840238ace1e643162829d296c60",
+    "src/proteinmotion/density.py": "ec1d995930e4a0e466cfa22b7ce59ea7c568ab881cd9f0e09e349d47767e67f3",
     "src/proteinmotion/distances.py": "a61c97f5b3bc495e1d59bc304f74f97e3716f3976d919780a4b3de778c817d53",
     "src/proteinmotion/eevee.py": "059b6d16b31180e7d991187b25d6a807be8ca123a153bedd9baad9fe4e682234",
     "src/proteinmotion/interactions.py": "c173ab98bb0e58523708cf8516fbef6d619b91d8962c079b32460bcb46e8eb85",
@@ -21475,7 +21475,7 @@
     "src/proteinmotion/matching.py": "7fd23999ad81ce14a70182497b2ef82af91ae28ec542aa78900fb9d6772f536f",
     "src/proteinmotion/mesh.py": "6b1d6a5d305e1ee3125b01d0b119c7db8f6799f0d10922beefbacb8efaad582b",
     "src/proteinmotion/nucleic.py": "6fd934be2c00392d369244efdd033204e82f882322a9f620640898d10ca9b020",
-    "src/proteinmotion/plots.py": "415c63c511bbc67fd6d2d8cc099d366d402e36f32877fcde5afddff4640861d5",
+    "src/proteinmotion/plots.py": "fc91bf967debe64e048376942f3371045b6b688b168a4c6d4e954b5695bdda0f",
     "src/proteinmotion/properties.py": "05a547a59968be43b282067f74afba2652531972c6bc5cc9d9d4d2053a19d59e",
     "src/proteinmotion/protein.py": "b842511ded0d45b0e18535ccc4696063c55adc98dbbaabbe19c4aa7b752bb6f4",
     "src/proteinmotion/ramachandran.py": "c1f6a6858c74315315aec3cd54de29d98181cd0de25309b3c737b67569908756",

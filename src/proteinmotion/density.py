@@ -45,6 +45,8 @@ class DensityMap:
         if data.ndim != 3 or min(data.shape) < 2 or data.size > max_voxels:
             raise ValueError("Density needs a 3D grid with at least 2 samples per axis, within max_voxels")
         self._follow = None
+        # Kept so crop() allows crops as large as this map was allowed to be.
+        self._max_voxels = max_voxels
         self.periodic = bool(periodic)
         self.values = np.array(data, dtype=np.float32, copy=True, order="C")
         if not np.isfinite(self.values).all():
@@ -84,7 +86,9 @@ class DensityMap:
 
         ``origin='auto'`` uses a nonzero ORIGIN field, otherwise NX/NY/NZSTART.
         Choose 'header' or 'start' explicitly for files using another convention.
-        No symmetry expansion, resampling, or density normalization is performed.
+        A map that covers one full unit cell of a crystal is periodic; cryo-EM volumes
+        (space group 1 with 90° cell angles) are not. No symmetry expansion, resampling,
+        or density normalization is performed.
         """
         from pathlib import Path
 
@@ -132,9 +136,16 @@ class DensityMap:
             if origin == "header" or (origin == "auto" and np.any(header_origin != 0))
             else basis @ start
         )
-        # Word 23 is the space group. A crystallographic map that covers exactly one unit
-        # cell repeats in every direction, so sampling may wrap around its edges.
-        periodic = 1 <= m.header_i32(23) <= 230 and tuple(values.shape) == tuple(sampling)
+        # Word 23 is the space group (ISPG). A crystallographic map that covers exactly one
+        # unit cell repeats in every direction, so sampling and crops may wrap around its
+        # edges. A cryo-EM volume is a box, not a crystal, but MRC2014 also writes it as
+        # space group 1, with the box as its cell: 90° angles and MX = NX. So space group 1
+        # counts as a crystal only when its cell is triclinic, as a real P1 crystal's is.
+        # ISPG 0 (images) and 401 and above (volume stacks) are never periodic.
+        spacegroup = m.header_i32(23)
+        triclinic = any(abs(angle - 90) > 1e-3 for angle in (cell.alpha, cell.beta, cell.gamma))
+        crystal = 2 <= spacegroup <= 230 or (spacegroup == 1 and triclinic)
+        periodic = crystal and tuple(values.shape) == tuple(sampling)
         return cls(values, basis=basis, origin=offset, periodic=periodic, max_voxels=max_voxels)
 
     @property
@@ -178,9 +189,10 @@ class DensityMap:
         hi = np.ceil(ijk.max(0)).astype(int) + 1
         if not self.periodic:
             lo, hi = np.maximum(lo, 0), np.minimum(hi, self.values.shape)
-        # The same limit as the default max_voxels of a new map.
-        if np.prod((hi - lo).astype(object)) > 32_000_000:
-            raise ValueError("Crop exceeds 32 million voxels; reduce padding or region size")
+        # The same allocation limit as this map's own. A periodic crop can be larger than
+        # the map it comes from, since it can wrap past the cell edges.
+        if np.prod((hi - lo).astype(object)) > self._max_voxels:
+            raise ValueError(f"Crop exceeds max_voxels ({self._max_voxels:,}); reduce padding or region size")
         if np.any(hi - lo < 2):
             raise ValueError("Selected region does not overlap a usable part of the map")
         # A periodic map wraps its indices, so a crop can cross the unit-cell edge.
@@ -193,7 +205,7 @@ class DensityMap:
             values,
             basis=self.basis,
             origin=self.origin + self.basis @ lo,
-            max_voxels=max(self.values.size, values.size),
+            max_voxels=self._max_voxels,
         )
         # Keep the whole map's statistics, so a σ level draws the same contour on the crop.
         cropped.mean, cropped.std = self.mean, self.std

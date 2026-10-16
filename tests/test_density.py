@@ -12,7 +12,16 @@ from proteinmotion import DensityMap, EEVEEOptions, ProteinScene
 from proteinmotion._eevee_geometry import MeshExporter
 
 
-def write_map(path, *, axes=(0, 1, 2), endian="<", header_origin=(0, 0, 0), starts=(2, -3, 4), spacegroup=0):
+def write_map(
+    path,
+    *,
+    axes=(0, 1, 2),
+    endian="<",
+    header_origin=(0, 0, 0),
+    starts=(2, -3, 4),
+    spacegroup=0,
+    angles=(90, 90, 90),
+):
     values = np.arange(4 * 5 * 6).reshape(4, 5, 6).astype(np.float32)
     stored = values.transpose(axes)
     header = bytearray(1024)
@@ -26,7 +35,7 @@ def write_map(path, *, axes=(0, 1, 2), endian="<", header_origin=(0, 0, 0), star
     ints(1, *stored.shape, 2)
     ints(5, *[starts[a] for a in axes])
     ints(8, 4, 5, 6)
-    floats(11, 8, 15, 24, 90, 90, 90)
+    floats(11, 8, 15, 24, *angles)
     ints(17, *[a + 1 for a in axes])
     floats(20, float(values.min()), float(values.max()), float(values.mean()))
     ints(23, spacegroup, 0)
@@ -53,7 +62,7 @@ def test_mrc_axes_origins_and_endianness(tmp_path, axes, endian):
 
 def test_mrc_header_origin_gzip_periodic_and_limits(tmp_path):
     path = tmp_path / "test.ccp4.gz"
-    values = write_map(path, header_origin=(10, 20, 30), spacegroup=1)
+    values = write_map(path, header_origin=(10, 20, 30), spacegroup=19)  # P2₁2₁2₁, one full cell
     density = DensityMap.from_file(path)
     np.testing.assert_array_equal(density.origin, [10, 20, 30])
     assert density.periodic
@@ -64,6 +73,33 @@ def test_mrc_header_origin_gzip_periodic_and_limits(tmp_path):
     path.write_bytes(b"bad")
     with pytest.raises((ValueError, gzip.BadGzipFile)):
         DensityMap.from_file(path)
+
+
+def test_cryo_em_volumes_are_not_periodic(tmp_path):
+    # MRC2014 writes a single cryo-EM volume as space group 1, with the box as a 90° cell.
+    path = tmp_path / "em.mrc"
+    write_map(path, header_origin=(10, 20, 30), spacegroup=1)
+    density = DensityMap.from_file(path)
+    assert not density.periodic
+    assert np.isnan(density.sample([8, 20, 30]))  # one voxel outside the box, not wrapped
+    # Images (0) and volume stacks (401 and above) do not repeat either.
+    for spacegroup in (0, 401):
+        write_map(path, spacegroup=spacegroup)
+        assert not DensityMap.from_file(path).periodic
+    # A real P1 crystal has a triclinic cell, and one full cell of it repeats.
+    write_map(path, spacegroup=1, angles=(80, 95, 100))
+    assert DensityMap.from_file(path).periodic
+
+
+def test_crop_follows_the_maps_voxel_limit(protein):
+    region = protein.select(residues=1, atoms="CA")
+    protein.set_positions(protein.positions - region.positions.mean(0))
+    # A periodic crop can wrap past the cell, so it can need more voxels than the map holds.
+    values = np.arange(8 * 9 * 10).reshape(8, 9, 10)
+    with pytest.raises(ValueError, match="max_voxels"):
+        DensityMap(values, periodic=True, max_voxels=values.size).crop(region, padding=6)
+    crop = DensityMap(values, periodic=True, max_voxels=4000).crop(region, padding=6)
+    assert values.size < crop.values.size <= 4000
 
 
 def gaussian():

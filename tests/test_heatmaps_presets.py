@@ -105,6 +105,35 @@ def test_live_distances_follow_coordinates_and_reference():
         Heatmap.distances(p, anchor="cb")
 
 
+def test_distances_skip_ligands_in_a_region(structure_path, tmp_path):
+    import gemmi
+    from scipy.spatial.distance import cdist
+
+    hemoglobin = Protein.from_file(structure_path.parent / "4hhb.cif")
+    chain = hemoglobin.select(chain="A")
+    residues = hemoglobin.topology.residues
+    assert "HEM" in {residues[i].name for i in chain.residue_indices}
+    plot = Heatmap.distances(hemoglobin, region=chain)
+    # The heme has no Cα, so it is left out instead of taking the position of the last atom.
+    assert all(residues[i].trace_atom >= 0 for i in plot.rows)
+    assert len(plot.rows) == len(chain.residue_indices) - 1
+    ca = hemoglobin.positions[[residues[i].trace_atom for i in plot.rows]]
+    np.testing.assert_allclose(plot.matrix, cdist(ca, ca), atol=1e-4)
+    centroid = Heatmap.distances(hemoglobin, region=chain, anchor="centroid")
+    assert centroid.shape == plot.shape
+
+    # A reference residue without its own Cα cannot anchor a backbone distance.
+    structure = gemmi.read_structure(str(structure_path))
+    structure.remove_ligands_and_waters()
+    structure[0]["A"][4].remove_atom("CA", " ")
+    structure.write_pdb(str(tmp_path / "missing_ca.pdb"))
+    reference = Protein.from_file(tmp_path / "missing_ca.pdb")
+    ubiquitin = Protein.from_file(structure_path)
+    with pytest.raises(ValueError, match=r"Reference lacks residues \[\('A', 5, ''\)\]"):
+        Heatmap.distances(ubiquitin, reference=reference)
+    Heatmap.distances(ubiquitin, reference=reference, anchor="centroid")
+
+
 def test_hydropathy_values_scheme_and_shortcuts(structure_path):
     p = Protein.from_file(structure_path, include_water=True)
     values = ResidueValues.hydropathy(p)

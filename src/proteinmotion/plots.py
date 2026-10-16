@@ -897,16 +897,22 @@ class Heatmap(_Plot):
     ):
         """Live residue–residue distances in Å (Cα for amino acids, C4′ for nucleotides).
 
-        ``anchor="centroid"`` uses residue centroids. With ``reference`` (a Protein
+        Rows and columns are polymer residues: ligands, ions and water in ``region`` are
+        left out. ``anchor="centroid"`` uses residue centroids. With ``reference`` (a Protein
         with the same residues, or coordinates in this protein's atom order) the
         plot shows the change from that structure: positive where residues moved apart.
         """
         if anchor not in ("backbone", "centroid"):
             raise ValueError("anchor must be backbone or centroid")
+        topology = protein.topology
+        # The matrix covers polymer residues, the ones with a Cα or C4′ trace atom. A Region
+        # can also hold ligands, ions and water, which have none (trace_atom is -1, and
+        # xyz[-1] would silently read the file's last atom), so leave them out, as the
+        # default list does.
         ids = _residue_list(protein, region)
+        ids = ids[np.array([topology.residues[i].trace_atom >= 0 for i in ids], dtype=bool)]
         if not 1 <= len(ids) <= max_residues:
             raise ValueError("Select between 1 and max_residues polymer residues")
-        topology = protein.topology
         # The atoms averaged into each residue's point: its trace atom, or all of its atoms.
         if anchor == "backbone":
             groups = [[topology.residues[i].trace_atom] for i in ids]
@@ -928,10 +934,16 @@ class Heatmap(_Plot):
                     (topology.residues[i].chain, topology.residues[i].resid, topology.residues[i].icode)
                     for i in ids
                 ]
-                missing = [k for k in keys if k not in lookup]
+                other = reference.topology
+                # With backbone anchors, a reference residue without its own Cα or C4′
+                # counts as missing too.
+                missing = [
+                    k
+                    for k in keys
+                    if k not in lookup or (anchor == "backbone" and other.residues[lookup[k]].trace_atom < 0)
+                ]
                 if missing:
                     raise ValueError(f"Reference lacks residues {missing[:3]}")
-                other = reference.topology
                 if anchor == "backbone":
                     ref_groups = [[other.residues[lookup[k]].trace_atom] for k in keys]
                 else:
