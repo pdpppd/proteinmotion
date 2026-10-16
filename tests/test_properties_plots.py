@@ -196,3 +196,13 @@ def test_long_trace_preserves_nan_gaps():
     for start, end in index:
         assert not (start < 405 and end > 408)
         assert not (start < 412 and end > 415)
+
+
+def test_time_series_value_label_can_be_hidden():
+    from proteinmotion.camera import Camera
+
+    shown, hidden = TimeSeriesPlot([0, 1], [0, 1]), TimeSeriesPlot([0, 1], [0, 1], show_value=False)
+    for plot in (shown, hidden):
+        plot.layout(Camera(), 1280, 720)
+    assert "value" in shown._texts
+    assert "value" not in hidden._texts

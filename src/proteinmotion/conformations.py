@@ -299,6 +299,67 @@ def _rotations(angles, axes):
     return np.eye(3) + s * k + (1 - c) * (k @ k)
 
 
+def _trace_neighbours(protein, pair_of, reach=2):
+    """Matched trace atoms of each one-atom residue and its sequence neighbours.
+
+    A Cα-only residue has no backbone of its own to define a rotation, so its frame
+    comes from the trace atoms within ``reach`` residues along the chain.
+    """
+    topology = protein.topology
+    names = topology.residue_atoms
+    result = {}
+    for chain in topology.chains:
+        chain = [int(i) for i in chain]
+        trace = [topology.residues[i].trace_atom for i in chain]
+        for k, ri in enumerate(chain):
+            if len(names[ri]) > 1:
+                continue
+            window = [a for a in trace[max(0, k - reach) : k + reach + 1] if a in pair_of]
+            if len(window) >= 3:
+                result[ri] = window
+    return result
+
+
+def _bounded_turn(rotvec, start, end, bow=0.15, floor=3.0):
+    """Rotation and translation carrying one atom from start to end on a gentle screw path.
+
+    A one-atom residue's rotation only shapes its path. The turn is scaled down until
+    the path's midpoint lies within ``bow`` of the distance travelled (at least
+    ``floor`` Å) of the straight line.
+    """
+    allowed = max(floor, bow * float(np.linalg.norm(end - start)))
+    for _ in range(8):
+        r = Rotation.from_rotvec(rotvec).as_matrix()
+        t = end - r @ start
+        angle, axis, point, along = (v[0] for v in _screws(r[None], t[None]))
+        middle = _rotations(np.array([angle / 2]), axis[None])[0] @ (start - point) + point + along / 2
+        if np.linalg.norm(middle - (start + end) / 2) <= allowed:
+            break
+        rotvec = rotvec * 0.6
+    else:
+        r, t = np.eye(3), end - start
+    return r, t
+
+
+def _flatness(points):
+    """How far points depart from a line: second over first singular value of their spread."""
+    values = np.linalg.svd(points - points.mean(0), compute_uv=False)
+    return float(values[1] / max(values[0], 1e-9))
+
+
+def _virtual_trace_bonds(protein):
+    """Pairs of consecutive trace atoms in chains whose residues have only a trace atom."""
+    topology = protein.topology
+    names = topology.residue_atoms
+    pairs = []
+    for chain in topology.chains:
+        chain = [int(i) for i in chain]
+        if all(len(names[i]) == 1 for i in chain):
+            trace = [topology.residues[i].trace_atom for i in chain]
+            pairs.extend(zip(trace[:-1], trace[1:]))
+    return np.asarray(pairs, dtype=int).reshape(-1, 2)
+
+
 def _owners(protein, groups_of_residue, xyz, matched_atoms):
     """Rigid group of every atom: its residue's group, a sequence neighbor's, or the nearest matched atom's."""
     topology = protein.topology
@@ -326,9 +387,13 @@ def _owners(protein, groups_of_residue, xyz, matched_atoms):
 class StructureMorph(Animation):
     """Morph between two experimental structures of the same protein, such as two states.
 
+    Cα-only models, such as predicted Cα traces, also work: each residue turns with
+    the trace of its sequence neighbours, and consecutive Cα atoms keep their spacing.
+
     The structures can differ in chains, missing residues, ligands and atoms:
     match_structures() pairs them. ``align`` (a Region of the source) chooses the atoms
-    used to superpose the target; by default the rigid core, the matched Cα/C4′ atoms
+    used to superpose the target (``align=False`` keeps the target where it is, for
+    structures already superposed); by default the rigid core, the matched Cα/C4′ atoms
     that superpose within 2 Å, so moving domains do not shift the frame. Matched
     residues and ligands move along screw paths, so rigid domains rotate along arcs
     with fixed bond lengths; side-chain changes blend in each residue's frame.
@@ -361,8 +426,8 @@ class StructureMorph(Animation):
 
         if not isinstance(source, Protein) or not isinstance(target, Protein) or source is target:
             raise ValueError("StructureMorph needs two different Protein objects")
-        if align is not None and (getattr(align, "protein", None) is not source):
-            raise ValueError("align must be a Region of the source structure")
+        if align is not None and align is not False and (getattr(align, "protein", None) is not source):
+            raise ValueError("align must be a Region of the source structure, or False")
         for interval in (fade_out, fade_in):
             if len(interval) != 2 or not 0 <= interval[0] < interval[1] <= 1:
                 raise ValueError("Fade intervals must satisfy 0 <= start < end <= 1")
@@ -398,7 +463,7 @@ class StructureMorph(Animation):
         xt = np.asarray(dest.positions, dtype=np.float64)
         # Superpose the target on the source by the rigid core's trace atoms (or the align region).
         trace = {r.trace_atom for r in source.topology.residues if r.trace_atom >= 0}
-        if self.align is not None:
+        if self.align is not None and self.align is not False:
             allowed = set(self.align.atom_indices)
             anchors = [
                 (a, b) for a, b in zip(match.source_atoms, match.target_atoms) if a in trace and a in allowed
@@ -408,21 +473,38 @@ class StructureMorph(Animation):
         if len(anchors) < 3:
             anchors = list(zip(match.source_atoms, match.target_atoms))
         anchors = np.asarray(anchors, dtype=int)
-        rotation, translation = _kabsch(xt[anchors[:, 1]], xs[anchors[:, 0]])
-        xt = xt @ rotation.T + translation
+        if self.align is not False:
+            rotation, translation = _kabsch(xt[anchors[:, 1]], xs[anchors[:, 0]])
+            xt = xt @ rotation.T + translation
         # One rigid group per matched residue or ligand.
         groups, rotations, translations = {}, [], []
         s_owner = np.array([a.residue_index for a in source.topology.atoms])
         pair_of = dict(zip(match.source_atoms, match.target_atoms))
+        neighbours = _trace_neighbours(source, pair_of)
         for i, j in match.residue_pairs:
             atoms = [a for a in np.flatnonzero(s_owner == i) if a in pair_of]
             if not atoms:
                 continue
             core = [a for a in atoms if source.topology.atoms[a].name in BACKBONE]
             core = core if len(core) >= 3 else atoms
+            if len(core) < 3 and len(neighbours.get(i, ())) >= 3:
+                # Cα-only models: the residue turns with the trace of its sequence
+                # neighbours, as far as they move rigidly. Where the chain bends, or
+                # where the window is nearly straight and its turn is ill-defined, a
+                # fitted rotation would swing the residue around a distant axis, so the
+                # turn is scaled down and the residue moves more directly to its target.
+                window = neighbours[i]
+                r, _ = _kabsch(xs[window], xt[[pair_of[a] for a in window]])
+                spread = min(_flatness(xs[window]), _flatness(xt[[pair_of[a] for a in window]]))
+                error = xs[window] @ r.T - xt[[pair_of[a] for a in window]]
+                misfit = np.sqrt(max(float(np.mean(np.sum((error - error.mean(0)) ** 2, axis=1))), 0.0))
+                rigid = float(np.clip((1.5 - misfit) / 1.0, 0.0, 1.0) * np.clip(spread / 0.35, 0.0, 1.0))
+                own = atoms[0]
+                r, t = _bounded_turn(Rotation.from_matrix(r).as_rotvec() * rigid, xs[own], xt[pair_of[own]])
+                core = []
             if len(core) >= 3:
                 r, t = _kabsch(xs[core], xt[[pair_of[a] for a in core]])
-            else:
+            elif core:
                 r, t = np.eye(3), (xt[[pair_of[a] for a in core]] - xs[core]).mean(0)
             groups[i] = len(rotations)
             rotations.append(r)
@@ -465,7 +547,13 @@ class StructureMorph(Animation):
         residual[matched] = np.einsum("nji,nj->ni", rotations[g], xt[match.target_atoms] - rigid)
         self.residual = residual
         # Bond lengths relax toward lengths interpolated between the two structures.
+        # Cα-only chains have no bonds, so consecutive trace atoms are joined virtually.
         bonds = np.asarray(source.topology.bonds, dtype=int).reshape(-1, 2)
+        virtual = _virtual_trace_bonds(source)
+        bonds = np.concatenate([bonds, virtual])
+        # A trace residue has no internal geometry to hold its neighbours, so Cα-only
+        # chains need many more passes to keep 3.8 Å spacing through large motions.
+        self.relax_iterations = 200 if len(virtual) else 12
         partner = np.full(len(xs), -1, dtype=int)
         partner[match.source_atoms] = match.target_atoms
         self.relax_bonds = bonds
@@ -538,11 +626,11 @@ class StructureMorph(Animation):
         mixes = (source._color_mix, source._opacity_mix, source._detail_mix)
         return values, appearance, mixes, source._surface_options
 
-    def _relax(self, xyz, alpha, iterations=12):
+    def _relax(self, xyz, alpha, iterations=None):
         """Nudge bonds toward lengths interpolated between the structures (Jacobi projection)."""
         bonds, n = self.relax_bonds, len(xyz)
         rest = (1 - alpha) * self.rest_source + alpha * self.rest_target
-        for _ in range(iterations):
+        for _ in range(self.relax_iterations if iterations is None else iterations):
             d = xyz[bonds[:, 1]] - xyz[bonds[:, 0]]
             length = np.linalg.norm(d, axis=1)
             correction = ((length - rest) / np.maximum(length, 1e-9))[:, None] * d * 0.5

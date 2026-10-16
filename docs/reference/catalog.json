@@ -325,6 +325,7 @@
     "reveal": "Show only trace samples at or before the cursor.",
     "grid": "Show faint horizontal lines at vertical-axis ticks. Defaults to False.",
     "tips": "Draw small arrowheads at the ends of the plot axes. Defaults to True.",
+    "show_value": "Print the cursor value above the plot. Set False when overlaying a second trace on the same axes. Defaults to True.",
     "live_value": "Optional pure function returning the measurement at current coordinates for the cursor marker.",
     "first": "First Region for a centroid-to-centroid distance trace.",
     "second": "Second Region from the same protein.",
@@ -1973,7 +1974,7 @@
       "parameters": {
         "source": "Structure shown before the morph.",
         "target": "Structure that replaces the source at the end; chains, residues, ligands, and atoms may differ.",
-        "align": "Region of the source whose matched Cα/C4′ atoms superpose the target; None uses all matched trace atoms.",
+        "align": "Region of the source whose matched Cα/C4′ atoms superpose the target; None uses the rigid core; False keeps the target where it is, for structures already superposed.",
         "chains": "Source-to-target chain ID mapping; None pairs chains automatically.",
         "match": "StructureMatch to reuse; None calls match_structures().",
         "fade_out": "Interval of the clip, as fractions, in which source-only atoms fade out.",

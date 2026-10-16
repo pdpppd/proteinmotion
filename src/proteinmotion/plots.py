@@ -212,6 +212,7 @@ class TimeSeriesPlot(_Plot):
         live_value=None,
         grid=False,
         tips=True,
+        show_value=True,
     ):
         super().__init__(position, size, title)
         self.times = np.array(times, dtype=float, copy=True)
@@ -243,7 +244,7 @@ class TimeSeriesPlot(_Plot):
             raise TypeError("live_value must be a callable")
         self.times.flags.writeable = self.values.flags.writeable = False
         self.protein, self.live_value, self.reveal = protein, live_value, bool(reveal)
-        self.grid, self.tips = bool(grid), bool(tips)
+        self.grid, self.tips, self.show_value = bool(grid), bool(tips), bool(show_value)
         self._trajectory = trajectory
         self.xlabel, self.ylabel, self.color = str(xlabel), str(ylabel), parse_color(color)
         if ylim is None:
@@ -388,14 +389,15 @@ class TimeSeriesPlot(_Plot):
             for yy in np.arange(py + 10 * s, bottom, 11 * s):
                 self._line([[px, yy], [px, min(yy + 5 * s, bottom)]], self.color, width=1.3, opacity=0.5)
             self._dot([px, py], 5 * s, self.color)
-        self._text(
-            "value",
-            f"{current:.2f}" if np.isfinite(current) else "missing",
-            [right, y + 37 * s],
-            size=24,
-            tint=self.color,
-            align="right",
-        )
+        if self.show_value:
+            self._text(
+                "value",
+                f"{current:.2f}" if np.isfinite(current) else "missing",
+                [right, y + 37 * s],
+                size=24,
+                tint=self.color,
+                align="right",
+            )
         return self._finish()
 
 

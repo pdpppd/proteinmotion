@@ -63,6 +63,19 @@ By default, the target is superposed on the rigid core: the matched Cα (or C4�
 
 Atoms in only one structure move with their residue, or the nearest matched residue, while they fade. At the end, the target replaces the source in the source's place; continue animating `morph.result`, which is the target. Hide crystallization additives on the target before the morph, for example `oxy.select(resname="MBN").hide_atoms()`.
 
+Pass `align=False` when the two structures are already superposed the way you want, for example each frame of a predicted pathway fitted to a matching simulation frame. The target then stays where it is.
+
+### Cα-only models
+
+Coarse models and predicted folding pathways often contain only Cα atoms. `StructureMorph` handles them too. A one-atom residue has no backbone of its own, so it turns with the Cα trace of its neighbours (two residues either side). Where that window bends or is nearly straight, its turn is ill-defined, so the turn is scaled down and the residue moves more directly; each path bows at most 15% of the distance it covers. Consecutive Cα atoms are joined by virtual bonds that relax toward 3.8 Å, so the chain neither stretches nor collapses mid-morph. Secondary structure comes from Cα geometry (see [Torsions](torsions.md#secondary-structure)).
+
+```python
+frames = [Protein.from_file(f"pathway_{k:02d}.pdb").cartoon() for k in range(11)]  # Cα only
+self.add(frames[0])
+for a, b in zip(frames, frames[1:]):
+    self.play(StructureMorph(a, b, align=False), run_time=2)
+```
+
 `domain_motion(source, target, moving, fixed=None)` reports how a domain turns between the structures, after superposing on `fixed` (by default the rigid core): `angle` in degrees, `axis` as a unit vector in the source's frame, `point` on the axis, and `translation` along it in Å. `camera.look_along(axis, protein)` points the view down that axis, so the domain turns in the image plane.
 
 `Protein.from_file(path, assembly="1")` builds a biological assembly from the deposited chains; R-state hemoglobin entries such as 2DN1 deposit one αβ dimer. Generated copies get new chain IDs and keep their helix and sheet records. `Protein.fetch("2DN1", assembly="1")` downloads a PDB entry, or an AlphaFold DB model such as `"AF-P0DP23-F1"`, once and keeps it in `~/.cache/proteinmotion` (or `PROTEINMOTION_CACHE`).

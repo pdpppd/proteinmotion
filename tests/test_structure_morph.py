@@ -234,3 +234,53 @@ def test_sequence_alignment_drops_isolated_fragments():
     assert 22 not in paired and 23 not in paired  # H and W fade instead of jumping across the insertions
     assert set(range(22)) <= paired and set(range(24, 46)) <= paired
     assert len(names) == 44
+
+
+def _ca_only(peptide, tmp_path, name):
+    """Write a peptide's Cα atoms alone, as a Cα-trace model would be deposited."""
+    lines = [
+        f"ATOM  {i + 1:5d}  CA  {a.resname:3s} A{a.resid:4d}    "
+        f"{x:8.3f}{y:8.3f}{z:8.3f}  1.00  0.00           C"
+        for i, (a, (x, y, z)) in enumerate(
+            (a, xyz) for a, xyz in zip(peptide.topology.atoms, peptide.positions) if a.name == "CA"
+        )
+    ]
+    path = tmp_path / f"{name}.pdb"
+    path.write_text("\n".join(lines) + "\nEND\n")
+    return Protein.from_file(path)
+
+
+def test_ca_only_models_get_secondary_structure_and_morph_with_fixed_spacing(tmp_path):
+    helix = _ca_only(Protein.build("A" * 24, "helix"), tmp_path, "helix")
+    strand = _ca_only(Protein.build("A" * 24, "extended"), tmp_path, "strand")
+    assert len(helix.topology.atoms) == 24
+    assert helix.secondary_structure.count("H") >= 18  # assigned from Cα geometry
+    assert strand.secondary_structure == "C" * 24  # a lone extended chain is not a sheet
+    scene = ProteinScene()
+    scene.add(strand.cartoon())
+    morph = StructureMorph(strand, helix.cartoon())
+    scene.play(morph, run_time=2)
+    for time in np.linspace(0.1, 1.9, 10):
+        scene.seek(time)
+        steps = np.linalg.norm(np.diff(strand.positions, axis=0), axis=1)
+        assert steps.min() > 3.0 and steps.max() < 4.6  # virtual Cα–Cα bonds hold their spacing
+    scene.seek(2)
+    np.testing.assert_allclose(helix.positions, morph.dest_end, atol=1e-4)
+
+
+def test_align_false_keeps_a_superposed_target_in_place(tmp_path):
+    def morph(align):
+        source = _ca_only(Protein.build("A" * 12, "helix"), tmp_path, "source")
+        target = _ca_only(Protein.build("A" * 12, "helix"), tmp_path, "target")
+        shifted = target.positions + [30.0, 0, 0]
+        target.set_positions(shifted)
+        scene = ProteinScene()
+        scene.add(source)
+        scene.play(StructureMorph(source, target, **align), run_time=1)
+        scene.seek(1)
+        return source, target, shifted
+
+    source, target, shifted = morph({"align": False})
+    np.testing.assert_allclose(target.positions, shifted, atol=1e-4)
+    source, target, _ = morph({})  # Superposed on the source by default.
+    np.testing.assert_allclose(target.positions, source.positions, atol=1e-3)

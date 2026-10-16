@@ -111,6 +111,8 @@ plot = TimeSeriesPlot.distance(first, second, title="Cα distance")
 self.add(plot)
 ```
 
+To compare two traces on the same axes, give them the same `position`, `size`, and `ylim`, and pass `show_value=False` to the second so that only one cursor value is printed.
+
 This helper reads the trajectory and measures the distance between the two selection centroids in each state. Both selections must belong to the same protein. Measurements use ångströms before scene scaling or rotation. Supply `times=` for physical trajectory times; otherwise the axis shows state indices.
 
 The marker measures the current interpolated coordinates. The line connects measurements at the supplied states. These can differ between states because interpolating coordinates can change distance nonlinearly. For another live measurement, pass a deterministic, side-effect-free `live_value` function to `TimeSeriesPlot`.
