@@ -63,11 +63,11 @@ By default, the target is superposed on the rigid core: the matched Cα (or C4�
 
 Atoms in only one structure move with their residue, or the nearest matched residue, while they fade. At the end, the target replaces the source in the source's place; continue animating `morph.result`, which is the target. Hide crystallization additives on the target before the morph, for example `oxy.select(resname="MBN").hide_atoms()`.
 
-Pass `align=False` when the two structures are already superposed the way you want, for example each frame of a predicted pathway fitted to a matching simulation frame. The target then stays where it is.
+Pass `align=False` when the two structures are already superposed the way you want, for example each frame of a predicted pathway fitted to a matching simulation frame. The target then stays where it is. Requires ProteinMotion 0.15.0 or later.
 
 ### Cα-only models
 
-Coarse models and predicted folding pathways often contain only Cα atoms. `StructureMorph` handles them too. A one-atom residue has no backbone of its own, so it turns with the Cα trace of its neighbours (two residues either side). Where that window bends or is nearly straight, its turn is ill-defined, so the turn is scaled down and the residue moves more directly; each path bows at most 15% of the distance it covers. Consecutive Cα atoms are joined by virtual bonds that relax toward 3.8 Å, so the chain neither stretches nor collapses mid-morph. Secondary structure comes from Cα geometry (see [Torsions](torsions.md#secondary-structure)).
+Coarse models and predicted folding pathways often contain only Cα atoms. `StructureMorph` handles them too. Requires ProteinMotion 0.15.0 or later. A one-atom residue has no backbone of its own, so it turns with the Cα trace of its neighbours (two residues either side). Where that window bends or is nearly straight, its turn is ill-defined, so the turn is scaled down and the residue moves more directly; each path bows at most 15% of the distance it covers. Consecutive Cα atoms are joined by virtual bonds that relax toward 3.8 Å, so the chain neither stretches nor collapses mid-morph. Secondary structure comes from Cα geometry (see [Torsions](torsions.md#secondary-structure)).
 
 ```python
 frames = [Protein.from_file(f"pathway_{k:02d}.pdb").cartoon() for k in range(11)]  # Cα only

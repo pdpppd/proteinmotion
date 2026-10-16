@@ -111,7 +111,7 @@ plot = TimeSeriesPlot.distance(first, second, title="Cα distance")
 self.add(plot)
 ```
 
-To compare two traces on the same axes, give them the same `position`, `size`, and `ylim`, and pass `show_value=False` to the second so that only one cursor value is printed.
+To compare two traces on the same axes, give them the same `position`, `size`, and `ylim`, and pass `show_value=False` to the second so that only one cursor value is printed. `show_value` requires ProteinMotion 0.15.0 or later.
 
 This helper reads the trajectory and measures the distance between the two selection centroids in each state. Both selections must belong to the same protein. Measurements use ångströms before scene scaling or rotation. Supply `times=` for physical trajectory times; otherwise the axis shows state indices.
 

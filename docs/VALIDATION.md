@@ -1,5 +1,9 @@
 # Validation and performance
 
+## Release 0.15.0: 16 October 2026
+
+The source archive and wheel, built from a clean export of the release tree, passed `twine check --strict`. In a fresh Python 3.12 environment outside the checkout, the wheel installed cleanly and passed `pip check` and the installed-package check, which covers packaged resources, the CLI, the starter scene, and the skill; native and Studio movies rendered from it with every frame decoded. The full suite passed 366 tests, with six NVIDIA-only cases skipped, on the Apple M3 Max with `PROTEINMOTION_TEST_EEVEE=1`. The readability changes and the heatmap and density fixes left 180 stills from every gallery scene, with their coordinates, bit-for-bit identical. Across the remaining fixes, 348 stills from all 87 documentation and gallery scenes were unchanged; only the `Write` animations of the gallery distances clip and the RNA styles clip changed, and both clips were re-rendered. The website build, TypeScript checks, and all 146 exported pages (35,508 local links and media references) passed verification.
+
 ## Release 0.14.0: 1 October 2026
 
 The source archive and wheel built from the release tree passed `twine check --strict`. In a fresh Python 3.12 environment outside the checkout, the wheel installed cleanly and passed `pip check` and the installed-package check, which covers packaged resources, the CLI, the starter scene, and the skill. Native and Studio movies of the starter scene rendered at 1280 × 720, and all 561 frames of each decoded. The full suite passed 319 tests, with five NVIDIA-only cases skipped, on the Apple M3 Max with `PROTEINMOTION_TEST_EEVEE=1`. The website build, TypeScript checks, and all 146 exported pages (35,546 local links and media references) passed verification.

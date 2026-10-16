@@ -90,12 +90,27 @@ Store settings on a scene with `renderer = "studio"` and
 them across interactive preview, stills, and video. The native renderer remains
 the default. See the [Studio guide and rendered examples](https://pdpppd.github.io/proteinmotion/docs/studio/).
 
+### New in 0.15
+
+- **Cα-only morphs:** `StructureMorph` animates coarse models and predicted folding pathways that contain only Cα atoms. Each residue turns with its neighbours, consecutive Cα atoms keep their 3.8 Å spacing, and secondary structure comes from Cα geometry. `align=False` keeps structures that are already superposed in place. See [morphs](https://pdpppd.github.io/proteinmotion/docs/morphing/).
+- **Two traces on one plot:** `TimeSeriesPlot(show_value=False)` hides the cursor value of a second trace drawn on the same axes.
+- **Fixes:** camera chains follow moving regions in any argument order, cryo-EM maps no longer wrap at their box edges, distance heatmaps leave out ligands, libx265 movies play in Apple players, and the command line applies EEVEE options when the scene itself chooses EEVEE.
+- **Readable source:** the package code is commented throughout, and [CONTRIBUTING.md](https://github.com/pdpppd/proteinmotion/blob/main/CONTRIBUTING.md) describes how a frame goes from the timeline to pixels.
+
 ### New in 0.14
 
 - **Torsions and secondary structure:** build peptides from a sequence with `Protein.build`, measure and animate φ, ψ, ω, and χ angles with `SetTorsions`, and plot residues on Ramachandran plots drawn from high-resolution structures. Cartoons follow DSSP as secondary structure forms and blend between coil, helix, and strand. See [torsions](https://pdpppd.github.io/proteinmotion/docs/torsions/).
 - **Two states of one protein:** `StructureMorph` animates between two experimental structures, even when their chains, missing residues, ligands, or atoms differ. Domains swing along arcs about the part that stays put. `domain_motion` measures the hinge, `Protein.from_file(path, assembly="1")` builds biological assemblies, and `Protein.fetch("1ANF")` downloads PDB and AlphaFold DB entries. See [morphs](https://pdpppd.github.io/proteinmotion/docs/morphing/).
 - **Data on structures:** heatmaps for AlphaFold PAE and distance matrices, and pLDDT, hydropathy, and conservation color presets. See [heatmaps, confidence, and conservation](https://pdpppd.github.io/proteinmotion/docs/confidence-and-conservation/).
 - **Smoother rendering:** cartoons keep their orientation through morphs and trajectories, Studio fades end without a jump, and stills and movies up to 1920 × 1080 are supersampled for clean edges.
+
+### Upgrading to 0.15
+
+- Camera animations in one `play()` call now run after molecular motion whatever the argument order, and `play(rate_func=...)` eases chained animations once. A scene that listed a `camera.animate` focus before a moving molecule, or chained a `Focus` under a clip-wide `rate_func`, renders differently.
+- `DensityMap.from_file` reads a space group 1 map with 90° cell angles, as MRC2014 writes cryo-EM volumes, as non-periodic: sampling outside the box returns NaN and crops stop at the box edge.
+- `Heatmap.distances(region=...)` leaves out the region's ligands, ions, and water, so its rows and columns are polymer residues.
+- `Camera.clearest_view` picks the nearest of several equally clear views, and `Write` on a plot staggers over the glyphs it draws.
+- MD files whose frame times do not strictly increase have no timestamps (`Trajectory.times` is None), and `read_alignment` treats a one-line string as a file path.
 
 ### Upgrading to 0.14
 

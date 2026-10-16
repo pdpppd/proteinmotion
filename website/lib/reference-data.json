@@ -1,5 +1,5 @@
 {
-  "version": "0.14.0",
+  "version": "0.15.0",
   "exports": [
     "AnimationGroup",
     "MolecularStyle",
@@ -21461,7 +21461,7 @@
   "dependencies": {
     "docs/reference/catalog.json": "a9a3620b550100e970c4be45e76d99e387b3bfd7dd2cf14f961ffa81410208a7",
     "scripts/build_reference.py": "a50a8ba9cbfb80c7e1ccbcb39351b1f52d57d4aa9af559a08dab9fca7ea4b8ed",
-    "src/proteinmotion/__init__.py": "2f8ab777a9a4a8c27cf6941ed4f80e419fb5f63628f86a907353ad6a059ebf95",
+    "src/proteinmotion/__init__.py": "e3be777a9ac2dec1300277c95429a380fb1c632926a308ac56aeb1e7872aad93",
     "src/proteinmotion/animation.py": "0f900d36e7301f9139371c1fb2c3cc62ebe2bd5bdcdec18d6ce0f8ed7c5318eb",
     "src/proteinmotion/annotations.py": "075b12875286c43db59d0288df5f1efceef80e16d103af091681f9c7d456e201",
     "src/proteinmotion/backbone.py": "0f6035cadef931ff286abbfa38d73d4ad49cd50748f36c3dddeab027177b65e8",
