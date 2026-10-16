@@ -18,6 +18,16 @@ GPU and hardware-export tests are marked `gpu` and should be run on a native GPU
 
 GitHub Actions runs CPU tests and linting on Ubuntu and Windows, then builds and installs the wheel in a clean environment. For rendering or animation changes, run the local GPU suite on Apple silicon or Windows/NVIDIA and inspect the output. Video checks decode frames with PyAV and do not require an FFmpeg executable. Windows symlink tests skip when Developer Mode or administrator privileges are unavailable. Record the setup and results in the validation report.
 
+### How the code fits together
+
+The docstring of `src/proteinmotion/__init__.py` lists where each part of the package lives, and every module starts with a docstring that says what it holds and who calls it. A frame goes through three stages:
+
+1. **Timeline.** A scene's `construct()` calls `add`, `play` and `wait`. `play` binds each animation once, when its clip is scheduled. `seek(t)` restores every object to the state it was added in, then replays the clips in order, each at its eased progress for `t` (`scene.py`, `timeline.py`). The `Animation` docstring in `animation.py` gives the rules a new animation must follow; the main one is that `apply(alpha)` depends only on `alpha` and on what `bind()` captured.
+2. **State.** Animations set `Protein` attributes and its per-atom arrays. `Protein.__init__` documents the shape and columns of each array. Arrays are replaced, never edited in place, because the renderers detect changes by object identity.
+3. **Drawing.** `Renderer` (`renderer.py`) uploads what changed, packed by `geometry.py`, and draws it with `shaders/molecule.wgsl`. Packed layouts are documented on both the Python and WGSL sides; change them together. `StudioRenderer` (`studio.py`) adds lighting and film effects, `eevee.py` sends meshes to Blender, and `video.py` encodes the frames.
+
+Superpositions use `math3d.kabsch`. Keep frames deterministic: the same scene and time must give the same pixels, which the gallery and documentation previews rely on.
+
 ## Documentation development
 
 The website uses Next.js static export, React, and Tailwind CSS. Website development requires Node 22 or later. The Python package has its own dependencies.

@@ -1,7 +1,12 @@
+// Scene shaders of the native renderer (renderer.py). Studio (studio.py) edits this source by
+// string search: it replaces shade(), wraps ribbon_vertex, and patches the transparency weight
+// and the opacity snapping lines. Keep those lines as they are. Distances are in Å.
+
+// 224 bytes, packed by Renderer._upload_camera.
 struct Camera {
-    vp: mat4x4<f32>,
-    eye_fog_start: vec4<f32>,
-    background_fog_end: vec4<f32>,
+    vp: mat4x4<f32>,              // view-projection matrix
+    eye_fog_start: vec4<f32>,     // eye position, distance where fog starts
+    background_fog_end: vec4<f32>,  // background RGB, distance where fog is complete
     lighting: vec4<f32>,  // depth cue, cutaway rim color
     cutaway: vec4<f32>,   // target center, kept radius around it
     cutaway_shape: vec4<f32>,  // opening in [0, 1], window radius at the target, edge softness, depth band
@@ -11,23 +16,37 @@ struct Camera {
     view_right: vec4<f32>,       // camera basis, for lights that follow the view
     view_up: vec4<f32>,
 };
+// 112 bytes, one per part of a molecule (atoms, backbone, surface, base styles), packed by
+// _MoleculeGPU._write_uniforms. Density meshes use the same struct (mesh.py).
 struct Object {
-    model: mat4x4<f32>,
+    model: mat4x4<f32>,  // local to world: orientation × size, then position
     params: vec4<f32>, // tween, opacity, atom scale, bond radius
     style: vec4<f32>,  // cartoon proportion, ribbon width, object scale, draw atoms
     appearance: vec4<f32>, // color clock, opacity clock, detail clock, ball-and-stick fraction
 };
+// One keyframe of one atom (geometry.state_data): position (w unused), and on trace atoms
+// the cartoon width axis (xyz) and the firmness of its twist toward the next residue (w).
 struct AtomState { position: vec4<f32>, guide: vec4<f32> };
+// Per-atom style tracks (styling.initial_appearance), each a before/after pair with a timing
+// window on one of the object's clocks. before/after: tint RGB to add and the share of the base
+// color it replaces. timing: tint start, span, eased flag, opacity eased flag. alpha: opacity
+// before, after, start, span. detail: detail weight before, after, start, span.
+// detail_timing.x: detail eased flag.
 struct Appearance { before:vec4f, after:vec4f, timing:vec4f, alpha:vec4f,
                     detail:vec4f, detail_timing:vec4f };
+// Per-atom timing within a tween (Protein._controls). motion: start, span, mode (0 follows the
+// object's tween, 1 linear, 2 eased), unused. visibility: opacity before, after, start, span.
 struct Control { motion: vec4<f32>, visibility: vec4<f32> };
+// The cartoon span from residue i to i + 1 of a chain (geometry.segments), 80 bytes.
 struct Segment {
-    atoms: vec4<u32>,
-    shape: vec4<f32>,
-    color_a: vec4<f32>,
-    color_b: vec4<f32>,
-    caps: vec4<f32>,
+    atoms: vec4<u32>,    // trace atoms of residues i − 1, i, i + 1, i + 2, clamped to the chain
+    shape: vec4<f32>,    // width at i and i + 1, thickness at i and i + 1 (Å)
+    color_a: vec4<f32>,  // color at i and at i + 1. Studio's classic cartoon stores a
+    color_b: vec4<f32>,  // secondary-structure code in w.
+    caps: vec4<f32>,     // close the tube at the start, at the end; sheet arrow weight
 };
+// Group 0: the camera. Group 1: one part of one molecule (renderer._MoleculeGPU). The two
+// state slots are bound as state_a and state_b in whichever order the frame's keyframes need.
 @group(0) @binding(0) var<uniform> camera: Camera;
 @group(1) @binding(0) var<uniform> object: Object;
 @group(1) @binding(1) var<storage, read> state_a: array<AtomState>;
@@ -38,9 +57,11 @@ struct Segment {
 @group(1) @binding(6) var<storage, read> controls: array<Control>;
 @group(1) @binding(7) var<storage, read> appearance:array<Appearance>;
 
+// Normalize; a zero vector stays zero instead of becoming NaN.
 fn safe_normal(v: vec3<f32>) -> vec3<f32> {
     return v * inverseSqrt(max(dot(v,v), 0.00000001));
 }
+// Smootherstep, 6t⁵ − 15t⁴ + 10t³.
 fn ease(t:f32) -> f32 {
     // Mirror the upper half, as on the CPU: avoid cancellation near 1 that
     // misclassifies fully visible fragments as transparent at a fade endpoint.
@@ -48,6 +69,7 @@ fn ease(t:f32) -> f32 {
     let value=u*u*u*(10.0+u*(-15.0+6.0*u));
     return select(value,1.0-value,t>0.5);
 }
+// Tween fraction of atom i: the object's tween, or the atom's own window of it.
 fn atom_progress(i:u32) -> f32 {
     let c=controls[i].motion;
     if c.z<0.5 { return object.params.x; }
@@ -55,16 +77,19 @@ fn atom_progress(i:u32) -> f32 {
     if c.z>1.5 { return ease(t); }
     return t;
 }
+// Progress in [0, 1] of one appearance track at the given clock.
 fn appearance_progress(clock:f32, start:f32, span:f32, eased:f32) -> f32 {
     let t=clamp((clock-start)/max(span,1e-8),0.0,1.0);
     return select(t,ease(t),eased>0.5);
 }
+// Keep (1 − strength) of the base color and add the tint.
 fn tint(i:u32, base:vec3f) -> vec3f {
     let s=appearance[i];
     let t=appearance_progress(object.appearance.x,s.timing.x,s.timing.y,s.timing.z);
     let c=mix(s.before,s.after,t);
     return base*(1.0-c.w)+c.xyz;
 }
+// Per-atom opacity: fade control times style opacity. visible() applies the object's opacity.
 fn atom_opacity(i:u32) -> f32 {
     let c=controls[i].visibility;
     let t=ease(clamp((object.params.x-c.z)/max(c.w,0.00000001),0.0,1.0));
@@ -94,6 +119,8 @@ fn position(i: u32) -> vec3<f32> {
     if t>=1.0 { return state_b[i].position.xyz; }
     return mix(state_a[i].position.xyz, state_b[i].position.xyz, t);
 }
+// Width axes have no preferred sign. Flip the second keyframe's axis to the first one's side,
+// so the interpolated axis never passes through zero.
 fn guide(i: u32) -> vec3<f32> {
     var b = state_b[i].guide.xyz;
     let a = state_a[i].guide.xyz;
@@ -124,6 +151,7 @@ fn segment_guide(s:Segment, t:f32, cartoon:f32) -> vec4f {
     let flat=1.0-(1.0-firm)*smoothstep(0.22,0.36,t)*smoothstep(0.22,0.36,1.0-t);
     return vec4f(g,mix(flat,1.0,hold));
 }
+// The model matrix is a rotation times a uniform scale, so world_normal can apply it directly.
 fn world(p: vec3<f32>) -> vec3<f32> { return (object.model*vec4<f32>(p,1.0)).xyz; }
 fn world_normal(n: vec3<f32>) -> vec3<f32> { return safe_normal((object.model*vec4<f32>(n,0.0)).xyz); }
 
@@ -145,6 +173,9 @@ fn cut_to(p:vec3f, keep:f32) -> f32 {
         let depth=smoothstep(keep,keep+shape.w,height);
         return radial*depth;
     }
+    // Cone: the window radius grows with distance from the eye and equals window × opening at
+    // the target. Geometry is cut only in front of the target's kept sphere, and the cut fades
+    // out over the depth band just before it.
     let to_target=camera.cutaway.xyz-eye;
     let dist=max(length(to_target),1e-4);
     let axis=to_target/dist;
@@ -165,6 +196,8 @@ fn cutaway_rim(c:vec3f, p:vec3f) -> vec3f {
     let amount=cut_amount(p);
     return mix(c,camera.lighting.yzw,clamp(amount*(1.0-amount)*1.6,0.0,0.4));
 }
+// Fragment opacity: object opacity × value, reduced by the cutaway, with near-1 snapped to 1
+// as in opacity().
 fn visible(value:f32, p:vec3f) -> f32 {
     let alpha=clamp(object.params.y*value,0.0,1.0)*(1.0-cut_amount(p));
     return select(alpha,1.0,alpha>=0.999999);
@@ -193,6 +226,8 @@ struct TransparentPixel {
 fn transparent(color:vec3<f32>, alpha:f32, p:vec3<f32>) -> TransparentPixel {
     let relative_depth=clamp((distance(camera.eye_fog_start.xyz,p)-camera.eye_fog_start.w)/
                             max(camera.background_fog_end.w-camera.eye_fog_start.w,0.001),0.0,1.0);
+    // The weight favors near and nearly opaque fragments, so they dominate the average.
+    // relative_depth is 0 at the fog start and 1 at the fog end.
     let weight=(0.1+8.0*pow(1.0-relative_depth,3.0))*(0.1+0.9*alpha*alpha*alpha);
     var out:TransparentPixel;
     out.accumulation=vec4<f32>(color*alpha,alpha)*weight;
@@ -201,6 +236,9 @@ fn transparent(color:vec3<f32>, alpha:f32, p:vec3<f32>) -> TransparentPixel {
 }
 
 fn shade(p: vec3<f32>, norm: vec3<f32>, base: vec3<f32>) -> vec4<f32> {
+    // Native lighting: ambient plus Lambert diffuse from a key and a fill light fixed in world
+    // space, a Blinn-Phong highlight from the key, a rim term at grazing angles, then the
+    // cutaway rim and depth fog. Surfaces are lit from whichever side faces the camera.
     let v = safe_normal(camera.eye_fog_start.xyz-p);
     var n = safe_normal(norm);
     if dot(n,v)<0.0 { n = -n; }
@@ -224,6 +262,8 @@ struct Surface {
     @location(2) color: vec3<f32>,
     @location(3) opacity: f32,
 };
+// Uniform Catmull-Rom spline from b (t = 0) to c (t = 1), with neighbours a and d, and its
+// unit tangent.
 fn catmull(a: vec3<f32>, b: vec3<f32>, c: vec3<f32>, d: vec3<f32>, t:f32) -> vec3<f32> {
     return 0.5*((2.0*b)+(-a+c)*t+(2.0*a-5.0*b+4.0*c-d)*t*t+(-a+3.0*b-3.0*c+d)*t*t*t);
 }
@@ -231,6 +271,9 @@ fn tangent(a:vec3<f32>,b:vec3<f32>,c:vec3<f32>,d:vec3<f32>,t:f32) -> vec3<f32> {
     return safe_normal(0.5*((-a+c)+2.0*(2.0*a-5.0*b+4.0*c-d)*t+3.0*(-a+3.0*b-3.0*c+d)*t*t));
 }
 
+// One instance per segment. uv.x runs along the segment and uv.y around the tube. The
+// cross-section is an ellipse with semi-axes width and height (Å). A plain ribbon (no cartoon
+// share) has height 0.13 Å and, where it is flat, the ribbon width.
 @vertex fn ribbon_vertex(@location(0) uv: vec2<f32>, @builtin(instance_index) instance:u32) -> Surface {
     let s = segments[instance];
     let a=position(s.atoms.x); let b=position(s.atoms.y);
@@ -244,10 +287,13 @@ fn tangent(a:vec3<f32>,b:vec3<f32>,c:vec3<f32>,d:vec3<f32>,t:f32) -> vec3<f32> {
     let angle=uv.y*6.28318530718;
     let height=mix(0.13,mix(s.shape.z,s.shape.w,t),object.style.x);
     let width=mix(height,mix(object.style.y,mix(s.shape.x,s.shape.y,t),object.style.x),frame.w);
+    // Close the open tube at a chain's ends: the cross-section shrinks to a point over the
+    // outer 12% of the first and last segments.
     var cap=1.0;
     if s.caps.x>0.5 { cap*=smoothstep(0.0,0.12,t); }
     if s.caps.y>0.5 { cap*=smoothstep(0.0,0.12,1.0-t); }
     let offset=width_axis*cos(angle)*width + height_axis*sin(angle)*height;
+    // Normal of the ellipse (x/w)² + (y/h)² = 1 at this angle.
     let normal=safe_normal(width_axis*cos(angle)/width+height_axis*sin(angle)/height);
     var out:Surface;
     out.p=world(center+offset*cap);
@@ -268,10 +314,13 @@ struct Bond {
     @location(5) @interpolate(flat) sphere_b: vec4<f32>,
 };
 
+// One instance per bond: an open 12-sided cylinder of radius params.w. vertex / 6 picks the side
+// and vertex % 6 the corner of its two triangles.
 @vertex fn bond_vertex(@builtin(vertex_index) vertex:u32, @builtin(instance_index) instance:u32) -> Bond {
     let pair=bonds[instance];
     let a=position(pair.x); let b=position(pair.y);
     let dir=safe_normal(b-a);
+    // Any axis not parallel to the bond gives the cylinder's perpendicular basis u, v.
     var basis_ref=vec3<f32>(0.0,1.0,0.0);
     if abs(dir.y)>0.9 { basis_ref=vec3<f32>(1.0,0.0,0.0); }
     let u=safe_normal(cross(dir,basis_ref)); let v=cross(dir,u);
@@ -284,6 +333,7 @@ struct Bond {
     // Remove the cylinder buried in each atom, even when the atoms are transparent.
     // Rulers without atom spheres retain their full center-to-center length.
     let radii=vec2<f32>(atoms[pair.x].w,atoms[pair.y].w)*object.params.z*object.style.w;
+    // Distance from each atom center to where the cylinder's surface meets the sphere.
     let offsets=sqrt(max(radii*radii-vec2<f32>(object.params.w*object.params.w),vec2<f32>(0.0)));
     let length=distance(a,b);
     let exposed=max(length-offsets.x-offsets.y,0.0);
@@ -346,6 +396,9 @@ fn inside_bond_atom(in:Bond) -> bool {
 @vertex fn base_vertex(@location(0) local:vec3f, @location(1) normal:vec3f,
                        @location(2) base:vec3f, @location(3) owner:u32,
                        @location(4) frame:vec3u, @location(5) mode:u32) -> Surface {
+    // Pose the shape in a frame of three atoms (see nucleic._frame): origin at the first, x
+    // toward the second, z normal to the plane of all three. Rods (mode > 0) instead run from
+    // the first atom to the second, with local.z as the fraction of that length.
     let origin=position(frame.x);
     var x=safe_normal(position(frame.y)-origin);
     var z=safe_normal(cross(x,position(frame.z)-origin));
@@ -375,6 +428,8 @@ struct Sphere {
     @location(3) @interpolate(flat) radius:f32,
     @location(4) @interpolate(flat) opacity:f32,
 };
+// One instance per atom: a camera-facing quad through the atom center, just large enough to
+// cover the sphere's silhouette in perspective. The fragment shader ray-casts the sphere.
 @vertex fn sphere_vertex(@builtin(vertex_index) vertex:u32,@builtin(instance_index) instance:u32) -> Sphere {
     let corners=array<vec2<f32>,6>(vec2<f32>(-1.,-1.),vec2<f32>(1.,-1.),vec2<f32>(-1.,1.),
                                   vec2<f32>(-1.,1.),vec2<f32>(1.,-1.),vec2<f32>(1.,1.));
@@ -386,6 +441,7 @@ struct Sphere {
     var basis_ref=vec3<f32>(0.,1.,0.);
     if abs(facing.y)>0.95 { basis_ref=vec3<f32>(1.,0.,0.); }
     let u=safe_normal(cross(basis_ref,facing)); let v=cross(facing,u);
+    // Silhouette radius in the quad's plane: r·d / √(d² − r²) for a sphere at distance d.
     let bound=radius*sqrt(distance2/max(distance2-radius*radius,0.001));
     var out:Sphere;
     out.plane=center+(u*corners[vertex].x+v*corners[vertex].y)*bound;
@@ -396,6 +452,8 @@ struct Sphere {
 }
 struct SpherePixel { @location(0) color:vec4<f32>, @builtin(frag_depth) depth:f32 };
 struct SphereHit { p:vec3<f32>, depth:f32 };
+// Nearest intersection of the eye ray with the sphere, and its depth, written as the fragment
+// depth so spheres intersect bonds, cartoons and each other exactly.
 fn sphere_hit(in:Sphere) -> SphereHit {
     let ray=safe_normal(in.plane-camera.eye_fog_start.xyz);
     let origin=camera.eye_fog_start.xyz-in.center;
@@ -440,6 +498,11 @@ struct TransparentSphere {
     return out;
 }
 
+// Molecular surfaces (surface.py). Each vertex moves with the weighted displacement of its
+// four nearest atoms from the coordinates the mesh was built at (mesh_reference). The weights
+// are proportional to 1 / (d² + 4 Å²) and sum to 1; g is the gradient of the logarithm of
+// each unnormalized weight. The normal turns with the cofactor matrix of the Jacobian of this
+// deformation.
 @group(2) @binding(0) var<storage, read> mesh_reference:array<vec4f>;
 @vertex fn mesh_vertex(@location(0) point:vec3f, @location(1) normal:vec3f,
                       @location(2) neighbors:vec4u, @location(3) weights:vec4f,
@@ -479,6 +542,7 @@ struct TransparentSphere {
     out.normal=world_normal(n); out.color=c; out.opacity=1.0;
     return out;
 }
+// Unlit meshes (density slices, appearance.z set) show their colors without shading.
 fn density_color(in:Surface) -> vec3f {
     if object.appearance.z>0.5 { return in.color; }
     return shade(in.p,in.normal,in.color).rgb;

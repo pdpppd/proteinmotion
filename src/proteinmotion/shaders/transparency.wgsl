@@ -3,6 +3,7 @@
 @group(0) @binding(0) var accumulation:texture_multisampled_2d<f32>;
 @group(0) @binding(1) var revealage:texture_multisampled_2d<f32>;
 
+// One triangle that covers the whole screen.
 @vertex fn vertex(@builtin(vertex_index) i:u32) -> @builtin(position) vec4<f32> {
     let xy=array<vec2<f32>,3>(vec2<f32>(-1.,-1.),vec2<f32>(3.,-1.),vec2<f32>(-1.,3.));
     return vec4<f32>(xy[i],0.,1.);
@@ -13,6 +14,8 @@
     let xy=vec2<i32>(pixel.xy);
     let accum=textureLoad(accumulation,xy,i32(sample));
     let reveal=textureLoad(revealage,xy,i32(sample)).r;
+    // Weighted average of the transparent colors, blended over the opaque image with the
+    // coverage 1 − revealage (the composite pipeline blends by this alpha).
     let color=accum.rgb/max(accum.a,0.00000001);
     return vec4<f32>(color,clamp(1.0-reveal,0.0,1.0));
 }

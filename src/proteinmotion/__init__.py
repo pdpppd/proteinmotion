@@ -1,4 +1,23 @@
-"""ProteinMotion: programmatic molecular films, rendered on native GPUs."""
+"""ProteinMotion: programmatic molecular films, rendered on native GPUs.
+
+Scene scripts import everything they need from here. Where the main pieces live:
+
+- Scenes: ``scene`` (``ProteinScene``, the seekable timeline), ``timeline``
+  (``AnimationGroup``), ``camera``, ``rates`` (easing).
+- Molecules: ``structure`` (topology, PDB/mmCIF loading), ``protein`` (``Protein``,
+  ``NucleicAcid``), ``trajectory``, ``download``, ``density`` (MRC maps), ``nucleic`` (bases).
+- Animations: ``animation`` (``Rotate``, ``Morph``, ``FadeIn``, ...), ``styling`` and
+  ``styles`` (color, opacity, shown atoms), ``thread``, ``torsions``, and the structure
+  morphs in ``conformations``, ``backbone`` and ``matching``.
+- Annotations: ``annotations`` (text, labels, callouts), ``regions``, ``distances``,
+  ``interactions``, ``plots``, ``ramachandran``.
+- Analysis: ``secondary`` (DSSP), ``properties``, ``interactions``, ``torsions``,
+  ``confidence`` (pLDDT, PAE), ``conservation``.
+- Renderers: ``renderer`` (native wgpu, shaders in ``shaders/``), ``studio`` with
+  ``looks``, ``eevee`` (optional Blender), ``preview``, ``video`` (encoding). ``geometry``,
+  ``surface`` and ``mesh`` prepare the GPU data.
+- Command line: ``cli``, with ``authoring`` for ``init`` and ``install-skill``.
+"""
 
 from . import rates
 from .animation import (

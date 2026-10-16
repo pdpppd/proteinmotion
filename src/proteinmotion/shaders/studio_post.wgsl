@@ -1,7 +1,11 @@
 // Studio post-processing: ambient occlusion, bloom, halation, roll-off and film grain.
 // The scene buffer holds display-referred colors that may exceed 1 (HDR highlights).
+// StudioRenderer._post_process (studio.py) runs each fragment entry point below as one
+// full-screen pass; the module docstring of studio.py lists the passes in order. Every
+// pass shares one bind group layout: color_tex and aux_tex are whichever two textures
+// that pass reads, and the pass renders into a third.
 struct Post {
-    vp: mat4x4f,
+    vp: mat4x4f,       // view-projection, reversed Z (depth 1 near, 0 far)
     inv_vp: mat4x4f,
     eye: vec4f,        // xyz eye, w ambient-occlusion radius (world units)
     settings: vec4f,   // ao strength, bloom strength, bloom threshold, vignette
@@ -24,6 +28,8 @@ struct Post {
 @group(0) @binding(6) var front_alpha_tex: texture_multisampled_2d<f32>;
 
 struct Screen { @builtin(position) clip: vec4f, @location(0) uv: vec2f };
+// One triangle that covers the screen: vertices 0, 1, 2 give xy = (0, 0), (2, 0), (0, 2),
+// so clip space spans [-1, 3]. uv runs down the screen, like texture rows.
 @vertex fn fullscreen(@builtin(vertex_index) i: u32) -> Screen {
     let xy = vec2f(f32((i << 1u) & 2u), f32(i & 2u));
     var out: Screen;
@@ -32,6 +38,8 @@ struct Screen { @builtin(position) clip: vec4f, @location(0) uv: vec2f };
     return out;
 }
 
+// Depth at a pixel (sample 0 with MSAA), clamped to the image. With reversed Z, 0 means
+// no geometry.
 fn depth_at(px: vec2i) -> f32 {
     let size = vec2i(textureDimensions(depth_tex));
     return textureLoad(depth_tex, clamp(px, vec2i(0), size - 1), 0);
@@ -44,6 +52,8 @@ fn layer_depth(px: vec2i, front: bool) -> f32 {
     if front { return front_depth_at(px); }
     return depth_at(px);
 }
+// World position of a depth value at uv, by inverting the view-projection. NDC y points
+// up while uv runs down.
 fn world_at(uv: vec2f, depth: f32) -> vec3f {
     let ndc = vec4f(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth, 1.0);
     let w = post.inv_vp * ndc;
@@ -69,8 +79,10 @@ fn occluded_by(p: vec3f, s: vec3f, q: vec3f, radius: f32) -> f32 {
 }
 
 // Screen-space ambient occlusion in world space, with normals reconstructed from depth.
+// Returns 1 for an unoccluded point and 0 for a fully occluded one.
 fn occlusion(px: vec2i, front: bool) -> f32 {
     let d = layer_depth(px, front);
+    // Background pixels are unoccluded.
     if d <= 0.0 { return 1.0; }
     let uv = (vec2f(px) + 0.5) * post.size.zw;
     let p = world_at(uv, d);
@@ -84,21 +96,28 @@ fn occlusion(px: vec2i, front: bool) -> f32 {
     var n = normalize(cross(hy, hx));
     let to_eye = normalize(post.eye.xyz - p);
     if dot(n, to_eye) < 0.0 { n = -n; }
+    // Tangent frame (t, b, n) around the normal.
     var t = normalize(cross(n, vec3f(0.0, 1.0, 0.0)));
     if abs(n.y) > 0.95 { t = normalize(cross(n, vec3f(1.0, 0.0, 0.0))); }
     let b = cross(n, t);
     let radius = post.eye.w;
+    // Each pixel turns the sample spiral by its own angle from the 4 × 4 pattern.
     let spin = bayer4(px) * 6.2831853;
     var occlusion = 0.0;
     let count = 20;
     for (var k = 0; k < count; k++) {
         let fk = f32(k);
         // Cosine-weighted spiral over the hemisphere, scaled toward the center.
+        // Successive samples turn by the golden angle (2.39996 rad, about 137.5°); the radius
+        // sqrt((k + 0.5) / count) spreads them evenly over the unit disc, and lifting the disc
+        // onto the hemisphere (height h) makes the directions cosine-weighted. Early samples
+        // reach a quarter of the radius and the last ones nearly all of it.
         let a = fk * 2.3999632 + spin;
         let r = sqrt((fk + 0.5) / f32(count));
         let h = sqrt(max(1.0 - r * r, 0.0));
         let scale = mix(0.25, 1.0, ((fk + 0.5) / f32(count)) * ((fk + 0.5) / f32(count)));
         let s = p + (t * cos(a) * r + b * sin(a) * r + n * h) * radius * scale;
+        // Project the sample to the screen; samples off screen count as unoccluded.
         let clip = post.vp * vec4f(s, 1.0);
         let ndc = clip.xyz / clip.w;
         let suv = vec2f(ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5);
@@ -123,6 +142,7 @@ fn occlusion(px: vec2i, front: bool) -> f32 {
     return clamp(1.0 - occlusion / f32(count), 0.0, 1.0);
 }
 
+// Red: occlusion of the solid layer. Green: occlusion of the front layer, or 1 without one.
 @fragment fn ambient_occlusion(in: Screen) -> @location(0) vec4f {
     let px = vec2i(in.clip.xy);
     let front = select(1.0, occlusion(px, true), post.flags.x > 0.5);
@@ -132,9 +152,11 @@ fn occlusion(px: vec2i, front: bool) -> f32 {
 fn luminance(c: vec3f) -> f32 { return dot(c, vec3f(0.2126, 0.7152, 0.0722)); }
 
 // Bloom prefilter: keep the part of each pixel above the threshold (soft knee).
+// It renders into the largest bloom level, half the frame size.
 @fragment fn bloom_prefilter(in: Screen) -> @location(0) vec4f {
     // Karis average: weight each tap by 1 / (1 + luminance), so isolated sparkles on
     // glossy highlights cannot flash in and out of the bloom between frames.
+    // Four bilinear taps one frame pixel away diagonally cover about a 4 × 4 pixel block.
     let o = post.size.zw;
     var c = vec3f(0.0); var total = 0.0;
     for (var k = 0; k < 4; k++) {
@@ -144,6 +166,8 @@ fn luminance(c: vec3f) -> f32 { return dot(c, vec3f(0.2126, 0.7152, 0.0722)); }
         c += tap * w; total += w;
     }
     c /= total;
+    // The kept luminance rises as a quadratic from 0.75 to 1.25 times the threshold; above
+    // that, it is the luminance in excess of the threshold.
     let threshold = post.settings.z;
     let l = luminance(c);
     let knee = 0.25 * threshold;
@@ -152,6 +176,9 @@ fn luminance(c: vec3f) -> f32 { return dot(c, vec3f(0.2126, 0.7152, 0.0722)); }
     return vec4f(c * max(weight, 0.0), 1.0);
 }
 // 13-tap downsample (Jimenez 2014), from the next larger level in aux_tex.
+// o is one texel of that larger level. The tap weights below come from five 2 × 2 boxes:
+// the inner box j-m weighted 0.5 and four outer boxes, each with e at a corner, weighted
+// 0.125. They add up to 1.
 @fragment fn bloom_down(in: Screen) -> @location(0) vec4f {
     let o = 1.0 / vec2f(textureDimensions(aux_tex));
     let s = in.uv;
@@ -172,6 +199,8 @@ fn luminance(c: vec3f) -> f32 { return dot(c, vec3f(0.2126, 0.7152, 0.0722)); }
     return vec4f(c0, 1.0);
 }
 // 9-tap tent upsample from the next smaller level, added onto this level.
+// Weights 1 2 1 / 2 4 2 / 1 2 1, over 16. The tap spacing is bloom_radius texels of the
+// smaller level, scaled by frame height / 1080 so the glow keeps its size at any resolution.
 @fragment fn bloom_up(in: Screen) -> @location(0) vec4f {
     let o = post.effects.z * (post.size.y / 1080.0) / vec2f(textureDimensions(aux_tex));
     let s = in.uv;
@@ -188,7 +217,9 @@ fn luminance(c: vec3f) -> f32 { return dot(c, vec3f(0.2126, 0.7152, 0.0722)); }
 }
 
 // Final image: blurred occlusion, bloom, and a hue-preserving highlight roll-off.
-// Colors below the knee pass unchanged, so the background and fog match exactly.
+// Occlusion is applied to each layer in accumulate(); bloom and halation are added onto
+// the accumulated image; composite() then rolls off the highlights.
+
 // Depth-aware blur over 2 × 2 rotation tiles (8 × 8 pixels), so each pixel averages every
 // rotation four times and sub-pixel motion of fine features stays smooth. Returns the
 // blurred occlusion of one layer and whether that layer covers this pixel.
@@ -202,6 +233,8 @@ fn blurred_occlusion(px: vec2i, front: bool) -> vec2f {
             let q = px + vec2i(x, y);
             let qd = layer_depth(q, front);
             let qw = world_at((vec2f(q) + 0.5) * post.size.zw, qd);
+            // Gaussian weight in world distance, 1/e at half the occlusion radius, so
+            // occlusion does not bleed across depth edges. Background pixels get none.
             let gap = distance(center, qw) / max(post.eye.w * 0.5, 1e-3);
             let w = select(0.0, exp(-gap * gap), qd > 0.0);
             let ao = textureLoad(aux_tex, clamp(q, vec2i(0), vec2i(post.size.xy) - 1), 0);
@@ -212,8 +245,9 @@ fn blurred_occlusion(px: vec2i, front: bool) -> vec2f {
     return vec2f(select(1.0, sum / weight, weight > 1e-4), 1.0);
 }
 
-// Ambient-occlusion shading factor for a pixel.
+// Ambient-occlusion shading factor for a pixel, mixed toward 1 by the occlusion strength.
 fn ao_shade(px: vec2i) -> f32 {
+    // With occlusion off, the occlusion pass did not run and aux_tex holds stale values.
     if post.settings.x <= 0.0 { return 1.0; }
     let solid = blurred_occlusion(px, false);
     var shade = solid.x * solid.x;
@@ -223,8 +257,8 @@ fn ao_shade(px: vec2i) -> f32 {
         // opaque layers, which are also the solid layer; fades therefore stay smooth.
         let front = blurred_occlusion(px, true);
         var a = select(0.0, smoothstep(0.5, 1.0, textureLoad(front_alpha_tex, px, 0).r), front.y > 0.0);
-        // Where the front layer is the solid surface itself, keep the solid layer's occlusion
-        // (the front pass samples depth slightly differently, without multisampling).
+        // Where the front layer is the solid surface itself, keep the solid layer's occlusion.
+        // A gap under 0.3 world units between the two depths counts as the same surface.
         let uv = (vec2f(px) + 0.5) * post.size.zw;
         let solid_d = depth_at(px);
         if solid_d > 0.0 && front.y > 0.0 {
@@ -244,6 +278,7 @@ fn ao_shade(px: vec2i) -> f32 {
     return vec4f(color * post.flags.y, 0.0);
 }
 
+// Copies the accumulated layers (aux_tex) back into the HDR scene target for the effects.
 @fragment fn copy_color(in: Screen) -> @location(0) vec4f {
     return vec4f(textureLoad(aux_tex, vec2i(in.clip.xy), 0).rgb, 1.0);
 }
@@ -251,11 +286,14 @@ fn ao_shade(px: vec2i) -> f32 {
 // Film halation: warm light spills just outside bright boundaries. Subtract the
 // local source mask from its blur so flat highlights do not acquire an orange wash.
 // This is an artistic screen-space approximation, not a film-stock simulation.
+// Source mask, at half the frame size: luminance above the halation threshold.
 @fragment fn halation_prefilter(in: Screen) -> @location(0) vec4f {
     let c = textureSampleLevel(color_tex, linear_sampler, in.uv, 0.0).rgb;
     let bright = max(luminance(c) - post.halation.x, 0.0);
     return vec4f(vec3f(bright), 1.0);
 }
+// One direction of a separable Gaussian blur of aux_tex. 17 taps span ±2 sigma, where
+// sigma is the halation radius in 1080p pixels, scaled to the frame height.
 fn halation_blur(uv: vec2f, direction: vec2f) -> vec4f {
     let sigma = post.halation.y * (post.size.y / 1080.0);
     var sum = vec3f(0.0);
@@ -275,6 +313,8 @@ fn halation_blur(uv: vec2f, direction: vec2f) -> vec4f {
 @fragment fn halation_vertical(in: Screen) -> @location(0) vec4f {
     return halation_blur(in.uv, vec2f(0.0, 1.0));
 }
+// The blurred mask exceeds the mask itself only in a band outside bright areas; that fringe,
+// tinted and scaled by the halation strength, is added onto the image.
 @fragment fn add_halation(in: Screen) -> @location(0) vec4f {
     let blurred = textureSampleLevel(aux_tex, linear_sampler, in.uv, 0.0).r;
     let source = textureSampleLevel(color_tex, linear_sampler, in.uv, 0.0).r;
@@ -283,6 +323,7 @@ fn halation_blur(uv: vec2f, direction: vec2f) -> vec4f {
 }
 
 // Integer hashing avoids sine-based noise patterns and is deterministic when seeking.
+// This is the lowbias32 integer hash (Wellons); the result is uniform in [0, 1].
 fn grain_hash(value: u32) -> f32 {
     var x = value;
     x ^= x >> 16u;
@@ -292,13 +333,18 @@ fn grain_hash(value: u32) -> f32 {
     x ^= x >> 16u;
     return f32(x) / 4294967295.0;
 }
+// Noise value of grain cell p in this tick. Large odd multipliers (the golden-ratio
+// constant and two MurmurHash3 constants) mix cell, tick and seed into one hash input.
 fn grain_sample(p: vec2u) -> f32 {
     let seed = post.grain_frame.y;
     let tick = post.grain_frame.x;
     let h = p.x * 0x9e3779b9u + p.y * 0x85ebca6bu + tick * 0xc2b2ae35u + seed;
     // Triangular, centered noise is softer than a uniform distribution.
+    // The sum of two uniforms minus 1 has variance 1/6; sqrt(6) = 2.4494897 scales it to 1.
     return (grain_hash(h) + grain_hash(h ^ 0x68bc21ebu) - 1.0) * 2.4494897;
 }
+// Value noise: one sample per cell of grain size (1080p pixels, scaled to the frame
+// height), blended between cell corners with smoothstep weights.
 fn film_grain(px: vec2f) -> f32 {
     let cell = max(post.effects.y * post.size.y / 1080.0, 0.25);
     let p = px / cell;
@@ -309,15 +355,22 @@ fn film_grain(px: vec2f) -> f32 {
                mix(grain_sample(ij + vec2u(0u, 1u)), grain_sample(ij + vec2u(1u, 1u)), w.x), w.y);
 }
 
+// Highlight roll-off, vignette and grain, then the 8-bit output.
+// Colors below the knee pass unchanged, so the background and fog match exactly.
 @fragment fn composite(in: Screen) -> @location(0) vec4f {
     let px = vec2i(in.clip.xy);
     var color = textureLoad(color_tex, px, 0).rgb;
+    // Above the knee, the brightest channel follows an exponential shoulder that meets the
+    // identity with slope 1 and approaches 1. Scaling all three channels by the same factor
+    // keeps the hue.
     let peak = max(max(color.r, color.g), color.b);
     let knee = post.background.w;
     if peak > knee {
         let rolled = knee + (1.0 - knee) * (1.0 - exp(-(peak - knee) / (1.0 - knee)));
         color *= rolled / peak;
     }
+    // The vignette blends toward the background color, by about the vignette strength in
+    // the corners.
     let vignette = 1.0 - post.settings.w * pow(length(in.uv - 0.5) * 1.4, 2.5);
     color = mix(post.background.rgb, color, vignette);
     if post.effects.x > 0.0 {
@@ -329,6 +382,7 @@ fn film_grain(px: vec2f) -> f32 {
     return vec4f(clamp(color, vec3f(0.0), vec3f(1.0)), 1.0);
 }
 
+// Adds the largest bloom level (aux_tex), scaled by the bloom strength, onto the image.
 @fragment fn add_bloom(in: Screen) -> @location(0) vec4f {
     return vec4f(textureSampleLevel(aux_tex, linear_sampler, in.uv, 0.0).rgb * post.settings.y, 0.0);
 }

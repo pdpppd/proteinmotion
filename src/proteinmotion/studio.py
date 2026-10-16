@@ -4,9 +4,52 @@ StudioRenderer draws the same geometry as Renderer into an HDR buffer with physi
 lighting (a warm key, cool fill, and rim light that follow the camera, plus hemisphere
 ambient), then adds ambient occlusion, bloom, warm halation, highlight roll-off, and
 luminance-based monochrome grain. Overlays are composited after the effects.
+
+Scenes create it for ``renderer="studio"`` (scene.py, preview.py) from a StudioLook
+(looks.py). It reuses Renderer's geometry upload and scene passes and changes them only
+through Renderer's hooks:
+
+- ``_shader_code`` edits the molecule shader text: shade() becomes the Studio lighting
+  model in STUDIO_SHADE, with the look's numbers written in as literals; the classic
+  cartoon (shaders/studio_cartoon.wgsl) and the density-grid ray-marcher
+  (shaders/studio_surface.wgsl) are added; the transparency weight is replaced.
+- ``_setup_scene_targets`` and ``_scene_final`` send the scene into the rgba16float
+  ``hdr`` texture instead of the 8-bit output.
+- ``_prepare`` and ``_draw_extra`` build and draw the optional density surfaces
+  (_GridSurface, shaders/studio_splat.wgsl).
+- ``_post_process`` runs the effect chain in shaders/studio_post.wgsl and writes the
+  8-bit output that Renderer reads back.
+- ``_commands`` draws whole-object fades as a weighted sum of solid renders ("layers").
+
+The frame, pass by pass (every post-processing pass draws one full-screen triangle):
+
+1. Scene. Renderer's opaque, transparent (weighted blended OIT) and glow passes draw into
+   ``hdr``. Its colors are display values (shade() applies the 1/2.2 gamma) and may
+   exceed 1 at highlights.
+2. Front layer, only when something is partly transparent and occlusion is on. The
+   nearest fragment with opacity of at least 0.5 is drawn again as if opaque, into
+   ``front_depth`` and ``front_alpha``, so fading geometry can receive occlusion.
+3. Ambient occlusion, when its strength is above 0. Screen-space occlusion from the depth
+   buffers into ``ao`` (red: solid layer, green: front layer).
+4. Accumulate. The ``hdr`` color times its blurred occlusion, times the layer weight, is
+   added into ``accum``. Steps 1-4 repeat for each fade layer; steps 5-9 run once, after
+   the last layer.
+5. Copy ``accum`` back into ``hdr``.
+6. Halation source. Luminance above the halation threshold at half resolution, blurred by
+   a separable Gaussian (``halation_textures``: source, horizontal pass, blurred).
+7. Bloom. A thresholded prefilter into the first of BLOOM_LEVELS textures, each half the
+   size of the one before; 13-tap downsamples to the smallest level; tent-filter
+   upsamples that add each level onto the next larger one; the largest level, scaled by
+   the bloom strength, added onto ``hdr``.
+8. Halation. The blurred source minus the source, which leaves a fringe around the
+   outside of bright edges, tinted and added onto ``hdr``.
+9. Composite. Hue-preserving roll-off of highlights above the knee, vignette, and film
+   grain, clamped to [0, 1] and written to the 8-bit output. Renderer draws text and
+   other overlays over this image afterwards, so they stay sharp.
 """
 
 import re
+from functools import partial
 from importlib.resources import files
 
 import numpy as np
@@ -17,20 +60,33 @@ from .looks import MATERIAL_PRESETS as MATERIAL_PRESETS
 from .looks import StudioLook
 from .renderer import Renderer
 
+# WGSL that replaces shade() in shaders/molecule.wgsl (see StudioRenderer._shader_code).
+# Each STUDIO_* name is a placeholder that _shader_code replaces with a number or vec3f
+# from the StudioLook, so lighting and material are compiled into the shader as constants.
+# Light directions are in camera axes (x right, y up, z toward the viewer) and point from
+# the surface toward the light; colors are linear RGB multipliers.
+# _front_shader_code patches the final return line of shade(), so keep its text as it is.
 STUDIO_SHADE = """
+// GGX (Trowbridge-Reitz) normal distribution, with alpha = roughness squared.
 fn ggx(n_h: f32, rough: f32) -> f32 {
     let a = rough * rough;
     let a2 = a * a;
     let d = n_h * n_h * (a2 - 1.0) + 1.0;
     return a2 / (3.14159265 * d * d);
 }
+// Smith-Schlick visibility with k = (roughness + 1)^2 / 8 (Karis 2013), already divided
+// by the 4 (n·v)(n·l) of the Cook-Torrance specular term.
 fn visibility(n_v: f32, n_l: f32, rough: f32) -> f32 {
     let k = (rough + 1.0) * (rough + 1.0) / 8.0;
     return 0.25 / ((n_v * (1.0 - k) + k) * (n_l * (1.0 - k) + k));
 }
+// Schlick's Fresnel approximation. Callers pass f0 = 0.04, the reflectance of a typical
+// dielectric at normal incidence.
 fn schlick(cos_theta: f32, f0: f32) -> f32 {
     return f0 + (1.0 - f0) * pow(1.0 - cos_theta, 5.0);
 }
+// One directional light of the given linear radiance: Lambert diffuse (albedo / pi) plus
+// a base specular lobe and a clearcoat lobe.
 fn studio_light(n: vec3f, v: vec3f, l: vec3f, albedo: vec3f, radiance: vec3f) -> vec3f {
     let n_l = max(dot(n, l), 0.0);
     // Slight wrap keeps the terminator soft on small spheres and thin tubes.
@@ -50,14 +106,18 @@ fn studio_light(n: vec3f, v: vec3f, l: vec3f, albedo: vec3f, radiance: vec3f) ->
 fn shade(p: vec3<f32>, norm: vec3<f32>, base: vec3<f32>) -> vec4<f32> {
     let v = safe_normal(camera.eye_fog_start.xyz-p);
     var n = safe_normal(norm);
+    // Shade both sides of a surface: always use the normal that faces the viewer.
     if dot(n,v)<0.0 { n = -n; }
+    // Camera basis, so the lights turn with the camera: back points toward the viewer.
     let right = camera.view_right.xyz;
     let up = camera.view_up.xyz;
     let back = safe_normal(cross(right, up));
+    // Base colors are display values; light them in linear space (gamma 2.2).
     let albedo = pow(max(base, vec3f(0.0)), vec3f(2.2));
     let key_d = STUDIO_KEY_DIRECTION;
     let fill_d = STUDIO_FILL_DIRECTION;
     let rim_d = STUDIO_RIM_DIRECTION;
+    // Light directions from camera axes to world space. Only their direction matters.
     let key = safe_normal(key_d.x*right + key_d.y*up + key_d.z*back);
     let fill = safe_normal(fill_d.x*right + fill_d.y*up + fill_d.z*back);
     let rim = safe_normal(rim_d.x*right + rim_d.y*up + rim_d.z*back);
@@ -72,7 +132,10 @@ fn shade(p: vec3<f32>, norm: vec3<f32>, base: vec3<f32>) -> vec4<f32> {
     let sky = mix(STUDIO_GROUND, STUDIO_SKY, 0.5 + 0.5 * dot(n, up));
     c += albedo * sky * STUDIO_AMBIENT;
     c += sky * schlick(max(dot(n, v), 0.0), 0.04) * 0.5 * STUDIO_AMBIENT * STUDIO_SPECULAR;
+    // Back to display values. Values above 1 stay in the HDR scene target, where bloom and
+    // the highlight roll-off in studio_post.wgsl use them.
     var display = pow(max(c, vec3f(0.0)), vec3f(1.0 / 2.2));
+    // Cutaway rim and depth fog as in the native shade().
     display = cutaway_rim(display, p);
     let d = distance(camera.eye_fog_start.xyz,p);
     let fog = smoothstep(camera.eye_fog_start.w,camera.background_fog_end.w,d)*camera.lighting.x;
@@ -89,9 +152,14 @@ class StudioRenderer(Renderer):
     use ``scene.render(..., renderer="studio")``. Adjust the look with ``look=StudioLook(...)``.
     """
 
+    # Scene colors go to a half-float target so highlights above 1 survive until bloom
+    # and the roll-off. Depth is kept after the scene pass because occlusion reads it.
     SCENE_FORMAT = "rgba16float"
     KEEP_DEPTH = True
+    # With reversed Z, empty pixels keep the cleared depth 0, which studio_post.wgsl reads
+    # as background.
     REVERSED_Z = True
+    # Bloom pyramid depth: textures at 1/2, 1/4, ..., 1/64 of the frame size.
     BLOOM_LEVELS = 6
 
     def __init__(self, width=1920, height=1080, *, lighting="studio", material="glossy", look=None, **kwargs):
@@ -99,6 +167,8 @@ class StudioRenderer(Renderer):
             raise ValueError("Pass lighting and material inside StudioLook when look is given")
         if look is not None and not isinstance(look, StudioLook):
             raise TypeError("look must be a StudioLook")
+        # Set everything the shader and geometry hooks read before Renderer.__init__, which
+        # compiles the shader (_shader_code) and builds the sweep grid (_sweep_grid).
         self.look = (look or StudioLook(lighting=lighting, material=material)).validate()
         # Molecular mode shares native's VDW/SAS/SES meshes and GPU deformation.
         # Density mode retains the original GPU splat / ray-march implementation.
@@ -106,6 +176,7 @@ class StudioRenderer(Renderer):
         self._classic_cartoon = self.look.cartoon_style == "classic"
         self.time = 0.0
         super().__init__(width, height, **kwargs)
+        # Post-processing needs the device, depth texture and layouts that Renderer made.
         self._create_post()
 
     def set_time(self, time):
@@ -118,6 +189,8 @@ class StudioRenderer(Renderer):
         if self._classic_cartoon:
             from .geometry import studio_cartoon_segments
 
+            # Same 80-byte rows, with secondary-structure codes in the color alpha slots
+            # and arrow weights that studio_cartoon.wgsl reads.
             return studio_cartoon_segments(protein)
         return super()._segment_data(protein)
 
@@ -125,28 +198,61 @@ class StudioRenderer(Renderer):
         if self._classic_cartoon:
             from .geometry import sweep_grid
 
+            # Finer than the default 10 × 12 grid, for the rounded corners of the flat
+            # helix and sheet profiles and the short shoulder of each sheet arrow.
             return sweep_grid(steps=20, sides=24)
         return super()._sweep_grid()
 
     def _shader_code(self):
+        """The molecule shader, edited as text into the Studio scene shader.
+
+        Every edit finds exact text in shaders/molecule.wgsl. A function there ends at the
+        first line that holds only "}", which is how the edits find a function's end.
+        """
         code = super()._shader_code()
         if self._classic_cartoon:
+            # Keep the original ribbon_vertex as a plain function, ribbon_sweep, whose
+            # cartoon proportion (object.style.x) becomes an argument. studio_cartoon.wgsl
+            # then defines a new ribbon_vertex that calls ribbon_sweep for uniform ribbons
+            # and nucleotide tubes, and blends with it while the proportion is below 1.
             start = code.index("@vertex fn ribbon_vertex(")
             end = code.index("\n}\n", start) + 3
             body = code[code.index(" {", start) : end].replace("object.style.x", "cartoon")
             helper = "fn ribbon_sweep(uv:vec2f, instance:u32, cartoon:f32) -> Surface" + body
             cartoon = files("proteinmotion").joinpath("shaders/studio_cartoon.wgsl").read_text()
             code = code[:start] + helper + cartoon + code[end:]
+        # The density-grid ray-marcher calls shade(), transparent() and cut_to() from the
+        # molecule shader, so it is compiled into the same module.
         code += files("proteinmotion").joinpath("shaders/studio_surface.wgsl").read_text()
+        # Swap the native shade() for the Studio lighting model.
         start = code.index("fn shade(p: vec3<f32>")
         end = code.index("\n}\n", start) + 3
+        code = code[:start] + self._studio_shade() + code[end:]
+        # Order-independent transparency: as opacity approaches 1, weight nearer layers much
+        # more strongly, so a fading object converges to its opaque appearance instead of
+        # averaging in the layers behind and snapping when it becomes opaque.
+        # The depth factor is exp(-steep·(relative_depth − 0.5)), where relative_depth runs
+        # from 0 at the fog start to 1 at the fog end and steep rises from 3 at alpha 0 to 48
+        # at alpha 1. The clamp keeps that factor within e^±10.
+        old = "let weight=(0.1+8.0*pow(1.0-relative_depth,3.0))*(0.1+0.9*alpha*alpha*alpha);"
+        if code.count(old) != 1:
+            raise RuntimeError("Studio transparency weight patch did not match")
+        new = (
+            "let steep=3.0+45.0*pow(alpha,4.0);"
+            "let weight=exp(clamp(-steep*(relative_depth-0.5),-10.0,10.0))*(0.1+0.9*alpha*alpha*alpha);"
+        )
+        return code.replace(old, new)
+
+    def _studio_shade(self):
+        """STUDIO_SHADE with each STUDIO_* placeholder replaced by the look's value."""
         look = self.look
         studio = STUDIO_SHADE
 
         def vec(values):
             return "vec3f({:.5f}, {:.5f}, {:.5f})".format(*values)
 
-        # Longer names first, so STUDIO_KEY does not replace part of STUDIO_KEY_COLOR.
+        # \b keeps STUDIO_KEY from matching inside STUDIO_KEY_COLOR; listing longer names
+        # first would also protect them.
         for name, value in (
             ("STUDIO_KEY_DIRECTION", vec(look.key_direction)),
             ("STUDIO_FILL_DIRECTION", vec(look.fill_direction)),
@@ -168,20 +274,10 @@ class StudioRenderer(Renderer):
             studio = re.sub(
                 rf"\b{name}\b", value if isinstance(value, str) else f"{float(value):.5f}", studio
             )
-        code = code[:start] + studio + code[end:]
-        # Order-independent transparency: as opacity approaches 1, weight nearer layers much
-        # more strongly, so a fading object converges to its opaque appearance instead of
-        # averaging in the layers behind and snapping when it becomes opaque.
-        old = "let weight=(0.1+8.0*pow(1.0-relative_depth,3.0))*(0.1+0.9*alpha*alpha*alpha);"
-        if code.count(old) != 1:
-            raise RuntimeError("Studio transparency weight patch did not match")
-        new = (
-            "let steep=3.0+45.0*pow(alpha,4.0);"
-            "let weight=exp(clamp(-steep*(relative_depth-0.5),-10.0,10.0))*(0.1+0.9*alpha*alpha*alpha);"
-        )
-        return code.replace(old, new)
+        return studio
 
     def _setup_scene_targets(self):
+        """HDR scene target, plus a multisampled one that resolves into it when MSAA is on."""
         d, w, h = self.device, self.width, self.height
         usage = wgpu.TextureUsage.RENDER_ATTACHMENT | wgpu.TextureUsage.TEXTURE_BINDING
         self.hdr = d.create_texture(size=(w, h, 1), format="rgba16float", usage=usage)
@@ -197,13 +293,51 @@ class StudioRenderer(Renderer):
     def _scene_final(self, annotations):
         return True  # The scene always resolves into the HDR buffer for post-processing.
 
+    # Post-processing setup --------------------------------------------------------------------
+    # The passes, in the order _post_process runs them, are listed in the module docstring.
+
     def _create_post(self):
-        d = self.device
+        """Compile studio_post.wgsl and create every post-processing target, pipeline and group."""
+        shader = self._post_shader()
+        layout = self._create_post_layout()
+        pipeline = partial(self._post_pipeline, shader, layout)
+        self._create_occlusion_targets()
+        self._create_bloom_targets()
+        self.ao_pipeline = pipeline("ambient_occlusion", "rg16float")
+        self._create_accumulator(pipeline)
+        self._create_bloom_pipelines(pipeline)
+        self._create_halation(pipeline)
+        # The composite draws into Renderer's output (ms_view), where overlays are drawn
+        # next, so its sample count must match that target's.
+        self.composite_post = pipeline("composite", "rgba8unorm", samples=self.msaa)
+        self._create_post_groups()
+        # GPU memory that close() frees.
+        self._post_resources = [
+            self.post_buffer,
+            self.ao,
+            self.front_depth,
+            self.front_alpha,
+            self.accum,
+            *self.halation_textures,
+            *[tex for tex, _ in self.bloom_levels],
+        ]
+        # The front layer's grid pipeline uses grid_layout, so create the grid pipelines first.
+        self._create_grid_pipelines()
+        self._create_front_pipelines()
+
+    def _post_shader(self):
         code = files("proteinmotion").joinpath("shaders/studio_post.wgsl").read_text()
+        # The shader declares multisampled depth and opacity textures. Without MSAA those
+        # textures are single-sampled, so switch the declarations to match.
         if self.msaa == 1:
             code = code.replace("texture_depth_multisampled_2d", "texture_depth_2d")
             code = code.replace("texture_multisampled_2d<f32>", "texture_2d<f32>")
-        shader = d.create_shader_module(code=code)
+        return self.device.create_shader_module(code=code)
+
+    def _create_post_layout(self):
+        """Uniforms, sampler and the one bind group layout that every post pass shares."""
+        d = self.device
+        # 64 float32 values: the Post struct in studio_post.wgsl (see _post_process).
         self.post_buffer = d.create_buffer(
             size=4 * 64, usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST
         )
@@ -213,6 +347,8 @@ class StudioRenderer(Renderer):
             address_mode_u="clamp-to-edge",
             address_mode_v="clamp-to-edge",
         )
+        # Bindings, as named in studio_post.wgsl: 0 post uniforms, 1 scene depth, 2 color_tex,
+        # 3 aux_tex, 4 linear sampler, 5 front-layer depth, 6 front-layer opacity.
         self.post_layout = d.create_bind_group_layout(
             entries=[
                 {"binding": 0, "visibility": wgpu.ShaderStage.FRAGMENT, "buffer": {"type": "uniform"}},
@@ -236,25 +372,34 @@ class StudioRenderer(Renderer):
                 },
             ]
         )
-        layout = d.create_pipeline_layout(bind_group_layouts=[self.post_layout])
+        return d.create_pipeline_layout(bind_group_layouts=[self.post_layout])
 
-        def pipeline(entry, fmt, *, additive=False, samples=1):
-            target = {"format": fmt}
-            if additive:
-                one = {"src_factor": "one", "dst_factor": "one", "operation": "add"}
-                target["blend"] = {"color": one, "alpha": one}
-            return d.create_render_pipeline(
-                layout=layout,
-                vertex={"module": shader, "entry_point": "fullscreen"},
-                fragment={"module": shader, "entry_point": entry, "targets": [target]},
-                primitive={"topology": "triangle-list"},
-                multisample={"count": samples},
-            )
+    def _post_pipeline(self, shader, layout, entry, fmt, *, additive=False, samples=1):
+        """Full-screen pass running fragment ``entry`` into a ``fmt`` target.
 
+        ``additive`` adds the output onto the target's contents (blend one + one) instead of
+        replacing them.
+        """
+        target = {"format": fmt}
+        if additive:
+            one = {"src_factor": "one", "dst_factor": "one", "operation": "add"}
+            target["blend"] = {"color": one, "alpha": one}
+        return self.device.create_render_pipeline(
+            layout=layout,
+            vertex={"module": shader, "entry_point": "fullscreen"},
+            fragment={"module": shader, "entry_point": entry, "targets": [target]},
+            primitive={"topology": "triangle-list"},
+            multisample={"count": samples},
+        )
+
+    def _create_occlusion_targets(self):
+        d = self.device
         usage = wgpu.TextureUsage.RENDER_ATTACHMENT | wgpu.TextureUsage.TEXTURE_BINDING
+        # Occlusion of the solid layer (red) and of the front layer (green), in [0, 1].
         self.ao = d.create_texture(size=(self.width, self.height, 1), format="rg16float", usage=usage)
         self.ao_view = self.ao.create_view()
-        # Front layer: nearest fragment of any opacity, drawn without multisampling.
+        # Front layer: depth and opacity of the nearest fragment whose opacity is at least
+        # 0.5, transparent or not (see _front_shader_code).
         size = (self.width, self.height, 1)
         # Same multisampling as the scene, so the front layer's sample 0 matches the solid
         # layer's exactly wherever both see the same surface.
@@ -264,33 +409,53 @@ class StudioRenderer(Renderer):
         self.front_alpha = d.create_texture(size=size, format="r16float", usage=usage, sample_count=self.msaa)
         self.front_depth_view = self.front_depth.create_view()
         self.front_alpha_view = self.front_alpha.create_view()
+
+    def _create_bloom_targets(self):
+        """BLOOM_LEVELS (texture, view) pairs, each level half the size of the one before."""
+        usage = wgpu.TextureUsage.RENDER_ATTACHMENT | wgpu.TextureUsage.TEXTURE_BINDING
         self.bloom_levels = []
         w, h = self.width, self.height
         for _ in range(self.BLOOM_LEVELS):
             w, h = max(1, w // 2), max(1, h // 2)
-            tex = d.create_texture(size=(w, h, 1), format="rgba16float", usage=usage)
+            tex = self.device.create_texture(size=(w, h, 1), format="rgba16float", usage=usage)
             self.bloom_levels.append((tex, tex.create_view()))
-        self.ao_pipeline = pipeline("ambient_occlusion", "rg16float")
-        self.accum = d.create_texture(size=size, format="rgba16float", usage=usage)
+
+    def _create_accumulator(self, pipeline):
+        """Sum of the occlusion-shaded fade layers, and the pass that copies it back into hdr."""
+        usage = wgpu.TextureUsage.RENDER_ATTACHMENT | wgpu.TextureUsage.TEXTURE_BINDING
+        self.accum = self.device.create_texture(
+            size=(self.width, self.height, 1), format="rgba16float", usage=usage
+        )
         self.accum_view = self.accum.create_view()
         self.accumulate_pipeline = pipeline("accumulate", "rgba16float", additive=True)
         self.copy_pipeline = pipeline("copy_color", "rgba16float")
+
+    def _create_bloom_pipelines(self, pipeline):
         self.prefilter_pipeline = pipeline("bloom_prefilter", "rgba16float")
         self.down_pipeline = pipeline("bloom_down", "rgba16float")
+        # Each upsample adds the smaller level onto the larger one, which already holds its
+        # own downsampled image; the final result is added onto hdr.
         self.up_pipeline = pipeline("bloom_up", "rgba16float", additive=True)
         self.add_bloom_pipeline = pipeline("add_bloom", "rgba16float", additive=True)
+
+    def _create_halation(self, pipeline):
+        """Halation pipelines and three half-size textures: source, horizontal blur, blurred."""
         self.halation_prefilter_pipeline = pipeline("halation_prefilter", "rgba16float")
         self.halation_horizontal_pipeline = pipeline("halation_horizontal", "rgba16float")
         self.halation_vertical_pipeline = pipeline("halation_vertical", "rgba16float")
         self.add_halation_pipeline = pipeline("add_halation", "rgba16float", additive=True)
+        usage = wgpu.TextureUsage.RENDER_ATTACHMENT | wgpu.TextureUsage.TEXTURE_BINDING
         self.halation_textures = [
-            d.create_texture(
+            self.device.create_texture(
                 size=(max(1, self.width // 2), max(1, self.height // 2), 1), format="rgba16float", usage=usage
             )
             for _ in range(3)
         ]
         self.halation_views = [texture.create_view() for texture in self.halation_textures]
-        self.composite_post = pipeline("composite", "rgba8unorm", samples=self.msaa)
+
+    def _create_post_groups(self):
+        """One bind group per pass, naming the textures it reads as color_tex and aux_tex."""
+        d = self.device
         depth_view = self.depth.create_view()
 
         def group(color_view, aux_view):
@@ -307,45 +472,53 @@ class StudioRenderer(Renderer):
                 ],
             )
 
+        # A pass cannot read the texture it renders into. Where a pass reads only one of
+        # color_tex and aux_tex, the other slot holds some texture the pass does not write.
         views = [view for _, view in self.bloom_levels]
+        # Bloom: the prefilter reads hdr; level i is downsampled into level i + 1, and
+        # level i + 1 is upsampled onto level i.
         self.group_prefilter = group(self.hdr_view, self.ao_view)
         self.group_down = [group(self.hdr_view, views[i]) for i in range(len(views) - 1)]
         self.group_up = [group(self.hdr_view, views[i + 1]) for i in range(len(views) - 1)]
-        # A pass cannot read the texture it renders into, so these bind other textures.
+        # Adds the largest bloom level onto hdr.
         self.group_add = group(self.ao_view, views[0])
+        # Occlusion reads only the depth textures; it renders into ao.
         self.group_ao = group(self.hdr_view, views[-1])
         self.group_composite = group(self.hdr_view, self.ao_view)
         self.group_accumulate = group(self.hdr_view, self.ao_view)
         self.group_copy = group(self.ao_view, self.accum_view)
+        # Halation: hdr → source → horizontal → blurred, then blurred − source onto hdr.
         source, horizontal, blurred = self.halation_views
         self.group_halation_prefilter = group(self.hdr_view, self.ao_view)
         self.group_halation_horizontal = group(self.ao_view, source)
         self.group_halation_vertical = group(self.ao_view, horizontal)
         self.group_halation_add = group(source, blurred)
-        self._post_resources = [
-            self.post_buffer,
-            self.ao,
-            self.front_depth,
-            self.front_alpha,
-            self.accum,
-            *self.halation_textures,
-            *[tex for tex, _ in self.bloom_levels],
-        ]
-        self._create_grid_pipelines()
-        self._create_front_pipelines()
 
     # Front layer ------------------------------------------------------------------------------
 
     def _front_shader_code(self):
-        """The scene shader, changed to draw any visible fragment opaquely and output its opacity."""
+        """The scene shader, changed to draw every fragment of opacity 0.5 or more as opaque.
+
+        Instead of a color, each such fragment writes its true opacity, so the nearest one
+        leaves its depth in the depth target and its opacity in the r16float target.
+        """
+        # frag_alpha is per-invocation storage. The opacity functions record the fragment's
+        # opacity in it and the patched shade() writes it out; every fragment entry point
+        # computes the opacity before it calls shade().
         code = "var<private> frag_alpha: f32 = 1.0;\n" + self._shader_code()
         replacements = [
+            # visible(), surface_visible() and opacity(): record the opacity, then report 1
+            # (draw) at 0.5 or more and 0 (discard) below. The front-layer occlusion weight in
+            # studio_post.wgsl, smoothstep(0.5, 1.0, alpha), is 0 at 0.5, so a fragment can
+            # join or leave the front layer without a jump.
             (
                 "return select(alpha,1.0,alpha>=0.999999);",
                 "frag_alpha = alpha; return select(0.0,1.0,alpha>=0.5);",
                 3,
             ),
+            # The end of STUDIO_SHADE: output the recorded opacity instead of the color.
             ("return vec4<f32>(display,1.0);", "return vec4<f32>(frag_alpha,0.0,0.0,1.0);", 1),
+            # The density surface's opaque test, in grid_fragment.
             (
                 "if grid.params.x * rgba.a < 0.999 { discard; }",
                 "frag_alpha = grid.params.x * rgba.a; if frag_alpha < 0.5 { discard; }",
@@ -359,6 +532,7 @@ class StudioRenderer(Renderer):
         return code
 
     def _create_front_pipelines(self):
+        """Front-layer versions of the opaque scene pipelines, built from the front shader."""
         d = self.device
         self._front_shader = d.create_shader_module(code=self._front_shader_code())
         molecule = d.create_pipeline_layout(bind_group_layouts=[self.camera_layout, self.object_layout])
@@ -376,6 +550,7 @@ class StudioRenderer(Renderer):
         self.front_mesh = None  # SurfaceGPU creates the shared mesh layout on first use.
 
     def _front_pipeline(self, vertex, fragment, layout, buffers=None):
+        """Depth-tested, depth-writing pipeline into the r16float opacity target."""
         return self.device.create_render_pipeline(
             layout=layout,
             vertex={"module": self._front_shader, "entry_point": vertex, "buffers": buffers or []},
@@ -394,6 +569,11 @@ class StudioRenderer(Renderer):
         )
 
     def _draw_front(self, encoder):
+        """Draw this frame's molecules into the front-layer depth and opacity targets.
+
+        The parts and draw calls follow Renderer's opaque pass. Nucleotide base shapes are
+        not drawn here.
+        """
         render_pass = encoder.begin_render_pass(
             color_attachments=[
                 {
@@ -411,10 +591,13 @@ class StudioRenderer(Renderer):
             },
         )
         render_pass.set_bind_group(0, self.camera_group)
+        # bindings holds one bind group per part of the molecule: 0 atoms and bonds,
+        # 1 cartoon or ribbon backbone, 2 molecular surface.
         for protein, gpu, bindings in self._frame_draws:
             if protein.opacity <= 0:
                 continue
             if sum(protein.representation[:2]) > 0 and len(gpu.segment_data):
+                # One instance of the sweep grid per backbone segment.
                 render_pass.set_pipeline(self.front_ribbon)
                 render_pass.set_bind_group(1, bindings[1])
                 render_pass.set_vertex_buffer(0, self.vertices)
@@ -423,9 +606,11 @@ class StudioRenderer(Renderer):
             if protein.representation[2] > 0 or gpu.has_detail:
                 render_pass.set_bind_group(1, bindings[0])
                 if len(protein.topology.bonds):
+                    # Each bond is a 12-sided cylinder of two triangles (6 vertices) per side.
                     render_pass.set_pipeline(self.front_bond)
                     render_pass.draw(12 * 6, len(protein.topology.bonds))
                 if getattr(protein, "_draw_atoms", True):
+                    # Each atom is a ray-cast sphere on a 6-vertex quad.
                     render_pass.set_pipeline(self.front_sphere)
                     render_pass.draw(6, len(protein.topology.atoms))
             if gpu.surface is not None and protein.surface_opacity > 0:
@@ -440,6 +625,7 @@ class StudioRenderer(Renderer):
                 render_pass.draw_indexed(gpu.surface.mesh.faces.size)
             grid = self._grids.get(protein)
             if grid is not None and protein.surface_opacity > 0:
+                # A full-screen triangle; each pixel ray-marches the density grid.
                 render_pass.set_pipeline(self.front_grid)
                 render_pass.set_bind_group(1, self._empty_group)
                 render_pass.set_bind_group(2, self._empty_group)
@@ -448,10 +634,19 @@ class StudioRenderer(Renderer):
         render_pass.end()
 
     # Optional artistic GPU density surfaces --------------------------------------------------
+    # Each surface is a density grid splatted by compute shaders (studio_splat.wgsl) and
+    # ray-marched in the scene pass (studio_surface.wgsl). Only surface_mode="density" uses it.
 
     def _create_grid_pipelines(self):
+        self._create_splat_pipelines()
+        self._create_grid_draw_pipelines()
+
+    def _create_splat_pipelines(self):
+        """Compute pipelines that splat atoms into a grid and resolve it into 3D textures."""
         d = self.device
         storage = wgpu.ShaderStage.COMPUTE
+        # Bindings of studio_splat.wgsl: 0 uniforms, 1 atoms, 2 colors, 3 fixed-point
+        # accumulator, 4 density texture, 5 color texture.
         self.splat_layout = d.create_bind_group_layout(
             entries=[
                 {"binding": 0, "visibility": storage, "buffer": {"type": "uniform"}},
@@ -488,7 +683,12 @@ class StudioRenderer(Renderer):
         self.resolve_pipeline = d.create_compute_pipeline(
             layout=layout, compute={"module": compute, "entry_point": "resolve_grid"}
         )
+
+    def _create_grid_draw_pipelines(self):
+        """Scene pipelines that ray-march a grid: opaque, and into the transparency targets."""
+        d = self.device
         visible = wgpu.ShaderStage.VERTEX | wgpu.ShaderStage.FRAGMENT
+        # @group(3) of studio_surface.wgsl: uniforms, density and color textures, sampler.
         self.grid_layout = d.create_bind_group_layout(
             entries=[
                 {"binding": 0, "visibility": visible, "buffer": {"type": "uniform"}},
@@ -505,11 +705,16 @@ class StudioRenderer(Renderer):
                 {"binding": 3, "visibility": visible, "sampler": {"type": "filtering"}},
             ]
         )
+        # The grid code shares a shader module with molecule.wgsl, whose groups 1 and 2 are
+        # taken, so it uses group 3. The grid entry points read nothing from groups 1 and 2,
+        # which therefore hold empty placeholders.
         empty = d.create_bind_group_layout(entries=[])
         self._empty_group = d.create_bind_group(layout=empty, entries=[])
         grid_layout = d.create_pipeline_layout(
             bind_group_layouts=[self.camera_layout, empty, empty, self.grid_layout]
         )
+        # Transparent targets as in Renderer's OIT pass: weighted colors add up, and the
+        # revealage (background transmittance) is multiplied by 1 − alpha per fragment.
         additive = {"src_factor": "one", "dst_factor": "one", "operation": "add"}
         transmittance = {"src_factor": "zero", "dst_factor": "one-minus-src", "operation": "add"}
         self.grid_pipelines = {}
@@ -538,9 +743,11 @@ class StudioRenderer(Renderer):
                 },
                 multisample={"count": self.msaa},
             )
-        self._grids = {}
+        self._grids = {}  # Protein -> _GridSurface, for surfaces visible in the last frame.
 
     def _prepare(self, encoder, draws):
+        """Remember the frame's draws and update density grids before the scene passes."""
+        # _draw_front and _post_process use the draws later in the same frame.
         self._frame_draws = draws
         live = set()
         for protein, _, _ in draws:
@@ -550,10 +757,12 @@ class StudioRenderer(Renderer):
                     grid = self._grids[protein] = _GridSurface(self, protein)
                 grid.update(encoder)
                 live.add(protein)
+        # Free the grids of surfaces that are no longer drawn.
         for protein in [p for p in self._grids if p not in live]:
             self._grids.pop(protein).close()
 
     def _draw_extra(self, render_pass, draws, transparent):
+        """Ray-march each density surface in the opaque or the transparent scene pass."""
         for protein, _, _ in draws:
             grid = self._grids.get(protein)
             if grid is None or protein.surface_opacity * protein.opacity <= 0:
@@ -566,6 +775,12 @@ class StudioRenderer(Renderer):
             render_pass.draw(3)
 
     def _fullscreen(self, encoder, pipeline, group, view, *, load=False, resolve=None):
+        """One full-screen post pass into ``view``.
+
+        ``load`` keeps the target's contents, for passes that add onto it; otherwise the
+        target is cleared to zero. ``resolve`` is an optional single-sample view that a
+        multisampled target resolves into.
+        """
         attachment = {"view": view, "load_op": "load" if load else "clear", "store_op": "store"}
         if not load:
             attachment["clear_value"] = (0.0, 0.0, 0.0, 0.0)
@@ -578,11 +793,73 @@ class StudioRenderer(Renderer):
         render_pass.end()
 
     def _post_process(self, encoder, camera, background, annotations):
+        """Steps 2-4 of the module docstring for this layer, then steps 5-9 after the last."""
+        look = self.look
+        fading = self._write_post_uniforms(camera, background)
+        # Every frame takes the same path: occlusion is applied per layer, then bloom and the
+        # final roll-off run once on the accumulated image, whether or not anything fades.
+        if look.ambient_occlusion > 0:
+            if fading:
+                self._draw_front(encoder)
+            self._fullscreen(encoder, self.ao_pipeline, self.group_ao, self.ao_view)
+        # With occlusion off, ao_shade() in the shader returns 1 without reading the stale ao
+        # texture. The first layer clears the accumulator; later layers add onto it.
+        self._fullscreen(
+            encoder,
+            self.accumulate_pipeline,
+            self.group_accumulate,
+            self.accum_view,
+            load=not self._layer_first,
+        )
+        if not self._layer_final:
+            return
+        self._fullscreen(encoder, self.copy_pipeline, self.group_copy, self.hdr_view)
+        # Both effects read hdr before either is added to it: the halation source is taken
+        # before bloom is added, and bloom is added before halation.
+        if look.halation > 0:
+            source, horizontal, blurred = self.halation_views
+            self._fullscreen(encoder, self.halation_prefilter_pipeline, self.group_halation_prefilter, source)
+            self._fullscreen(
+                encoder, self.halation_horizontal_pipeline, self.group_halation_horizontal, horizontal
+            )
+            self._fullscreen(encoder, self.halation_vertical_pipeline, self.group_halation_vertical, blurred)
+        views = [view for _, view in self.bloom_levels]
+        if look.bloom > 0:
+            self._fullscreen(encoder, self.prefilter_pipeline, self.group_prefilter, views[0])
+            # Down the pyramid, then back up, adding each smaller level onto the next larger.
+            for i in range(len(views) - 1):
+                self._fullscreen(encoder, self.down_pipeline, self.group_down[i], views[i + 1])
+            for i in reversed(range(len(views) - 1)):
+                self._fullscreen(encoder, self.up_pipeline, self.group_up[i], views[i], load=True)
+            self._fullscreen(encoder, self.add_bloom_pipeline, self.group_add, self.hdr_view, load=True)
+        if look.halation > 0:
+            self._fullscreen(
+                encoder, self.add_halation_pipeline, self.group_halation_add, self.hdr_view, load=True
+            )
+        # Without overlays the composite resolves straight into the output. Otherwise the
+        # overlay pass draws text onto ms_view next and resolves it.
+        resolve = self.view if self.msaa > 1 and not annotations else None
+        self._fullscreen(encoder, self.composite_post, self.group_composite, self.ms_view, resolve=resolve)
+
+    def _write_post_uniforms(self, camera, background):
+        """Upload the Post struct of studio_post.wgsl; return whether anything is partly transparent."""
         look = self.look
         vp = self._last_vp
+        # struct Post, 64 float32. Matrices are transposed because WGSL stores them by column.
+        #   [0:16]  view-projection matrix (reversed Z), [16:32] its inverse
+        #   [32:36] eye xyz, occlusion radius (Å)
+        #   [36:40] occlusion strength, bloom strength, bloom threshold, vignette strength
+        #   [40:44] width, height, 1/width, 1/height of the rendered (supersampled) frame
+        #   [44:48] background rgb, highlight knee
+        #   [48:50] front layer drawn (0 or 1), layer weight
+        #   [50:52] grain tick and grain seed, as uint32 bits
+        #   [52:56] grain strength, grain size (1080p px), bloom radius, halation strength
+        #   [56:60] halation threshold, halation blur sigma (1080p px), unused, unused
+        #   [60:64] halation rgb, unused
         u = np.zeros(64, np.float32)
         u[:16] = vp.T.ravel()
         u[16:32] = np.linalg.inv(vp).T.ravel()
+        # The occlusion radius scales with the framed radius (Å), within 3.5-12 Å.
         radius = float(np.clip(camera.radius * 0.14, 3.5, 12.0))
         u[32:36] = [*camera.eye, radius]
         u[36:40] = [look.ambient_occlusion, look.bloom, look.bloom_threshold, look.vignette]
@@ -600,50 +877,16 @@ class StudioRenderer(Renderer):
         )
         u[48] = float(fading and look.ambient_occlusion > 0)
         u[49] = self._layer_weight
+        # The grain pattern changes grain_fps times per second of scene time, so a frame
+        # renders the same grain whenever it is rendered. The 1e-6 keeps a time that lands
+        # exactly on a tick from rounding down to the previous tick.
         tick = int(np.floor(self.time * look.grain_fps + 1e-6)) % (2**32)
         u[50:52].view(np.uint32)[:] = [tick, look.grain_seed]
         u[52:56] = [look.grain, look.grain_size, look.bloom_radius, look.halation]
         u[56:60] = [look.halation_threshold, look.halation_radius, 0, 0]
         u[60:64] = [*look.halation_color, 0]
         self.device.queue.write_buffer(self.post_buffer, 0, u)
-        # Every frame takes the same path: occlusion is applied per layer, then bloom and the
-        # final roll-off run once on the accumulated image, whether or not anything fades.
-        if look.ambient_occlusion > 0:
-            if fading:
-                self._draw_front(encoder)
-            self._fullscreen(encoder, self.ao_pipeline, self.group_ao, self.ao_view)
-        self._fullscreen(
-            encoder,
-            self.accumulate_pipeline,
-            self.group_accumulate,
-            self.accum_view,
-            load=not self._layer_first,
-        )
-        if not self._layer_final:
-            return
-        self._fullscreen(encoder, self.copy_pipeline, self.group_copy, self.hdr_view)
-        # Extract halation before bloom; neither effect feeds back into its own source.
-        if look.halation > 0:
-            source, horizontal, blurred = self.halation_views
-            self._fullscreen(encoder, self.halation_prefilter_pipeline, self.group_halation_prefilter, source)
-            self._fullscreen(
-                encoder, self.halation_horizontal_pipeline, self.group_halation_horizontal, horizontal
-            )
-            self._fullscreen(encoder, self.halation_vertical_pipeline, self.group_halation_vertical, blurred)
-        views = [view for _, view in self.bloom_levels]
-        if look.bloom > 0:
-            self._fullscreen(encoder, self.prefilter_pipeline, self.group_prefilter, views[0])
-            for i in range(len(views) - 1):
-                self._fullscreen(encoder, self.down_pipeline, self.group_down[i], views[i + 1])
-            for i in reversed(range(len(views) - 1)):
-                self._fullscreen(encoder, self.up_pipeline, self.group_up[i], views[i], load=True)
-            self._fullscreen(encoder, self.add_bloom_pipeline, self.group_add, self.hdr_view, load=True)
-        if look.halation > 0:
-            self._fullscreen(
-                encoder, self.add_halation_pipeline, self.group_halation_add, self.hdr_view, load=True
-            )
-        resolve = self.view if self.msaa > 1 and not annotations else None
-        self._fullscreen(encoder, self.composite_post, self.group_composite, self.ms_view, resolve=resolve)
+        return fading
 
     # Fades --------------------------------------------------------------------------------------
 
@@ -661,44 +904,55 @@ class StudioRenderer(Renderer):
         from .protein import Protein
 
         objects = list(proteins)
-        molecules = [p for p in objects if isinstance(p, Protein)]
-        saved = [(p, p.opacity, p.representation.copy()) for p in molecules]
-        level = {id(p): round(float(o), 5) for p, o, _ in saved}
+        molecules = [obj for obj in objects if isinstance(obj, Protein)]
+        # Layers change opacities and representations; the finally block restores them.
+        saved = [(molecule, molecule.opacity, molecule.representation.copy()) for molecule in molecules]
+        # Objects whose opacities agree to 5 decimals fade in the same layer.
+        level = {id(molecule): round(float(opacity), 5) for molecule, opacity, _ in saved}
         try:
-            for p in molecules:
+            for molecule in molecules:
                 # A surface crossfade keeps the other representations solid underneath: the
                 # surface encloses them, so it fades in or out over them without a dip.
-                total = float(np.sum(p.representation))
-                if p.surface_opacity > 0 and 0 < total < 1:
-                    p.representation = p.representation / total
+                total = float(np.sum(molecule.representation))
+                if molecule.surface_opacity > 0 and 0 < total < 1:
+                    molecule.representation = molecule.representation / total
             levels = sorted({round(float(o), 5) for _, o, _ in saved if 0 < o < 1})
+            # With no whole-object fade, partly visible atoms that all share one opacity above
+            # SOLID_FADE_START take the three-layer path of _atom_fade_commands instead.
             shared = None if levels else self._shared_atom_opacity(molecules)
             if shared is not None and shared > self.SOLID_FADE_START:
                 return self._atom_fade_commands(objects, molecules, shared, camera, background)
-            thresholds = [2.0, *reversed(levels)]  # Solid-only layer first, then lower thresholds.
+            # Solid-only layer first (no opacity reaches 2.0), then lower thresholds. Without
+            # any fade this is a single layer of weight 1.
+            thresholds = [2.0, *reversed(levels)]
             weights = [1 - (levels[-1] if levels else 0.0)]
             weights += [u - (levels[i - 1] if i else 0.0) for i, u in reversed(list(enumerate(levels)))]
             encoder = None
             for index, (threshold, weight) in enumerate(zip(thresholds, weights)):
-                for p, opacity, _ in saved:
+                # Each fading object is solid in this layer or absent from it.
+                for molecule, opacity, _ in saved:
                     if 0 < opacity < 1:
-                        p.opacity = 1.0 if level[id(p)] >= threshold else 0.0
+                        molecule.opacity = 1.0 if level[id(molecule)] >= threshold else 0.0
                 final = index == len(thresholds) - 1
                 # Text overlays are drawn once, over the final image.
                 layer = [
-                    o
-                    for o in objects
-                    if (final or not isinstance(o, Annotation))
-                    and (not isinstance(o, Protein) or o.opacity > 0)
+                    obj
+                    for obj in objects
+                    if (final or not isinstance(obj, Annotation))
+                    and (not isinstance(obj, Protein) or obj.opacity > 0)
                 ]
+                # _post_process weights this layer, clears the accumulator on the first one
+                # and runs the effects after the final one.
                 self._layer_weight, self._layer_first, self._layer_final = weight, index == 0, final
                 encoder = super()._commands(layer, camera, background)
+                # Each layer gets its own encoder. Submit all but the last now, before the next
+                # layer rewrites the shared uniform buffers; the caller finishes the last one.
                 if not final:
                     self.device.queue.submit([encoder.finish()])
             return encoder
         finally:
-            for p, opacity, representation in saved:
-                p.opacity, p.representation = opacity, representation
+            for molecule, opacity, representation in saved:
+                molecule.opacity, molecule.representation = opacity, representation
 
     # Partly visible atoms that share one opacity u blend toward solid layers above this
     # level: (1 − w)·transparency + w·(u·solid + (1 − u)·hidden), with w rising to 1 at
@@ -708,18 +962,21 @@ class StudioRenderer(Renderer):
     SOLID_FADE_START = 0.8
 
     @staticmethod
-    def _partial_atoms(p):
-        values = p.atom_opacities / p.opacity
+    def _partial_atoms(molecule):
+        """Mask of partly visible atoms, and each atom's opacity relative to the molecule's."""
+        values = molecule.atom_opacities / molecule.opacity
+        # Opacities within 1e-4 of 0 or 1e-6 of 1 do not count as partial.
         return (values > 1e-4) & (values < 1 - 1e-6), values
 
     @classmethod
     def _shared_atom_opacity(cls, molecules):
         """The one opacity of every partly visible atom in the frame, or None."""
         shared = None
-        for p in molecules:
-            if p.opacity <= 0:
+        for molecule in molecules:
+            if molecule.opacity <= 0:
                 continue
-            mask, values = cls._partial_atoms(p)
+            mask, values = cls._partial_atoms(molecule)
+            # Opacities that agree to 4 decimals count as one.
             for value in np.unique(np.round(values[mask], 4)):
                 if shared is not None and value != shared:
                     return None
@@ -727,36 +984,48 @@ class StudioRenderer(Renderer):
         return shared
 
     def _atom_fade_commands(self, objects, molecules, shared, camera, background):
+        """Render partly visible atoms of opacity ``shared`` as three weighted layers.
+
+        ``shared`` is relative to each molecule's own opacity and above SOLID_FADE_START.
+        """
         from .annotations import Annotation
 
+        # The weight w of the SOLID_FADE_START comment: a smoothstep from 0 at
+        # SOLID_FADE_START to 1 at full opacity.
         t = (shared - self.SOLID_FADE_START) / (1 - self.SOLID_FADE_START)
         fade = t * t * (3 - 2 * t)
+        # (how the partly visible atoms are drawn, layer weight): unchanged, through the
+        # transparency pass; forced solid; hidden. The weights add up to 1.
         layers = ((None, 1 - fade), (True, fade * shared), (False, fade * (1 - shared)))
-        visible = [p for p in molecules if p.opacity > 0]
-        hidden = [p for p in molecules if p.opacity <= 0]
-        partial = [self._partial_atoms(p)[0] for p in visible]
-        original = [(p._controls, p._appearance) for p in visible]
+        visible = [molecule for molecule in molecules if molecule.opacity > 0]
+        hidden = [molecule for molecule in molecules if molecule.opacity <= 0]
+        partial = [self._partial_atoms(molecule)[0] for molecule in visible]
+        original = [(molecule._controls, molecule._appearance) for molecule in visible]
         encoder = None
         try:
             for index, (solid, weight) in enumerate(layers):
-                for p, mask, (controls, appearance) in zip(visible, partial, original):
-                    p._controls, p._appearance = controls, appearance
+                for molecule, mask, (controls, appearance) in zip(visible, partial, original):
+                    molecule._controls, molecule._appearance = controls, appearance
                     if solid is not None and mask.any():
+                        # Pin the opacity of the partial atoms. Controls columns 4:6 and
+                        # appearance columns 12:14 hold each atom's opacity before and after
+                        # its fades. The copies are new arrays, so Renderer uploads them.
                         controls = np.array(controls)
                         controls[mask, 4:6] = 1.0 if solid else 0.0
                         appearance = np.array(appearance)
                         appearance[mask, 12:14] = 1.0
-                        p._controls, p._appearance = controls, appearance
+                        molecule._controls, molecule._appearance = controls, appearance
                 final = index == len(layers) - 1
                 layer = [o for o in objects if (final or not isinstance(o, Annotation)) and o not in hidden]
                 self._layer_weight, self._layer_first, self._layer_final = weight, index == 0, final
                 encoder = super()._commands(layer, camera, background)
+                # As in _commands: submit each layer before the next rewrites the uniforms.
                 if not final:
                     self.device.queue.submit([encoder.finish()])
             return encoder
         finally:
-            for p, (controls, appearance) in zip(visible, original):
-                p._controls, p._appearance = controls, appearance
+            for molecule, (controls, appearance) in zip(visible, original):
+                molecule._controls, molecule._appearance = controls, appearance
 
     def close(self):
         if not self._closed:
@@ -769,21 +1038,30 @@ class StudioRenderer(Renderer):
 
 
 class _GridSurface:
-    """Per-protein density grid: splatted by compute shaders, ray-marched in the scene pass."""
+    """Per-protein density grid: splatted by compute shaders, ray-marched in the scene pass.
+
+    The grid is a lattice in the protein's own (model) frame. Each atom adds a Blinn
+    density and its color to nearby voxels; the surface is where the density reaches 1.
+    """
 
     def __init__(self, renderer, protein):
         from .geometry import atom_metadata
 
         self.renderer, self.protein = renderer, protein
         self.device = renderer.device
+        # Column 3 of the atom metadata is the atom radius (Å).
         self.radii = np.asarray(atom_metadata(protein)[:, 3], np.float32)
         n = len(protein.topology.atoms)
         usage = wgpu.BufferUsage.STORAGE | wgpu.BufferUsage.COPY_DST
+        # One vec4f (16 bytes) per atom: xyz and radius, or rgb and opacity. WebGPU cannot
+        # create a zero-size binding, hence the 16-byte minimum.
         self.atoms = self.device.create_buffer(size=max(16 * n, 16), usage=usage)
         self.colors = self.device.create_buffer(size=max(16 * n, 16), usage=usage)
+        # struct Splat in studio_splat.wgsl: three vec4 (48 bytes).
         self.splat_uniform = self.device.create_buffer(
             size=48, usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST
         )
+        # struct GridSurface in studio_surface.wgsl (240 bytes), padded to 256.
         self.grid_uniform = self.device.create_buffer(
             size=256, usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST
         )
@@ -794,16 +1072,19 @@ class _GridSurface:
             address_mode_v="clamp-to-edge",
             address_mode_w="clamp-to-edge",
         )
-        self.dims = None
-        self.spacing = None
-        self.key = None
+        self.dims = None  # Voxels along x, y, z, once allocated.
+        self.spacing = None  # Voxel edge length (Å).
+        self.key = None  # Everything the splatted grid depends on, to skip unchanged frames.
         self.textures = []
 
     def _allocate(self, dims):
+        """Create the accumulator and the 3D textures for a grid of ``dims`` voxels."""
         d = self.device
         for resource in self.textures:
             resource.destroy()
         count = int(np.prod(dims))
+        # Five uint32 per voxel: density, then red, green, blue and opacity weighted by
+        # density, all as fixed-point sums (WGSL has no floating-point atomics).
         self.accum = d.create_buffer(
             size=count * 5 * 4, usage=wgpu.BufferUsage.STORAGE | wgpu.BufferUsage.COPY_DST
         )
@@ -811,8 +1092,11 @@ class _GridSurface:
             wgpu.TextureUsage.STORAGE_BINDING | wgpu.TextureUsage.TEXTURE_BINDING | wgpu.TextureUsage.COPY_SRC
         )
         size = (int(dims[0]), int(dims[1]), int(dims[2]))
+        # density: red is the density, green the density-weighted opacity.
+        # color: rgb is the density-weighted color.
         self.density = d.create_texture(size=size, dimension="3d", format="rgba16float", usage=usage)
         self.color = d.create_texture(size=size, dimension="3d", format="rgba16float", usage=usage)
+        # Grid-sized GPU memory, freed when the grid is reallocated or closed.
         self.textures = [self.accum, self.density, self.color]
         density_view, color_view = self.density.create_view(), self.color.create_view()
         self.splat_group = d.create_bind_group(
@@ -838,58 +1122,76 @@ class _GridSurface:
         self.dims = np.asarray(dims)
 
     def _colors(self):
+        """Per-atom rgb and opacity (relative to the protein's), as an (n_atoms, 4) float32 array."""
         from .geometry import atom_metadata, residue_colors
         from .styling import current_tints
 
-        p = self.protein
-        if p.color_scheme == "element":
-            base = atom_metadata(p)[:, :3]
+        protein = self.protein
+        if protein.color_scheme == "element":
+            base = atom_metadata(protein)[:, :3]
         else:
-            base = residue_colors(p)[[a.residue_index for a in p.topology.atoms]]
-        tint = current_tints(p)
+            base = residue_colors(protein)[[a.residue_index for a in protein.topology.atoms]]
+        # Tint columns: rgb, already scaled by the tint strength, then the strength.
+        tint = current_tints(protein)
         rgb = base * (1 - tint[:, 3:4]) + tint[:, :3]
-        opacity = p.atom_opacities / max(p.opacity, 1e-6)
+        opacity = protein.atom_opacities / max(protein.opacity, 1e-6)
         # Ligands, ions and waters are drawn as ball-and-stick; leaving them out of the
         # surface keeps them visible in their pockets, as in most molecular figures.
-        opacity = np.where(p.topology.untraced_atoms, 0.0, opacity)
+        opacity = np.where(protein.topology.untraced_atoms, 0.0, opacity)
         return np.column_stack((rgb, opacity)).astype(np.float32)
 
     def update(self, encoder):
-        p, look = self.protein, self.renderer.look
+        """Write this frame's ray-march uniforms; re-splat the grid only when its inputs changed."""
+        protein, look = self.protein, self.renderer.look
+        # Keyframes, tween, per-atom fade arrays, color and opacity clocks and the color
+        # scheme decide what the grid holds; the camera does not.
         key = (
-            p._key_a,
-            p._key_b,
-            p._mix,
-            id(p._controls),
-            id(p._appearance),
-            p._color_mix,
-            p._opacity_mix,
-            str(p.color_scheme),
+            protein._key_a,
+            protein._key_b,
+            protein._mix,
+            id(protein._controls),
+            id(protein._appearance),
+            protein._color_mix,
+            protein._opacity_mix,
+            str(protein.color_scheme),
         )
-        xyz = np.asarray(p.positions, np.float32)
-        options = p._surface_options
+        xyz = np.asarray(protein.positions, np.float32)
+        options = protein._surface_options
         resolution = options.resolution if options is not None else 0.7
+        # Margin (Å) around the atom centers: the largest inflated radius plus a few voxels.
         pad = float(self.radii.max()) + look.surface_inflation + 3 * resolution + 1.0
         lo, hi = xyz.min(0) - pad, xyz.max(0) + pad
         spacing = self.spacing if self.dims is not None else None
         needed = None if spacing is None else np.ceil((hi - lo) / spacing).astype(int) + 1
+        # Reallocate when there is no grid yet, when the molecule no longer fits, or when it
+        # fills less than 40% of the allocated voxels.
         if spacing is None or np.any(needed > self.dims) or np.prod(needed) < 0.4 * np.prod(self.dims):
             # Choose the spacing and allocate with slack only when the molecule outgrows the
             # grid. A fixed spacing and a lattice fixed in the molecule's frame keep a moving
             # surface from being resampled differently every frame, which would shimmer.
+            # The spacing gives about surface_voxels voxels over the enlarged box, but is
+            # never finer than the surface resolution.
             slack = 1.15
             spacing = max(resolution, float((np.prod((hi - lo) * slack) / look.surface_voxels) ** (1 / 3)))
             needed = np.ceil((hi - lo) / spacing).astype(int) + 1
             self.spacing = spacing
             self._allocate(np.ceil(needed * slack).astype(int) + 2)
             self.key = None
+        # Center the grid on the molecule, with its origin on multiples of the spacing.
         center = (lo + hi) / 2
         grid_min = np.floor((center - (self.dims - 1) * spacing / 2) / spacing) * spacing
-        m = p.model_matrix
+        model = protein.model_matrix
         vp = self.renderer._last_vp
+        # struct GridSurface, 60 float32 used of 64. Matrices are transposed because WGSL
+        # stores them by column.
+        #   [0:16] model matrix, [16:32] its inverse, [32:48] inverse view-projection (the
+        #          shader does not read it; grid_march builds rays from the camera basis)
+        #   [48:52] grid origin xyz (Å, model frame), voxel spacing (Å)
+        #   [52:56] voxels along x, y, z, isovalue 1 (a lone atom's density at its inflated radius)
+        #   [56:60] surface opacity, tan(fov / 2), aspect, cutaway keep radius (Å)
         u = np.zeros(64, np.float32)
-        u[0:16] = m.T.ravel()
-        u[16:32] = np.linalg.inv(m).T.ravel()
+        u[0:16] = model.T.ravel()
+        u[16:32] = np.linalg.inv(model).T.ravel()
         u[32:48] = np.linalg.inv(vp).T.ravel()
         u[48:52] = [*grid_min, spacing]
         u[52:56] = [*self.dims, 1.0]
@@ -898,24 +1200,30 @@ class _GridSurface:
         # Surfaces are carved down to the target's center plane, so a ligand in the target
         # sits in front of the pocket's back wall instead of behind its front wall.
         keep = -camera.cutaway_band
-        u[56:60] = [p.surface_opacity, np.tan(camera.fov / 2), aspect, keep]
+        u[56:60] = [protein.surface_opacity, np.tan(camera.fov / 2), aspect, keep]
         self.device.queue.write_buffer(self.grid_uniform, 0, u)
         key = (*key, spacing, tuple(np.round(grid_min, 4)))
         if key == self.key:
             return
+        # Re-splat: upload atoms and colors, clear the accumulator, then run the two compute
+        # passes of studio_splat.wgsl.
         self.key = key
         atoms = np.column_stack((xyz, self.radii)).astype(np.float32)
         queue = self.device.queue
         queue.write_buffer(self.atoms, 0, atoms)
         queue.write_buffer(self.colors, 0, self._colors())
-        s = np.zeros(12, np.float32)
-        s[0:4] = [*grid_min, spacing]
-        s[4:8].view(np.uint32)[:] = [*self.dims, len(atoms)]
-        s[8:12] = [look.surface_inflation, look.surface_blobbiness, 0, 0]
-        queue.write_buffer(self.splat_uniform, 0, s)
+        # struct Splat: grid origin and spacing; voxel counts and atom count as uint32 bits;
+        # radius inflation (Å) and blobbiness.
+        splat = np.zeros(12, np.float32)
+        splat[0:4] = [*grid_min, spacing]
+        splat[4:8].view(np.uint32)[:] = [*self.dims, len(atoms)]
+        splat[8:12] = [look.surface_inflation, look.surface_blobbiness, 0, 0]
+        queue.write_buffer(self.splat_uniform, 0, splat)
         encoder.clear_buffer(self.accum)
         compute = encoder.begin_compute_pass()
         compute.set_bind_group(0, self.splat_group)
+        # One thread per atom, in workgroups of 64; then one thread per voxel, in 4 × 4 × 4
+        # workgroups (the @workgroup_size values in the shader).
         compute.set_pipeline(self.renderer.splat_pipeline)
         compute.dispatch_workgroups((len(atoms) + 63) // 64)
         compute.set_pipeline(self.renderer.resolve_pipeline)

@@ -1,10 +1,23 @@
 // Classic protein cartoons. Atom coordinates are untouched: the display spline
 // is evaluated from the current interpolated CA positions on the GPU.
+// StudioRenderer._shader_code inserts this file where molecule.wgsl's ribbon_vertex was,
+// and keeps that function as ribbon_sweep(uv, instance, cartoon). Segment rows come from
+// geometry.studio_cartoon_segments:
+//   atoms    the four trace atoms (Cα in proteins) around the segment, which runs from
+//            atoms.y to atoms.z
+//   shape    half-width at the start and end, then half-thickness at the start and end (Å)
+//   color_a  rgb and secondary-structure code of the start residue (coil 0, helix 1,
+//   color_b  strand 2, nucleotide -1); the same for the end residue
+//   caps     start cap, end cap, sheet-arrow weight, unused
+
+// Uniform cubic B-spline of the control points a-d, for t from 0 to 1 between b and c.
+// It passes near the Cα positions rather than through them, which smooths the trace.
 fn cartoon_curve(a:vec3f,b:vec3f,c:vec3f,d:vec3f,t:f32) -> vec3f {
     let u=1.0-t;
     return (u*u*u*a+(3.0*t*t*t-6.0*t*t+4.0)*b+
             (-3.0*t*t*t+3.0*t*t+3.0*t+1.0)*c+t*t*t*d)/6.0;
 }
+// Direction of the B-spline: its derivative (times 2), normalized.
 fn cartoon_tangent(a:vec3f,b:vec3f,c:vec3f,d:vec3f,t:f32) -> vec3f {
     let u=1.0-t;
     return safe_normal(-u*u*a+(3.0*t*t-4.0*t)*b+(-3.0*t*t+2.0*t+1.0)*c+t*t*d);
@@ -15,21 +28,24 @@ fn cartoon_exponent(ss:f32) -> f32 {
     if ss>1.0 { return mix(0.5,0.33,clamp(ss-1.0,0.0,1.0)); }
     return mix(1.0,0.5,clamp(ss,0.0,1.0));
 }
+// Cross-section at one point of a segment.
 struct CartoonFrame {
     center:vec3f,
     width_axis:vec3f,
     height_axis:vec3f,
-    size:vec2f,
-    exponent:f32,
+    size:vec2f,      // semi-axes along width_axis and height_axis (Å)
+    exponent:f32,    // superellipse exponent, see cartoon_exponent
 };
 fn cartoon_frame(s:Segment,t:f32) -> CartoonFrame {
     let a=position(s.atoms.x); let b=position(s.atoms.y);
     let c=position(s.atoms.z); let d=position(s.atoms.w);
     let center=cartoon_curve(a,b,c,d,t);
     let direction=cartoon_tangent(a,b,c,d,t);
+    // Width axis from the residues' guide directions, made perpendicular to the curve.
     let frame=segment_guide(s,t,1.0);
     let width_axis=safe_normal(frame.xyz-direction*dot(frame.xyz,direction));
     let height_axis=safe_normal(cross(direction,width_axis));
+    // Size and profile change from the start residue's to the end residue's.
     let blend=smoothstep(0.0,1.0,t);
     var size=mix(s.shape.xz,s.shape.yw,blend);
     var exponent=mix(cartoon_exponent(s.color_a.w),cartoon_exponent(s.color_b.w),blend);
@@ -56,11 +72,15 @@ fn cartoon_frame(s:Segment,t:f32) -> CartoonFrame {
     // Round, rather than flip, where the twist to the next residue is ambiguous.
     size.x=mix(size.y,size.x,frame.w);
     exponent=mix(1.0,exponent,frame.w);
+    // Close the chain ends: the profile shrinks to a point over the first or last tenth of
+    // the end segments.
     var cap=1.0;
     if s.caps.x>0.5 { cap*=smoothstep(0.0,0.1,t); }
     if s.caps.y>0.5 { cap*=smoothstep(0.0,0.1,1.0-t); }
     return CartoonFrame(center,width_axis,height_axis,size*cap,exponent);
 }
+// Point of the profile at this angle around the curve: a superellipse with the signs of
+// cos and sin and their magnitudes raised to the exponent (1 gives an ellipse).
 fn cartoon_offset(f:CartoonFrame,angle:f32) -> vec3f {
     let circle=vec2f(cos(angle),sin(angle));
     let profile=sign(circle)*pow(abs(circle),vec2f(f.exponent))*f.size;
@@ -73,20 +93,26 @@ fn cartoon_offset(f:CartoonFrame,angle:f32) -> vec3f {
     if object.style.x<=0.0 || s.color_a.w<0.0 {
         return ribbon_sweep(uv,instance,object.style.x);
     }
+    // The sweep grid gives t along the segment (uv.x) and the angle around it (uv.y, one turn).
     let t=uv.x; let angle=uv.y*6.28318530718;
     let f=cartoon_frame(s,t);
     let point=f.center+cartoon_offset(f,angle);
+    // The profile changes along the segment, so the normal comes from central differences
+    // of the surface itself: along t and around the profile.
     let before=cartoon_frame(s,max(0.0,t-0.001));
     let after=cartoon_frame(s,min(1.0,t+0.001));
     let along=(after.center+cartoon_offset(after,angle)-before.center-cartoon_offset(before,angle))/0.002;
     let around=(cartoon_offset(f,angle+0.001)-cartoon_offset(f,angle-0.001))/0.002;
     var normal=cross(around,along);
+    // At a closed cap the profile has shrunk to a point; face out of the chain end.
     if dot(normal,normal)<1e-14 {
         normal=select(-along,along,t>0.5);
     }
     var out:Surface;
     out.p=world(point);
     out.normal=world_normal(normal);
+    // object.style.x is the cartoon share of cartoon + ribbon. Below 1, blend toward the
+    // uniform ribbon (ribbon_sweep with cartoon = 0).
     if object.style.x<1.0 {
         let ribbon=ribbon_sweep(uv,instance,0.0);
         out.p=mix(ribbon.p,out.p,object.style.x);

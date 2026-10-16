@@ -1,4 +1,13 @@
-"""Deterministic animations: capture at compilation, evaluate at any time."""
+"""Deterministic animations: capture at compilation, evaluate at any time.
+
+Animation is the base class of everything ProteinScene.play() runs. This module holds it
+and the core animations: rigid motion (Rotate), coordinate morphs (Morph, Deform,
+PlayTrajectory), camera moves (Focus, FocusPull, Reveal, Conceal), fades, representation
+and secondary-structure blends, and Animate, the fluent builder behind ``.animate``.
+Other modules subclass Animation for their own effects (styling.py, torsions.py,
+conformations.py, thread.py, backbone.py, plots.py, annotations.py and more), and
+timeline.py composes animations into groups.
+"""
 
 import numpy as np
 
@@ -9,7 +18,35 @@ from .trajectory import FrameCache
 
 
 class Animation:
+    """Base class for anything ProteinScene.play() can run.
+
+    A subclass declares the ``channels`` it writes, captures starting values in bind(),
+    and sets its target's state from them in apply(alpha). The scene calls bind() once,
+    while play() schedules the clip, and then calls apply() with eased progress alpha in
+    [0, 1] each time it evaluates the timeline. Seeking can call apply() with any alpha,
+    in any order, so apply() must depend only on alpha and on what bind() captured, never
+    on the previous frame. Each animation object can be played once.
+
+    ``rate_func``, or its alias ``easing``, maps clip progress to alpha. It takes a
+    function from proteinmotion.rates, its name, or any callable from [0, 1] to [0, 1].
+    """
+
+    # Names of the properties this animation writes, such as "transform", "geometry",
+    # "opacity" or "camera"; styling uses ("color", atom_index) pairs instead. play()
+    # rejects two animations in one call that write the same channel of the same target,
+    # and AnimationGroup rejects them when their time intervals overlap.
     channels = frozenset()
+
+    # Other attributes and hooks the scene and AnimationGroup look for:
+    #   run_time, start_time      clip length and start in scene seconds, set before bind()
+    #   late = True               apply after the clip's other animations, so a camera move
+    #                             sees where the molecule is in this frame
+    #   requires_linear_timeline  timing is scheduled in seconds inside the clip, so play()
+    #                             refuses a rate_func override that would warp the clock
+    #   duration                  default run_time for play() (groups set it)
+    #   _prepare(scene)           called by play() before binding, to read scene settings
+    #   _set_easing(easing)       called by play(easing=...); this base version replaces
+    #                             rate_func, and subclasses that ease internally override it
 
     def __init__(self, target, *, rate_func=smooth, easing=None):
         self.target, self.rate_func = target, resolve(rate_func if easing is None else easing)
@@ -25,19 +62,29 @@ class Animation:
         self.rate_func = resolve(easing)
 
     def bind(self):
+        """Capture the starting state; subclasses call ``super().bind()`` first."""
+        # bind() sees the targets as they are when the clip starts, with run_time and
+        # start_time already set. Copy arrays that targets change in place, such as
+        # position; read-only arrays such as _appearance can be kept as they are.
+        # The timeline keeps this object and replays it on every seek, so the values it
+        # captures belong to one clip. A second bind would overwrite the first clip's values.
         if self._bound:
             raise ValueError("Animation objects may only be played once; create a new animation")
         self._bound = True
 
     @property
     def targets(self):
+        """Objects this animation changes; play() adds any not yet in the scene."""
         return (self.target,)
 
     def apply(self, alpha):
+        """Set the target's state for eased progress ``alpha`` in [0, 1]."""
         raise NotImplementedError
 
 
 class Rotate(Animation):
+    """Turn a protein by ``angle`` radians about the world ``axis`` through its centroid."""
+
     channels = frozenset({"transform"})
 
     def __init__(self, protein, angle, axis=(0, 1, 0), **kwargs):
@@ -47,17 +94,29 @@ class Rotate(Animation):
 
     def bind(self):
         super().bind()
-        p = self.target
-        self.r, self.pos = p.orientation.copy(), p.position.copy()
-        self.center, self.size = p.positions.mean(0), p.size
+        protein = self.target
+        # Remember the pose at the start of the clip. apply() always works from this pose,
+        # not from the previous frame, so seeking to any time gives the same result.
+        self.r, self.pos = protein.orientation.copy(), protein.position.copy()
+        self.center, self.size = protein.positions.mean(0), protein.size
 
     def apply(self, alpha):
-        p = self.target
-        p.orientation = rotation(self.angle * alpha, self.axis) @ self.r
-        p.position = self.pos + self.size * ((self.r - p.orientation) @ self.center)
+        protein = self.target
+        protein.orientation = rotation(self.angle * alpha, self.axis) @ self.r
+        # A new orientation turns the protein about its local origin. Shift its position by
+        # how far the centroid moved, so the protein turns in place.
+        protein.position = self.pos + self.size * ((self.r - protein.orientation) @ self.center)
 
 
 class Morph(Animation):
+    """Move every atom in a straight line to its place in ``target``.
+
+    ``target`` is a Protein, matched atom by atom by identity or through ``atom_map``, or an
+    (atoms, 3) array in this protein's atom order. With ``align`` the target coordinates are
+    first superposed on the current ones, on Cα atoms (C1′ for nucleotides), so the morph
+    shows the change in shape rather than a rigid-body offset.
+    """
+
     channels = frozenset({"geometry"})
 
     def __init__(self, protein, target, *, align=True, atom_map=None, **kwargs):
@@ -66,18 +125,21 @@ class Morph(Animation):
 
     def bind(self):
         super().bind()
-        p, target = self.target, self.destination
-        self.start = coordinates(p.positions)
+        protein, target = self.target, self.destination
+        # Start from the coordinates shown now, which may be part-way through earlier motion.
+        self.start = coordinates(protein.positions)
         if hasattr(target, "topology"):
+            # A Protein target: pair atoms by identity (chain, residue number, insertion code,
+            # residue name, atom name), unless atom_map gives a target index per source atom.
             target_xyz = target.positions
             if self.atom_map is None:
                 lookup = {k: i for i, k in enumerate(target.topology.keys)}
-                if len(lookup) != len(target.topology.keys) or set(lookup) != set(p.topology.keys):
+                if len(lookup) != len(target.topology.keys) or set(lookup) != set(protein.topology.keys):
                     raise ValueError(
                         "Morph requires matching atom identities; supply an explicit atom_map "
                         "for a different topology"
                     )
-                mapping = [lookup[k] for k in p.topology.keys]
+                mapping = [lookup[k] for k in protein.topology.keys]
             else:
                 mapping = np.asarray(self.atom_map)
             if len(mapping) != len(self.start) or len(set(mapping)) != len(mapping):
@@ -87,13 +149,16 @@ class Morph(Animation):
                 raise ValueError("atom_map contains invalid target indices")
             end = target_xyz[mapping]
         else:
+            # Raw coordinates, already in source atom order.
             if self.atom_map is not None:
                 raise ValueError("atom_map is only supported with a Protein target")
             end = target
         self.end = coordinates(end, len(self.start))
         if self.align:
-            anchors = [r.morph_atom for r in p.topology.residues if r.morph_atom >= 0]
-            if any(r.is_nucleic for r in p.topology.residues) and len(anchors) < 3:
+            # Kabsch superposition on the Cα/C1′ anchors; with fewer than three anchors a
+            # protein falls back to every atom, while nucleic acids refuse.
+            anchors = [r.morph_atom for r in protein.topology.residues if r.morph_atom >= 0]
+            if any(r.is_nucleic for r in protein.topology.residues) and len(anchors) < 3:
                 raise ValueError(
                     "Aligned nucleotide Morph needs at least three C1' anchors; use align=False to interpolate supplied coordinates"
                 )
@@ -102,6 +167,7 @@ class Morph(Animation):
             )
 
     def apply(self, alpha):
+        # The protein interpolates each atom between the two sets, on the CPU and GPU alike.
         self.target._pair(self.start, self.end, alpha)
 
 
@@ -113,11 +179,14 @@ class Deform(Morph):
         self.function = function
 
     def bind(self):
+        # Evaluate the function on the coordinates at the start of the clip, then morph there.
         self.destination = self.function(self.target.positions.copy())
         super().bind()
 
 
 class PlayTrajectory(Animation):
+    """Play trajectory frames ``start`` to ``end``, blending between neighbouring frames."""
+
     channels = frozenset({"geometry"})
 
     def __init__(
@@ -141,19 +210,25 @@ class PlayTrajectory(Animation):
             raise ValueError("Trajectory atom count does not match protein")
         if self.trajectory.topology is not None and self.trajectory.topology.keys != protein.topology.keys:
             raise ValueError("Trajectory atom identities/order do not match protein")
+        # Frames are read on demand; the cache keeps the three most recently read.
         self.cache = FrameCache(self.trajectory)
         self.state_easing = resolve(state_easing)
 
     def apply(self, alpha):
+        # Fractional frame index at this point of the clip; end < start plays backwards.
         f = self.start + (self.end - self.start) * alpha
         lo = int(np.floor(f))
         hi = min(lo + 1, len(self.trajectory) - 1)
         a, b = self.cache.get(lo), self.cache.get(hi)
+        # state_easing shapes the motion within each pair of frames, while rate_func
+        # shapes progress through the whole clip.
         blend = float(self.state_easing(f - lo))
         if not np.isfinite(blend) or not 0 <= blend <= 1:
             raise ValueError("state_easing must return a finite value in [0, 1]")
+        # Plots read the frame shown and check that it comes from their own trajectory.
         self.target.trajectory_frame = float(lo + blend * (hi - lo))
         self.target._trajectory_source = self.trajectory
+        # (trajectory id, frame) keys let the renderer keep frames it has already uploaded.
         self.target._pair(a, b, blend, (id(self.trajectory), lo), (id(self.trajectory), hi))
 
 
@@ -181,8 +256,11 @@ class Focus(Animation):
         super().bind()
         if not isinstance(self.target, Camera):
             raise TypeError("Focus needs a Camera as its first argument")
+        # Start from where tracking puts the camera now.
         self.target.update_tracking()
         self.start = self.target.snapshot()
+        # Frame the region with a scratch camera at the same angles and field of view;
+        # its target, distance and radius are the end of the move.
         fitted = Camera()
         fitted.fov = self.target.fov
         fitted.theta, fitted.phi = self.target.theta, self.target.phi
@@ -195,14 +273,18 @@ class Focus(Animation):
         camera = self.target
         endpoint = self.end["target"]
         if self.follow:
+            # Aim at the region's bounding-box center in this frame, so the camera arrives
+            # on a region that is still moving.
             m = self.region.model_matrix
             points = self.region.positions @ m[:3, :3].T + m[:3, 3]
             endpoint = (points.min(0) + points.max(0)) / 2 + camera.composition_offset(
                 self.screen_position, distance=self.end["distance"], aspect=self.aspect
             )
         camera.target = (1 - alpha) * self.start["target"] + alpha * endpoint
+        # Distance changes geometrically, so equal steps of alpha zoom by equal factors.
         camera.distance = self.start["distance"] * (self.end["distance"] / self.start["distance"]) ** alpha
         camera.radius = (1 - alpha) * self.start["radius"] + alpha * self.end["radius"]
+        # After the clip, update_tracking() keeps the camera on the region.
         camera._tracking = self.region if self.follow and alpha >= 1 else None
         camera._screen_position, camera.aspect = tuple(self.screen_position), self.aspect
 
@@ -221,6 +303,8 @@ class FocusPull(Animation):
         if not isinstance(camera, Camera):
             raise TypeError("FocusPull needs a Camera as its first argument")
         super().__init__(camera, **kwargs)
+        # Resolve and check the selection on a scratch camera. The destination is the
+        # Protein or Region to follow, or a fixed world point.
         probe = Camera().set_focus(
             target,
             chain=chain,
@@ -237,6 +321,7 @@ class FocusPull(Animation):
     def bind(self):
         super().bind()
         camera = self.target
+        # Pull from the current focus point, or from the look-at point when focus is off.
         self.start = camera.focus_point if camera.dof else camera.target.copy()
         self.start_fstop = camera.fstop
         self.end_fstop = camera.fstop if self.fstop is None else float(self.fstop)
@@ -246,8 +331,10 @@ class FocusPull(Animation):
         camera = self.target
         end = camera._target_point(self.destination) if self.follow else self.end
         camera.dof = True
+        # The f-number changes geometrically, in even steps of f-stops.
         camera.fstop = self.start_fstop * (self.end_fstop / self.start_fstop) ** alpha
         camera._focus_point = (1 - alpha) * self.start + alpha * end
+        # After the clip, the focus keeps following a Protein or Region destination.
         camera._focus_target = (
             self.destination
             if self.follow and alpha >= 1 and hasattr(self.destination, "positions")
@@ -268,7 +355,7 @@ class Reveal(Animation):
 
     channels = frozenset({"cutaway"})
     late = True
-    opening = 1.0
+    opening = 1.0  # Final cutaway_opening; Conceal closes to 0.
 
     def __init__(
         self,
@@ -298,6 +385,7 @@ class Reveal(Animation):
             raise ValueError("softness must be at most 1")
         if shape not in (None, "cone", "tunnel"):
             raise ValueError("shape must be 'cone' or 'tunnel'")
+        # Shape settings left as None keep the camera's current values when the clip starts.
         self.region, self.window, self.softness, self.band = region, window, softness, band
         self.tunnel = None if shape is None else shape == "tunnel"
         self.wall, self.rings = wall, rings
@@ -319,6 +407,7 @@ class Reveal(Animation):
     def bind(self):
         super().bind()
         camera = self.target
+        # Without a region, act on the cutaway that is open now, as Conceal usually does.
         if self.region is None:
             if camera._cutaway_target is None:
                 raise ValueError("No open cutaway to close; pass a region")
@@ -326,12 +415,16 @@ class Reveal(Animation):
         same = camera._cutaway_target is self.region and camera.cutaway_opening > 0
         self.start = camera.cutaway_opening if same else 0.0
         # An open window on the same region reshapes smoothly; a new one takes its shape at once.
+        # self.shape maps each cutaway_* camera setting to its (start, end) values;
+        # shape_mode is the cone or tunnel choice.
         self.shape = {}
         self.shape_mode = camera.cutaway_tunnel if self.tunnel is None else self.tunnel
         # A tunnel is drilled along the current view and then stays fixed to the molecule,
         # so camera motion shows its walls in perspective.
         self.axis = camera._cutaway_axis if same else None
         if self.shape_mode and self.axis is None:
+            # Turn the world direction toward the eye into the protein's model frame;
+            # m includes the protein's scale, so normalize afterwards.
             protein = getattr(self.region, "protein", self.region)
             m = protein.model_matrix[:3, :3]
             points = self.region.world_positions
@@ -370,10 +463,13 @@ class Conceal(Reveal):
 
 
 class FadeIn(Animation):
+    """Fade a protein or annotation in from transparent to its current opacity."""
+
     channels = frozenset({"opacity"})
 
     def bind(self):
         super().bind()
+        # A hidden target fades in to the opacity it had before the last FadeOut, or to 1.
         self.end = self.target.opacity or getattr(self.target, "_visible_opacity", 1.0)
 
     def apply(self, alpha):
@@ -381,21 +477,32 @@ class FadeIn(Animation):
 
 
 class FadeOut(Animation):
+    """Fade a protein or annotation out to zero opacity."""
+
     channels = frozenset({"opacity"})
 
     def bind(self):
         super().bind()
         self.start = self.target.opacity
+        # Remember the visible opacity, so a later FadeIn returns to it.
         if self.start > 0:
             self.target._visible_opacity = self.start
 
     def apply(self, alpha):
+        # Write it on every evaluation too. Annotations and meshes snapshot every
+        # attribute, so a seek can bring back an older value.
         if self.start > 0:
             self.target._visible_opacity = self.start
         self.target.opacity = self.start * (1 - alpha)
 
 
 class Representation(Animation):
+    """Blend to a cartoon, ribbon, ball-and-stick or surface representation.
+
+    ``bases`` also blends nucleotide base styles. Other keyword options are those of the
+    matching Protein method, such as ``kind`` for surface(); they apply when the clip starts.
+    """
+
     channels = frozenset({"representation"})
 
     def __init__(self, protein, representation, *, bases=None, rate_func=smooth, easing=None, **options):
@@ -409,6 +516,8 @@ class Representation(Animation):
         names = {"cartoon": 0, "ribbon": 1, "ball_and_stick": 2, "surface": 3}
         if representation not in names:
             raise ValueError(f"Choose a representation from {list(names)}")
+        # End weights for (cartoon, ribbon, ball-and-stick). A surface has none of these
+        # and fades in through surface_opacity instead.
         self.end = np.eye(4)[names[representation]][:3]
         self.surface_end = float(representation == "surface")
         from .nucleic import base_weights
@@ -424,6 +533,8 @@ class Representation(Animation):
         self.base_start = self.target.base_style.copy()
         self.settings = {}
         if self.options:
+            # Call the representation method with the options, read back the settings it
+            # chose, and restore the protein. apply() sets them when the clip runs.
             before = self.target.snapshot()
             try:
                 getattr(self.target, self.name)(**self.options)
@@ -445,6 +556,8 @@ class Representation(Animation):
                 self.target.restore(before)
             if self.surface_end:
                 self.target._surface_options = self.settings["surface_options"]
+        # A surface needs options: those from the call, the protein's current ones, or
+        # defaults for the current coordinates.
         if self.surface_end and self.target._surface_options is None:
             from .surface import surface_options
 
@@ -453,18 +566,22 @@ class Representation(Animation):
         self.surface_options = self.target._surface_options
         # Blend residue colors between two named schemes. Element colors are already
         # blended by the ball-and-stick weight, so changes to or from them switch directly.
+        # A start scheme that is itself a blend continues from that blend's end scheme.
         start, end = self.target.color_scheme, self.settings.get("color_scheme")
         self.schemes = None
         if end is not None and str(start) != str(end) and "element" not in (start, end):
             self.schemes = (getattr(start, "end", start), end)
 
     def apply(self, alpha):
+        # Settings from the options take effect at once; a change of named color scheme
+        # is then blended below, and the representation weights blend with alpha.
         for key, value in self.settings.items():
             setattr(self.target, "_surface_options" if key == "surface_options" else key, value)
         if self.schemes is not None:
             from .geometry import SchemeBlend
 
             start, end = self.schemes
+            # Rounding to 0.001 shows the plain named scheme within 0.0005 of either end.
             fraction = round(float(alpha), 3)
             self.target.color_scheme = (
                 start if fraction <= 0 else end if fraction >= 1 else SchemeBlend(start, end, fraction)
@@ -501,11 +618,13 @@ class SecondaryStructure(Animation):
         from .secondary import assign, weights
 
         super().bind()
-        p = self.target
-        self.start = p._secondary
-        self.end = weights(assign(p.topology, p.positions) if self.dssp else self.assignments)
+        protein = self.target
+        # Per-residue (coil, helix, strand) weights at the start and end of the clip.
+        self.start = protein._secondary
+        self.end = weights(assign(protein.topology, protein.positions) if self.dssp else self.assignments)
 
     def apply(self, alpha):
+        # Replace the array rather than edit it: snapshots share it without copying.
         blended = ((1 - alpha) * self.start + alpha * self.end).astype(np.float32)
         blended.flags.writeable = False
         self.target._secondary = blended
@@ -514,8 +633,15 @@ class SecondaryStructure(Animation):
 class Animate(Animation):
     """Fluent .animate.shift(...).rotate(...).scale(...) or camera.animate.orbit(...)."""
 
+    # Operations (shift, rotate, scale, set_opacity on a protein; orbit, zoom, depth_cue on
+    # a camera) are applied in chained order and eased by transform_easing. Other chained
+    # calls add a separate "extra" animation, such as Colorize or Focus, that runs in the
+    # same clip with its own easing.
+
     def __init__(self, target):
+        # The subject is what .animate was called on; for a Region, the protein owns the transform.
         self.subject = target
+        # A linear clip clock: the operations and every extra ease it themselves.
         super().__init__(getattr(target, "protein", target), rate_func=linear)
         self.operations = []
         self.extras = []
@@ -532,6 +658,8 @@ class Animate(Animation):
         return any(getattr(extra, "requires_linear_timeline", False) for extra in self.extras)
 
     def _extra(self, animation):
+        # A Focus may join orbit or zoom on the camera channel, since apply() runs it first
+        # and the operations on top, but not a second camera extra.
         conflict = self.channels & animation.channels
         if isinstance(animation, Focus) and not any("camera" in a.channels for a in self.extras):
             conflict -= {"camera"}
@@ -558,18 +686,24 @@ class Animate(Animation):
         return self
 
     def shift(self, vector):
+        """Move by ``vector`` in world ångströms."""
         return self._op("shift", np.asarray(vector, dtype=float))
 
     def rotate(self, angle, axis=(0, 1, 0)):
+        """Turn by ``angle`` radians about the world ``axis`` through the centroid."""
         rotation(angle, axis)
         return self._op("rotate", angle, axis)
 
     def scale(self, factor):
+        """Scale by ``factor`` about the centroid."""
         if factor <= 0:
             raise ValueError("Scale must be positive")
         return self._op("scale", factor)
 
     def set_opacity(self, opacity, **kwargs):
+        """Ease opacity to ``opacity`` in [0, 1]."""
+        # A Region, or options such as residue delays, need the per-atom SetOpacity track;
+        # a whole protein's opacity is an operation here.
         if self.subject is not self.target or kwargs:
             from .styling import SetOpacity
 
@@ -579,9 +713,11 @@ class Animate(Animation):
         return self._op("set_opacity", opacity)
 
     def orbit(self, theta=0, phi=0):
+        """Turn the camera by ``theta`` and ``phi`` radians."""
         return self._op("orbit", theta, phi)
 
     def zoom(self, factor):
+        """Divide the camera distance by ``factor``; values above 1 zoom in."""
         if factor <= 0:
             raise ValueError("Zoom must be positive")
         return self._op("zoom", factor)
@@ -636,48 +772,61 @@ class Animate(Animation):
     def bind(self):
         super().bind()
         self.start = self.target.snapshot()
+        # Centroid in the protein's own frame: the pivot for rotate and scale.
         if hasattr(self.target, "positions"):
             self.center = self.target.positions.mean(0)
+        # Extras share this clip's timing and bind from the same starting state.
         for extra in self.extras:
             extra.run_time = getattr(self, "run_time", 1.0)
             extra.start_time = getattr(self, "start_time", 0.0)
             extra.bind()
 
     def apply(self, alpha):
+        # ``clock`` is the clip progress; the operations follow it through transform_easing,
+        # and each extra through its own rate_func.
         clock = alpha
         alpha = evaluate(self.transform_easing, alpha)
-        p, s = self.target, self.start
+        target, start = self.target, self.start
+        # Reset what the operations write to the start of the clip, so they compose from
+        # there rather than from the previous frame.
         if "camera" in self.channels:
             # A camera movement owns framing, while FocusPull owns the lens.
             for key in ("target", "distance", "theta", "phi", "fov", "depth_cue", "radius", "_tracking"):
-                value = s[key]
-                setattr(p, key, value.copy() if isinstance(value, np.ndarray) else value)
+                value = start[key]
+                setattr(target, key, value.copy() if isinstance(value, np.ndarray) else value)
         if "transform" in self.channels:
-            p.position, p.orientation, p.size = s["position"].copy(), s["orientation"].copy(), s["size"]
+            target.position, target.orientation, target.size = (
+                start["position"].copy(),
+                start["orientation"].copy(),
+                start["size"],
+            )
         if "opacity" in self.channels:
-            p.opacity = s["opacity"]
+            target.opacity = start["opacity"]
+        # Focus sets the framing first, so orbit and zoom then turn and scale that view.
         for extra in self.extras:
             if isinstance(extra, Focus):
                 extra.apply(evaluate(extra.rate_func, clock))
         for name, args in self.operations:
             if name == "rotate":
-                old = p.orientation.copy()
-                p.orientation = rotation(args[0] * alpha, args[1]) @ old
-                p.position += p.size * ((old - p.orientation) @ self.center)
+                # Turn about the centroid, as Rotate does, from the orientation so far.
+                old = target.orientation.copy()
+                target.orientation = rotation(args[0] * alpha, args[1]) @ old
+                target.position += target.size * ((old - target.orientation) @ self.center)
             elif name == "scale":
+                # Grow geometrically about the centroid, which stays where it is.
                 factor = args[0] ** alpha
-                p.position += p.size * (1 - factor) * (p.orientation @ self.center)
-                p.size *= factor
+                target.position += target.size * (1 - factor) * (target.orientation @ self.center)
+                target.size *= factor
             elif name == "set_opacity":
-                p.opacity = (1 - alpha) * s["opacity"] + alpha * args[0]
+                target.opacity = (1 - alpha) * start["opacity"] + alpha * args[0]
             elif name == "shift":
-                p.shift(args[0] * alpha)
+                target.shift(args[0] * alpha)
             elif name == "orbit":
-                p.orbit(args[0] * alpha, args[1] * alpha)
+                target.orbit(args[0] * alpha, args[1] * alpha)
             elif name == "zoom":
-                p.zoom(args[0] ** alpha)
+                target.zoom(args[0] ** alpha)
             elif name == "depth_cue":
-                p.depth_cue = (1 - alpha) * s["depth_cue"] + alpha * args[0]
+                target.depth_cue = (1 - alpha) * start["depth_cue"] + alpha * args[0]
         for extra in self.extras:
             if not isinstance(extra, Focus):
                 extra.apply(evaluate(extra.rate_func, clock))

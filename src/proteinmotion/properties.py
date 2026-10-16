@@ -1,4 +1,12 @@
-"""Residue measurements, numerical color scales, and animated property styling."""
+"""Residue measurements, numerical color scales, and animated property styling.
+
+``ResidueValues`` holds one number per topology residue: hydropathy, B factors, pLDDT,
+RMSF, sequence conservation, or user data. ``ColorScale`` turns numbers into RGB colors and
+is shared with the plots, legends and density maps. ``Protein.color_by()`` (``color_by``
+here) applies the colors at once and ``ColorByProperty`` animates them; both write the
+protein's per-atom appearance table (styling.py) and can also scale the cartoon's
+cross-section per residue. conservation.py and confidence.py supply two of the readers.
+"""
 
 import numpy as np
 
@@ -40,6 +48,7 @@ class ColorScale:
         if not np.isfinite([vmin, vmax]).all() or vmax <= vmin:
             raise ValueError("ColorScale needs finite limits with vmax > vmin")
         self.vmin, self.vmax = float(vmin), float(vmax)
+        # Color stops as rows of RGB in [0, 1].
         self.colors = np.array([color(c) for c in colors])
         if len(self.colors) < 2:
             raise ValueError("Supply at least two color stops")
@@ -107,6 +116,9 @@ class ColorScale:
     def map(self, values):
         """Return RGB colors with shape (*values.shape, 3)."""
         if self.boundaries is not None:
+            # Banded: the band index is the number of boundaries at or below the value, so a
+            # value on a boundary takes the upper band (pLDDT 70 is "confident"). NaN is parked
+            # at vmin for the search and painted ``missing`` afterwards.
             values = np.asarray(values, dtype=float)
             bands = np.searchsorted(
                 self.boundaries, np.nan_to_num(values, nan=self.vmin).ravel(), side="right"
@@ -114,12 +126,24 @@ class ColorScale:
             result = self.colors[bands].copy()
             result[~np.isfinite(values).ravel()] = self.missing
             return result.reshape(values.shape + (3,)).astype(np.float32)
+        # Continuous: interpolate each RGB channel between stops spaced evenly over [0, 1].
         t = self.normalize(values)
         safe = np.nan_to_num(t, nan=0).ravel()
         stops = np.linspace(0, 1, len(self.colors))
         result = np.stack([np.interp(safe, stops, self.colors[:, i]) for i in range(3)], -1)
         result[~np.isfinite(t).ravel()] = self.missing
         return result.reshape(t.shape + (3,)).astype(np.float32)
+
+
+def _atom_matches(index, atom, atoms, anchors):
+    """Whether atom ``index`` is chosen by an ``atoms`` option of b_factors() or rmsf().
+
+    ``atoms`` is None (every atom), "backbone" (the trace atoms in ``anchors``) or an atom
+    name. Names compare with "*" read as "'", because older PDB files write C4′ as C4*.
+    """
+    return atoms is None or (
+        index in anchors if atoms == "backbone" else atom.name.replace("*", "'") == atoms.replace("*", "'")
+    )
 
 
 class ResidueValues:
@@ -130,6 +154,7 @@ class ResidueValues:
     """
 
     def __init__(self, protein, values, *, name="Value", unit="", scale=None):
+        # Residue identities (chain, number, insertion code, name), checked by _validate().
         self.keys = tuple((r.chain, r.resid, r.icode, r.name) for r in protein.topology.residues)
         self.values = np.array(values, dtype=float, copy=True)
         if self.values.shape != (len(self.keys),) or np.isinf(self.values).any():
@@ -146,6 +171,7 @@ class ResidueValues:
         return self._scale if self._scale is not None else ColorScale.from_values(self.values)
 
     def _validate(self, protein):
+        """Raise unless ``protein`` has the same residues, in the same order, as these values."""
         keys = tuple((r.chain, r.resid, r.icode, r.name) for r in protein.topology.residues)
         if keys != self.keys:
             raise ValueError("Residue values belong to a different residue identity/order")
@@ -158,6 +184,7 @@ class ResidueValues:
         for key, value in values.items():
             if not isinstance(key, tuple) or len(key) not in (2, 3):
                 raise ValueError("Keys must be (chain, residue_number[, insertion_code])")
+            # A two-part key matches every insertion code of that number, so it must be unique.
             ids = [i for i, k in enumerate(keys) if k[: len(key)] == key]
             if len(ids) != 1:
                 raise ValueError(f"Residue key {key!r} matches {len(ids)} residues; include insertion codes")
@@ -179,6 +206,8 @@ class ResidueValues:
         for r in protein.topology.residues:
             name = r.name.upper()
             if name not in table and not r.is_nucleic:
+                # Gemmi gives a modified residue its parent's one-letter code in lower case,
+                # such as "m" for selenomethionine (MSE); find the table entry with that code.
                 code = gemmi.find_tabulated_residue(name)
                 parent = code.one_letter_code.upper() if code is not None else ""
                 name = next(
@@ -235,17 +264,11 @@ class ResidueValues:
         The meaning of this field comes from the source file.
         """
         values = np.full(len(protein.topology.residues), np.nan)
+        # B factors of the chosen atoms, gathered per residue and then averaged.
         groups = [[] for _ in values]
         anchors = {r.trace_atom for r in protein.topology.residues}
         for i, atom in enumerate(protein.topology.atoms):
-            if (
-                atoms is None
-                or (
-                    i in anchors
-                    if atoms == "backbone"
-                    else atom.name.replace("*", "'") == atoms.replace("*", "'")
-                )
-            ) and np.isfinite(atom.bfactor):
+            if _atom_matches(i, atom, atoms, anchors) and np.isfinite(atom.bfactor):
                 groups[atom.residue_index].append(atom.bfactor)
         for i, group in enumerate(groups):
             if group:
@@ -270,6 +293,8 @@ class ResidueValues:
             raise ValueError("Trajectory atom identities/order do not match protein")
         if isinstance(stride, bool) or not isinstance(stride, int) or stride < 1:
             raise ValueError("stride must be a positive integer")
+        # Trace atoms fit the frames by default. atoms="backbone" always means these
+        # anchors, even when an alignment Region replaces them for the fit.
         ids = [r.trace_atom for r in protein.topology.residues if r.trace_atom >= 0]
         anchors = set(ids)
         if alignment is not None:
@@ -278,23 +303,23 @@ class ResidueValues:
                 raise ValueError("Alignment region must belong to this protein")
             ids = alignment.atom_indices
         reference = trajectory.frame(0)
+        # Welford's online algorithm: a running mean and sum of squared deviations (m2) per
+        # coordinate, so the whole trajectory never has to be in memory.
         mean = np.zeros_like(reference, dtype=float)
         m2 = np.zeros_like(mean)
         for count, frame in enumerate(range(0, len(trajectory), stride), 1):
             xyz = trajectory.frame(frame)
             if align:
+                # A Kabsch fit needs at least three atoms; with fewer, fit on all atoms.
                 xyz = align_coordinates(xyz, reference, ids if len(ids) >= 3 else None)
             delta = xyz - mean
             mean += delta / count
             m2 += delta * (xyz - mean)
+        # Mean-square fluctuation per atom in Å²: the population variance summed over x, y, z.
         msf = m2.sum(1) / count
         groups = [[] for _ in protein.topology.residues]
         for i, atom in enumerate(protein.topology.atoms):
-            if atoms is None or (
-                i in anchors
-                if atoms == "backbone"
-                else atom.name.replace("*", "'") == atoms.replace("*", "'")
-            ):
+            if _atom_matches(i, atom, atoms, anchors):
                 groups[atom.residue_index].append(msf[i])
         return cls(protein, [np.sqrt(np.mean(g)) if g else np.nan for g in groups], name="RMSF", unit="Å")
 
@@ -310,11 +335,18 @@ def resolve_values(protein, values):
 
 
 def _style(protein, values, scale, thickness):
+    """Per-atom tints and optional per-residue cartoon scale factors for ``values``.
+
+    Returns ``(tint, widths)``. ``tint`` has shape (atoms, 4): the residue's RGB color and a
+    tint strength of 1, which replaces the base palette. ``widths`` is a read-only float32
+    array with one cross-section scale per residue, or None without ``thickness``.
+    """
     values = resolve_values(protein, values)
     values._validate(protein)
     scale = values.scale if scale is None else scale
     if not isinstance(scale, ColorScale):
         raise TypeError("scale must be a ColorScale")
+    # Every atom takes its residue's color.
     atom_residues = np.array([a.residue_index for a in protein.topology.atoms])
     tint = np.column_stack((scale.map(values.values)[atom_residues], np.ones(len(atom_residues))))
     widths = None
@@ -327,6 +359,8 @@ def _style(protein, values, scale, thickness):
             or limits[1] < limits[0]
         ):
             raise ValueError("thickness needs positive (minimum, maximum) cartoon scale factors")
+        # Interpolate between the minimum and maximum by the value's place on the scale;
+        # residues without a value keep the normal cross-section (1).
         t = scale.normalize(values.values)
         widths = np.where(np.isnan(t), 1, limits[0] + np.nan_to_num(t) * (limits[1] - limits[0]))
         widths = widths.astype(np.float32)
@@ -337,6 +371,9 @@ def _style(protein, values, scale, thickness):
 def color_by(protein, values, *, scale=None, thickness=None):
     """Apply property colors and optional cartoon thickness before adding the protein."""
     tint, widths = _style(protein, values, scale, thickness)
+    # Appearance columns 0:4 and 4:8 are the tint before and after a color fade, and 8:11
+    # its start, span and easing flag (see styling.initial_appearance). The same tint at
+    # both ends, with the color clock at 1, shows the property colors at once.
     data = protein._appearance.copy()
     data[:, :4] = data[:, 4:8] = tint
     data[:, 8:11] = [0, 1, 0]
@@ -375,6 +412,7 @@ class ColorByProperty(_AppearanceAnimation):
             reverse=reverse,
             easing=easing,
         )
+        # The scene refuses two concurrent animations that write the same channel.
         if self.widths is not None:
             self.channels |= {"cartoon_thickness"}
 
@@ -383,8 +421,12 @@ class ColorByProperty(_AppearanceAnimation):
         self.start_widths = self.protein._cartoon_scale
 
     def apply(self, alpha):
+        # The base class animates the colors through the protein's appearance table. Cartoon
+        # thickness has no such track, so it is interpolated here with the same timing.
         super().apply(alpha)
         if self.widths is not None:
+            # Residue i starts after i delays (counted from the end when reversed) and then
+            # takes ``span`` seconds, as computed in _AppearanceAnimation.bind().
             ranks = np.arange(len(self.widths))
             if self.reverse:
                 ranks = ranks[::-1]

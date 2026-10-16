@@ -1,4 +1,13 @@
-"""Live distance rulers with depth-tested cylinders or screen overlay leaders."""
+"""Live distance rulers with depth-tested cylinders or screen overlay leaders.
+
+``Region.distance_to()`` creates a ``Distance``, and ``InteractionHighlight`` (interactions.py)
+keeps a pool of them, one per drawn contact. Every frame a ruler measures between its two
+endpoint centroids. With ``mode="3d"`` it gives the renderer a small ``_Ruler`` protein whose
+bond cylinders are the dashes, so molecules in front hide it; with ``mode="2d"`` it returns
+overlay line segments drawn on top of the frame. In both modes ``layout()`` places the
+distance caption as screen-facing text. plots.py reuses ``endpoint`` and torsions.py reuses
+``project``.
+"""
 
 import numpy as np
 
@@ -10,6 +19,12 @@ from .structure import Atom, Residue, Topology
 
 
 def endpoint(region, anchor):
+    """The Region whose centroid marks one end of a ruler.
+
+    With ``anchor="backbone"`` or ``"ca"``, a multi-atom selection inside one residue shrinks
+    to that residue's trace atom (Cα, or C4′/P for nucleotides) or its Cα. Anything else, or a
+    residue without that atom, stays as given.
+    """
     if not isinstance(region, Region):
         raise TypeError("Distance endpoints must be Regions selected from proteins")
     if anchor not in ("backbone", "ca", "centroid"):
@@ -23,9 +38,12 @@ def endpoint(region, anchor):
 
 
 def project(point, camera, width, height):
+    """Pixel position (x right, y down) of a world-space point, or None outside the view."""
     clip = camera.matrix(width / height) @ np.r_[point, 1]
+    # w <= 0 means the point is at or behind the camera.
     if clip[3] <= 1e-8:
         return None
+    # Normalized device coordinates: x and y in [−1, 1] and depth in [0, 1] inside the frustum.
     ndc = clip[:3] / clip[3]
     if not (0 <= ndc[2] <= 1) or np.any(np.abs(ndc[:2]) > 1):
         return None
@@ -33,18 +51,33 @@ def project(point, camera, width, height):
 
 
 def line_intervals(style, count, ratio, progress=1, gap=0):
+    """Visible pieces of a ruler as (start, end) fractions of its length, in order.
+
+    A dashed line has ``count`` dashes, each filling ``ratio`` of its 1/count period. Only
+    the part before ``progress`` (in [0, 1]) is drawn, and ``gap`` (a fraction of the length)
+    is cut out of the middle for the caption, so one dash may split in two.
+    """
     intervals = [(0.0, 1.0)] if style == "solid" else [(i / count, (i + ratio) / count) for i in range(count)]
     result = []
     for a, b in intervals:
         b = min(b, progress)
         for lo, hi in ((0, 0.5 - gap / 2), (0.5 + gap / 2, 1)) if gap else ((0, 1),):
             left, right = max(a, lo), min(b, hi)
+            # Drop pieces that the progress or the gap reduced to nothing.
             if right - left > 1e-8:
                 result.append((left, right))
     return result
 
 
 class _Ruler(Protein):
+    """A stand-in protein whose bond cylinders draw the pieces of a 3D ruler.
+
+    Atoms 2i and 2i + 1 are the two ends of piece i and bond i joins them. The atoms are not
+    drawn, so only cylinders of radius ``radius`` show. Because the ruler is an ordinary
+    Protein, the molecule renderer draws it with depth testing and atoms in front hide it.
+    Its transform stays at the identity, so its coordinates are world coordinates.
+    """
+
     def __init__(self, count, radius, color):
         atoms = tuple(Atom("ruler", i + 1, "", "RUL", "CA", "C", i) for i in range(2 * count))
         residues = tuple(Residue("ruler", i + 1, "", "RUL", i, -1) for i in range(2 * count))
@@ -55,25 +88,34 @@ class _Ruler(Protein):
         self.paint(color)
 
     def paint(self, color):
+        """Set every atom's color (RGB in [0, 1])."""
+        # Metadata rows are RGB and atom radius; the radius stays 0 because atoms are hidden.
         data = np.zeros((len(self.topology.atoms), 4), np.float32)
         data[:, :3] = color
+        # The renderer re-uploads metadata when the array's id changes, so replace it only
+        # when the color really changed.
         if self._metadata_override is None or not np.array_equal(data, self._metadata_override):
             data.flags.writeable = False
             self._metadata_override = data
 
     def update(self, a, b, intervals, opacity):
+        """Lay the pieces along the world-space segment from ``a`` to ``b`` and set opacity."""
         count = len(self.topology.bonds)
         points = np.zeros((count * 2, 3), np.float32)
+        # Appearance columns 12:14 are the per-atom opacity before and after a fade. Hide
+        # every bond, then show one per visible piece; pieces beyond the bond count are dropped.
         appearance = self._appearance.copy()
         appearance[:, 12:14] = 0
         for i, (lo, hi) in enumerate(intervals[:count]):
             points[2 * i : 2 * i + 2] = a + np.array([lo, hi])[:, None] * (b - a)
             appearance[2 * i : 2 * i + 2, 12:14] = 1
+        # As in paint(), replace arrays only on change to avoid needless GPU uploads.
         if not np.array_equal(points, self._a):
             self.set_positions(points)
         if not np.array_equal(appearance, self._appearance):
             appearance.flags.writeable = False
             self._appearance = appearance
+        # A zero-length ruler has no direction to draw.
         self.opacity = opacity if np.linalg.norm(b - a) > 1e-8 else 0
 
 
@@ -137,7 +179,10 @@ class Distance(Annotation):
             font="semibold",
             color=self.color if label_color is None else label_color,
         )
+        # One bond per line piece: dash_count dashes, plus spares for a dash that the caption
+        # gap splits in two.
         self._ruler = _Ruler(dash_count + 2, radius, self.color) if mode == "3d" else None
+        # InteractionHighlight switches unused rulers in its pool off through this flag.
         self.active = True
         self.set_opacity(opacity)
 
@@ -153,14 +198,17 @@ class Distance(Annotation):
 
     @property
     def distance(self):
+        # Model space reads the coordinates themselves, so moving or scaling the protein for
+        # display does not change the number. World space measures what is on screen.
         if self.space == "model":
             return float(np.linalg.norm(self.start.positions.mean(0) - self.end.positions.mean(0)))
         return float(np.linalg.norm(self.start.world_positions.mean(0) - self.end.world_positions.mean(0)))
 
     def _caption(self):
-        return f"{self.prefix}{self.distance / (10 if self.unit == 'nm' else 1):.{self.precision}f}" + (
-            f" {self.unit}" if self.unit else ""
-        )
+        """Caption text such as "12.3 Å": ``prefix``, the distance in ``unit``, then the unit."""
+        value = self.distance / (10 if self.unit == "nm" else 1)  # 1 nm = 10 Å
+        suffix = f" {self.unit}" if self.unit else ""
+        return f"{self.prefix}{value:.{self.precision}f}" + suffix
 
     @property
     def glyph_count(self):
@@ -168,36 +216,53 @@ class Distance(Annotation):
 
     @property
     def text_progress(self):
+        # The caption starts writing at 15% of a Write, while the line (done at 35%) still draws.
         return float(np.clip((self._write - 0.15) / 0.85, 0, 1))
 
     def _evaluate(self, camera, width, height):
+        """Screen placement for this frame, or None when the ruler is hidden.
+
+        Returns ``(a, b, pa, pb, origin, intervals, visibility)``: the world-space endpoint
+        centroids, their pixel positions, the caption's top-left pixel, the visible line
+        pieces from line_intervals(), and an opacity factor in [0, 1].
+        """
         if not self.active:
             return None
+        # Draw between the endpoint centroids as displayed, in world space.
         a, b = self.start.world_positions.mean(0), self.end.world_positions.mean(0)
         pa, pb = project(a, camera, width, height), project(b, camera, width, height)
+        # Hide the whole ruler when either end leaves the view.
         if pa is None or pb is None:
             return None
         if self.show_distance:
             self.title.set_text(self._caption())
+        # Caption size in pixels. Text is laid out in design pixels for a 1080-pixel-high frame.
         size = (
             np.array([self.title.geometry.width, self.title.geometry.height]) * height / 1080
             if self.show_distance
             else np.zeros(2)
         )
+        # A 3D ruler centers its caption on the projected 3D midpoint, which perspective
+        # moves away from the midpoint of the projected ends.
         center = (pa + pb) / 2 if self.mode == "2d" else project((a + b) / 2, camera, width, height)
         if center is None:
             return None
         direction = pb - pa
         length = np.linalg.norm(direction)
         # Leave a readable gap around the centered caption, in both line modes.
+        # Along the line's unit direction, the caption box padded by 7 design pixels ends
+        # (half size + padding) / |component| from the center; the nearer of the x and y
+        # edges counts. The gap is twice that as a fraction of the length, at most 0.95.
         unit = direction / max(length, 1e-8)
         extents = np.where(
             np.abs(unit) > 1e-8, (size / 2 + 7 * height / 1080) / np.maximum(np.abs(unit), 1e-8), np.inf
         )
         gap = min(0.95, 2 * float(extents.min()) / max(length, 1)) if self.show_distance else 0
+        # The line grows from start to end over the first 35% of a Write.
         intervals = line_intervals(
             self.style, self.dash_count, self.dash_ratio, min(1, self._write / 0.35), gap
         )
+        # Fade with the measured atoms: the dimmer endpoint sets the ruler's opacity.
         visibility = (
             min(float(r.protein.atom_opacities[r.atom_indices].mean()) for r in (self.start, self.end))
             if self.follow_opacity
@@ -206,6 +271,7 @@ class Distance(Annotation):
         return a, b, pa, pb, center - size / 2, intervals, visibility
 
     def _geometry_objects(self, camera, width, height, *, parent_opacity=1):
+        # Only 3D rulers add geometry to the 3D pass; 2D lines come from layout().
         if self._ruler is None:
             return []
         result = self._evaluate(camera, width, height)
@@ -221,10 +287,12 @@ class Distance(Annotation):
         result = self._evaluate(camera, width, height)
         if result is None:
             return AnnotationLayout([], [])
-        _, _, a, b, origin, intervals, visibility = result
+        _, _, pa, pb, origin, intervals, visibility = result
         leaders = []
         if self.mode == "2d" and intervals:
-            pairs = a + np.asarray(intervals)[:, :, None] * (b - a)
+            # Shape (pieces, 2, 2): the start and end pixel of each piece. The overlay draws
+            # a 3D points array as separate segments rather than one polyline.
+            pairs = pa + np.asarray(intervals)[:, :, None] * (pb - pa)
             leaders = [Leader(pairs, self.color, self.line_width * height / 1080, visibility)]
         text = [Placement(self.title, origin, opacity=visibility)] if self.show_distance else []
         return AnnotationLayout(text, leaders)

@@ -1,20 +1,35 @@
-"""Native adapter selection shared by rendering and diagnostics."""
+"""Native adapter selection shared by rendering and diagnostics.
+
+``Renderer`` (renderer.py) calls ``select_adapter`` to choose the GPU it opens, and
+``proteinmotion doctor`` (cli.py) calls it to report which GPU a render would use.
+"""
 
 import os
 import sys
 
 import wgpu
 
+# The backends ProteinMotion accepts, spelled as wgpu reports them in an adapter's backend_type.
 BACKENDS = ("Vulkan", "D3D12", "Metal", "OpenGL")
 
 
 def select_adapter(*, backend=None, adapter_name=None, require_metal=None):
+    """Return the native wgpu adapter to render on.
+
+    ``backend`` is one of ``BACKENDS`` (any case, also "dx12"), or "auto"/None for the platform
+    default. ``adapter_name`` is a case-insensitive substring of the GPU's vendor, device or
+    description. Either falls back to its environment variable when None. On macOS the
+    automatic choice is Metal; ``require_metal=True`` demands Metal on any platform.
+    """
+    # Explicit arguments win over ProteinMotion's environment variables, which win over the
+    # names wgpu-py itself reads.
     backend = backend or os.environ.get("PROTEINMOTION_GPU_BACKEND") or os.environ.get("WGPU_BACKEND_TYPE")
     adapter_name = (
         adapter_name
         or os.environ.get("PROTEINMOTION_GPU_ADAPTER")
         or os.environ.get("WGPUPY_WGPU_ADAPTER_NAME")
     )
+    # Normalize the backend name to wgpu's spelling; None means any backend.
     if backend and backend.lower() != "auto":
         names = {name.lower(): name for name in BACKENDS}
         names.update(dx12="D3D12", directx12="D3D12")
@@ -28,6 +43,7 @@ def select_adapter(*, backend=None, adapter_name=None, require_metal=None):
             raise ValueError("require_metal=True conflicts with the selected GPU backend")
         backend = "Metal"
 
+    # Skip software (CPU) adapters, then filter by backend and by name.
     candidates = [
         a
         for a in wgpu.gpu.enumerate_adapters_sync()

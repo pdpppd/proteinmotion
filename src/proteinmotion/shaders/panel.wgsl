@@ -1,6 +1,9 @@
+// Flat-colored overlay panels (overlay.py), in pixels from the top-left of the viewport.
+// size is the viewport in pixels; pad fills the struct to 16 bytes.
 struct Uniform { size:vec2f, opacity:f32, pad:f32 };
 @group(0) @binding(0) var<uniform> panel:Uniform;
 struct Out { @builtin(position) position:vec4f, @location(0) color:vec4f };
+// Pixel coordinates to clip space: x from [0, width] to [-1, 1], y flipped so +y points down.
 @vertex fn vertex(@location(0) point:vec2f, @location(1) color:vec4f) -> Out {
     var out:Out;
     out.position=vec4f(2.0*point.x/panel.size.x-1.0,1.0-2.0*point.y/panel.size.y,0.0,1.0);

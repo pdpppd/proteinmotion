@@ -1,5 +1,9 @@
 
 // GPU molecular surface, step 2: ray-march the density grid inside its bounding box.
+// StudioRenderer._shader_code appends this file to molecule.wgsl, so it uses that file's
+// camera, shade(), transparent() and cut_to(). molecule.wgsl already uses bind groups 0-2,
+// so the grid's own resources are in group 3. Coordinates called local are in the
+// protein's model frame (Å), where the grid lattice is fixed.
 struct GridSurface {
     model: mat4x4f,
     inv_model: mat4x4f,
@@ -26,15 +30,19 @@ struct GridVertex {
     return out;
 }
 
+// Texture coordinates of a local point. Voxel i sits at grid_min + i × spacing, which is
+// texel center (i + 0.5) / n.
 fn grid_uvw(local: vec3f) -> vec3f {
     return ((local - grid.grid_min.xyz) / grid.grid_min.w + 0.5) / grid.grid_size.xyz;
 }
+// Trilinearly interpolated density.
 fn grid_value(local: vec3f) -> f32 {
     return textureSampleLevel(grid_density, grid_sampler, grid_uvw(local), 0.0).r;
 }
 fn grid_world(local: vec3f) -> vec3f { return (grid.model * vec4f(local, 1.0)).xyz; }
 // The cutaway carves the density field itself, so cut walls are smooth isosurfaces
 // with correct normals rather than sharp slices through the interior.
+// A complete cut (cut_to = 1) lowers the field by 24, far below the isovalue of 1.
 fn grid_field(local: vec3f) -> f32 {
     var value = grid_value(local);
     if camera.cutaway_shape.x > 0.0 {
@@ -44,21 +52,26 @@ fn grid_field(local: vec3f) -> f32 {
 }
 
 struct GridHit { found: bool, local: vec3f };
+// First crossing of the isovalue along this pixel's ray, in local coordinates.
 fn grid_march(ndc: vec2f) -> GridHit {
     var hit: GridHit;
     // Build the ray from the camera basis: exact at any near/far plane ratio.
+    // With right = forward × world up and up = right × forward, up × right is forward.
+    // A pinhole ray through the pixel is forward + x·tan(fov/2)·aspect·right + y·tan(fov/2)·up.
     let right = camera.view_right.xyz;
     let up = camera.view_up.xyz;
     let forward = cross(up, right);
     let world_dir = forward + ndc.x * grid.params.y * grid.params.z * right + ndc.y * grid.params.y * up;
     let eye = (grid.inv_model * vec4f(camera.eye_fog_start.xyz, 1.0)).xyz;
     let dir = normalize((grid.inv_model * vec4f(world_dir, 0.0)).xyz);
+    // Slab test: the ray enters the grid box at near and leaves it at far.
     let extent = (grid.grid_size.xyz - 1.0) * grid.grid_min.w;
     let lo = grid.grid_min.xyz; let hi = lo + extent;
     let inv = 1.0 / dir;
     let t0 = (lo - eye) * inv; let t1 = (hi - eye) * inv;
     let near = max(max(min(t0.x, t1.x), min(t0.y, t1.y)), min(t0.z, t1.z));
     let far = min(min(max(t0.x, t1.x), max(t0.y, t1.y)), max(t0.z, t1.z));
+    // March in steps of 0.55 voxel, starting at the eye if it is inside the box.
     var t = max(near, 0.0);
     let step = grid.grid_min.w * 0.55;
     let iso = grid.grid_size.w;
@@ -68,6 +81,7 @@ fn grid_march(ndc: vec2f) -> GridHit {
         let p = eye + dir * t;
         if grid_field(p) >= iso {
             // Refine the crossing between the last empty sample and this one.
+            // Six bisection steps narrow it to 1/64 of a step.
             var a = prev; var b = t;
             for (var k = 0; k < 6; k++) {
                 let m = 0.5 * (a + b);
@@ -84,6 +98,8 @@ fn grid_march(ndc: vec2f) -> GridHit {
     hit.found = false;
     return hit;
 }
+// Central differences 0.75 voxel apart. The density rises inward, so the outward normal
+// is minus its gradient. Callers normalize it.
 fn grid_normal(local: vec3f) -> vec3f {
     let e = grid.grid_min.w * 0.75;
     let g = vec3f(
@@ -93,6 +109,7 @@ fn grid_normal(local: vec3f) -> vec3f {
     return -g;
 }
 
+// Color and opacity at a surface point: the density-weighted sums divided by the density.
 fn grid_rgba(local: vec3f) -> vec4f {
     let uvw = grid_uvw(local);
     let d = textureSampleLevel(grid_density, grid_sampler, uvw, 0.0);
@@ -103,6 +120,8 @@ fn grid_rgba(local: vec3f) -> vec4f {
     return vec4f(c / w, select(alpha, 1.0, alpha > 0.985));
 }
 
+// Opaque pass: fully opaque hits only; partly transparent ones go to grid_transparent.
+// The hit's own depth is written, so the surface depth-tests against other geometry.
 struct GridPixel { @location(0) color: vec4f, @builtin(frag_depth) depth: f32 };
 @fragment fn grid_fragment(in: GridVertex) -> GridPixel {
     let hit = grid_march(in.ndc);
@@ -118,6 +137,8 @@ struct GridPixel { @location(0) color: vec4f, @builtin(frag_depth) depth: f32 };
     return out;
 }
 
+// Transparent pass: partly transparent hits, into the weighted blended OIT targets of
+// molecule.wgsl.
 struct GridTransparent {
     @location(0) accumulation: vec4f,
     @location(1) revealage: f32,

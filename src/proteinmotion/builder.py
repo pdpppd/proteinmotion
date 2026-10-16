@@ -3,6 +3,9 @@
 Geometry uses Engh & Huber backbone values and standard side-chain internal
 coordinates. Every atom is placed from three earlier atoms by a bond length, a
 bond angle and a torsion, so φ, ψ, ω and χ angles are exact by construction.
+
+Protein.build() calls build_peptide(), which returns a Topology and coordinates in the
+same form load_structure() gives for a file, with DSSP secondary structure assigned.
 """
 
 import numpy as np
@@ -128,6 +131,7 @@ SIDE_CHAINS = {
     ],
 }
 # Common rotamers (degrees): mostly χ1 near −65° (m); Ser/Thr/Val use their usual ones.
+# Values are χ1, χ2, … in order; Ala and Gly have none.
 # A side chain that would clash with the backbone turns χ1 to the clearest of these.
 ROTAMERS = {
     "ARG": (-65, 180, 180, 180),
@@ -153,6 +157,9 @@ ROTAMERS = {
 
 def place(a, b, c, length, angle, torsion):
     """The atom bonded to c with bond length, angle b–c–d and torsion a–b–c–d in degrees."""
+    # NeRF (natural extension reference frame): build an orthonormal frame on the b→c bond,
+    # with ``normal`` perpendicular to the a–b–c plane, and place d in that frame from its
+    # internal coordinates. θ is the bond angle and τ the torsion.
     bc = c - b
     bc /= np.linalg.norm(bc)
     normal = np.cross(b - a, bc)
@@ -167,6 +174,7 @@ def _side_chain(name, own, chi):
     placed = dict(own)
     result = {}
     for atom, _, (a, b, c), length, bond_angle, torsion in SIDE_CHAINS.get(name, ()):
+        # "chi2" means χ2, chi[1]; ("chi2", 180.0) means χ2 + 180°.
         if isinstance(torsion, str):
             torsion = chi[int(torsion[3:]) - 1]
         elif isinstance(torsion, tuple):
@@ -176,7 +184,9 @@ def _side_chain(name, own, chi):
 
 
 def _sequence(sequence):
+    """Three-letter residue names from one-letter codes or from a list of residue names."""
     if isinstance(sequence, str):
+        # Spaces and alignment gaps ("-") are ignored.
         letters = [c for c in sequence.upper() if not c.isspace() and c != "-"]
         unknown = sorted({c for c in letters if c not in ONE_LETTER})
         if unknown:
@@ -190,6 +200,7 @@ def _sequence(sequence):
 
 
 def _per_residue(value, count, name):
+    """A (count,) float array from one value for every residue or one value per residue."""
     array = np.asarray(value, dtype=float)
     if array.ndim == 0:
         return np.full(count, float(array))
@@ -220,37 +231,81 @@ def build_peptide(
     phi = np.where(np.array(names) == "PRO", -65.0, phi)
 
     # Backbone first, so side chains can avoid it.
+    frames = _backbone(names, phi, psi, omega, hydrogens)
+    _add_side_chains(names, frames)
+    atoms, xyz, residues = _atom_records(names, frames, chain, first)
+    xyz = _lay_along_x(xyz, residues, count)
+    xyz = coordinates(xyz)
+    atoms = tuple(atoms)
+    topology = Topology(atoms, tuple(residues), infer_bonds(atoms, xyz), make_chains(residues, xyz, atoms))
+    from dataclasses import replace
+
+    from .secondary import assign
+
+    # Label the cartoon from the geometry just built, as DSSP would for a deposited model.
+    states = assign(topology, xyz)
+    residues = tuple(replace(r, secondary=s) for r, s in zip(topology.residues, states))
+    return Topology(atoms, residues, topology.bonds, topology.chains), xyz
+
+
+def _backbone(names, phi, psi, omega, hydrogens):
+    """Backbone atoms (and Cβ, OXT, amide H) of each residue, as dicts of name → position."""
     frames = []
+    last = len(names) - 1
+    # The first residue lies in the xy-plane: N at the origin, Cα along +x, and C at the
+    # N–Cα–C bond angle from the Cα→N direction.
     n = np.array([0.0, 0.0, 0.0])
     ca = np.array([N_CA, 0.0, 0.0])
     angle = np.radians(180 - N_CA_C)
     c = ca + CA_C * np.array([np.cos(angle), np.sin(angle), 0.0])
     for i, name in enumerate(names):
         if frames:
+            # Each later residue grows from the previous one: ψ of the previous residue
+            # places N, ω places Cα, and this residue's φ places C.
             p_n, p_ca, p_c = frames[-1]["N"], frames[-1]["CA"], frames[-1]["C"]
             n = place(p_n, p_ca, p_c, C_N, CA_C_N, psi[i - 1])
             ca = place(p_ca, p_c, n, N_CA, C_N_CA, omega[i - 1])
             c = place(p_c, n, ca, CA_C, N_CA_C, phi[i])
+        # The carbonyl O is trans to the next residue's N, so its N–Cα–C–O torsion is ψ + 180°.
         own = {"N": n, "CA": ca, "C": c, "O": place(n, ca, c, C_O, CA_C_O, psi[i] + 180.0)}
         if name != "GLY":
             own["CB"] = place(c, n, ca, CA_CB, PRO_N_CA_CB if name == "PRO" else N_CA_CB, CB_TORSION)
-        if i == count - 1:
+        if i == last:
+            # The terminal carboxylate's second oxygen sits where a next residue's N would go.
             own["OXT"] = place(n, ca, c, 1.25, 117.0, psi[i])
         if hydrogens and frames and name != "PRO":
+            # The amide H lies in the peptide plane on the outer bisector of the C–N–Cα
+            # angle. The N terminus and proline get no amide H.
             bisector = (n - frames[-1]["C"]) / C_N + (n - ca) / N_CA
             own["H"] = n + N_H * bisector / np.linalg.norm(bisector)
         frames.append(own)
+    return frames
+
+
+def _add_side_chains(names, frames):
+    """Add side-chain atoms to ``frames`` in place, choosing χ1 so that nothing clashes.
+
+    Residues are placed from the N terminus on; each avoids the backbone of every residue
+    and the side chains already placed.
+    """
     heavy = [np.array([v for k, v in f.items() if k != "H"]) for f in frames]
     for i, name in enumerate(names):
         own = frames[i]
         others = np.concatenate([h for k, h in enumerate(heavy) if k != i])
         default = ROTAMERS.get(name, ())
         best = None
+        # Try the residue's usual χ1 first, then the three staggered rotamers (m, t, p).
+        # dict.fromkeys drops repeats and keeps the order. Proline keeps its ring pucker.
+        # Ala and Gly have nothing beyond Cβ, so their first try is empty and ends the loop.
         for chi1 in dict.fromkeys((default[:1] or (0,)) + (-65.0, 180.0, 60.0)):
             chi = (chi1, *default[1:]) if name != "PRO" else default
             atoms_i = _side_chain(name, own, chi)
             if not atoms_i:
                 break
+            # Clearance is the closest approach of this side chain to any other residue's
+            # heavy atoms. A later rotamer must be clearly better (by 0.05 Å) to replace
+            # an earlier, more common one. 2.9 Å, about the closest heavy-atom contact in
+            # real structures, counts as free of clashes and stops the search.
             clearance = np.min(
                 np.linalg.norm(np.array(list(atoms_i.values()))[:, None] - others[None], axis=2)
             )
@@ -263,10 +318,14 @@ def build_peptide(
             own.update(best[1])
             heavy[i] = np.array([v for k, v in own.items() if k != "H"])
 
+
+def _atom_records(names, frames, chain, first):
+    """Atoms, float64 (atoms, 3) coordinates and residues, in PDB atom order."""
     atoms, xyz, residues = [], [], []
     for i, (name, own) in enumerate(zip(names, frames)):
         elements = {"N": "N", "CA": "C", "C": "C", "O": "O", "CB": "C", "OXT": "O", "H": "H"}
         elements.update({atom: element for atom, element, *_ in SIDE_CHAINS.get(name, ())})
+        # PDB order: backbone, Cβ, the rest of the side chain as placed, then OXT and H.
         order = [k for k in ("N", "CA", "C", "O", "CB") if k in own]
         order += [k for k in own if k not in order and k not in ("OXT", "H")]
         order += [k for k in ("OXT", "H") if k in own]
@@ -276,25 +335,20 @@ def build_peptide(
             atoms.append(Atom(chain, first + i, "", name, atom_name, elements[atom_name], i))
             xyz.append(own[atom_name])
         residues.append(residue_record(chain, first + i, "", name, index, atoms))
-    xyz = np.asarray(xyz, dtype=np.float64)
-    # Center the chain and lay it along x, N terminus on the left.
+    return atoms, np.asarray(xyz, dtype=np.float64), residues
+
+
+def _lay_along_x(xyz, residues, count):
+    """Center the chain and lay it along x, N terminus on the left."""
     trace = xyz[[r.ca for r in residues]]
     center = trace.mean(0)
     if count > 2:
+        # The first principal axis of the Cα trace becomes x, pointing from the N to the
+        # C terminus; the second becomes y, and z = x × y keeps the frame right-handed.
+        # Two points do not define a second axis, so short peptides are only centered.
         _, _, axes = np.linalg.svd(trace - center)
         x = axes[0] if np.dot(axes[0], trace[-1] - trace[0]) >= 0 else -axes[0]
         y = axes[1]
         z = np.cross(x, y)
-        xyz = (xyz - center) @ np.array([x, y, z]).T
-    else:
-        xyz = xyz - center
-    xyz = coordinates(xyz)
-    atoms = tuple(atoms)
-    topology = Topology(atoms, tuple(residues), infer_bonds(atoms, xyz), make_chains(residues, xyz, atoms))
-    from dataclasses import replace
-
-    from .secondary import assign
-
-    states = assign(topology, xyz)
-    residues = tuple(replace(r, secondary=s) for r, s in zip(topology.residues, states))
-    return Topology(atoms, residues, topology.bonds, topology.chains), xyz
+        return (xyz - center) @ np.array([x, y, z]).T
+    return xyz - center

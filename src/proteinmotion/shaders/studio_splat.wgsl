@@ -1,4 +1,7 @@
 // GPU molecular surface, step 1: splat each atom's Gaussian density and color into a grid.
+// Used only with StudioLook(surface_mode="density"). _GridSurface.update (studio.py) clears
+// accum, runs splat_atoms with one thread per atom, then resolve_grid with one thread per
+// voxel. Step 2, the ray-march, is in studio_surface.wgsl.
 struct Splat {
     grid_min: vec4f,   // xyz local grid origin, w voxel spacing
     dims: vec4u,       // nx, ny, nz, atom count
@@ -7,10 +10,13 @@ struct Splat {
 @group(0) @binding(0) var<uniform> splat: Splat;
 @group(0) @binding(1) var<storage, read> atoms: array<vec4f>;    // xyz local, w radius
 @group(0) @binding(2) var<storage, read> colors: array<vec4f>;   // rgb, opacity
+// Five sums per voxel: density, then density-weighted red, green, blue and opacity.
 @group(0) @binding(3) var<storage, read_write> accum: array<atomic<u32>>;
 @group(0) @binding(4) var density_out: texture_storage_3d<rgba16float, write>;
 @group(0) @binding(5) var color_out: texture_storage_3d<rgba16float, write>;
 
+// WGSL has atomic integers only, so the sums are fixed point: a stored 1 is 1/4096 of
+// density or 1/1024 of weighted color or opacity.
 const DENSITY_SCALE = 4096.0;
 const COLOR_SCALE = 1024.0;
 
@@ -20,7 +26,10 @@ fn splat_atoms(@builtin(global_invocation_id) id: vec3u) {
     if i >= splat.dims.w { return; }
     let atom = atoms[i];
     let color = colors[i];
+    // Hidden atoms, and ligands, ions and waters (given opacity 0), add nothing.
     if color.a <= 0.0 { return; }
+    // r: inflated radius (Å). k: blobbiness. h: voxel spacing (Å). Each atom reaches the
+    // voxels within 2r of its center, clipped to the grid.
     let r = atom.w + splat.params.x;
     let k = splat.params.y;
     let h = splat.grid_min.w;
@@ -38,6 +47,7 @@ fn splat_atoms(@builtin(global_invocation_id) id: vec3u) {
                 // Blobby (Blinn) density: exactly 1 at the inflated radius of a lone atom.
                 let w = exp(-k * (d2 / (r * r) - 1.0));
                 if w < 0.004 { continue; }
+                // Voxel index with x varying fastest, then five accumulator slots per voxel.
                 let v = u32(x) + splat.dims.x * (u32(y) + splat.dims.y * u32(z));
                 atomicAdd(&accum[v * 5u], u32(w * DENSITY_SCALE));
                 atomicAdd(&accum[v * 5u + 1u], u32(w * color.r * COLOR_SCALE));
@@ -62,6 +72,7 @@ fn resolve_grid(@builtin(global_invocation_id) id: vec3u) {
         f32(atomicLoad(&accum[v * 5u + 3u])),
         f32(atomicLoad(&accum[v * 5u + 4u])),
     ) / COLOR_SCALE;
+    // density_out: red density, green weighted opacity. color_out: weighted rgb.
     textureStore(density_out, id, vec4f(density, weighted.a, 0.0, 0.0));
     textureStore(color_out, id, vec4f(weighted.rgb, 1.0));
 }

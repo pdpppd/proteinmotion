@@ -1,4 +1,12 @@
-"""Random-access trajectories with bounded frame caches."""
+"""Random-access trajectories with bounded frame caches.
+
+A Trajectory wraps any sequence of (atoms, 3) coordinate frames: a list of arrays, a
+memory-mapped .npy file, an MDAnalysis reader, or an aligned view of another trajectory.
+Frames are read and validated only when asked for, so memory-mapped files and MD
+readers never load a whole simulation. Protein.from_file() stores NMR models as a
+Trajectory, PlayTrajectory (animation.py) plays one through a FrameCache, and
+time-series plots read its timestamps.
+"""
 
 from collections import OrderedDict
 
@@ -17,9 +25,13 @@ class Trajectory:
         if len(frames) < 1:
             raise ValueError("Trajectory must contain at least one frame")
         self._times = None if times is None else self._validate_times(times, len(frames))
+        # A callable that returns the timestamps, read on first use of ``times``. MD readers
+        # must seek through the whole file to collect them, so they wait until needed.
         self._time_reader = None
         self.time_unit = str(time_unit)
+        # Any object with len() and indexing that returns one (atoms, 3) frame.
         self._frames = frames
+        # Factor that converts the stored units to Å.
         self._factor = 10.0 if units == "nm" else 1.0
         self.topology = topology
         self.n_atoms = len(self.frame(0))
@@ -28,6 +40,7 @@ class Trajectory:
 
     @staticmethod
     def _validate_times(times, count):
+        """A read-only float array of ``count`` finite, strictly increasing timestamps."""
         values = np.array(times, dtype=float, copy=True)
         if values.shape != (count,) or not np.isfinite(values).all() or (np.diff(values) <= 0).any():
             raise ValueError("times needs one finite, strictly increasing timestamp per frame")
@@ -47,6 +60,7 @@ class Trajectory:
         return len(self._frames)
 
     def frame(self, index):
+        """Read one frame as a float32 (atoms, 3) array in Å."""
         if not 0 <= index < len(self):
             raise IndexError(index)
         a = np.asarray(self._frames[index], dtype=np.float32)
@@ -54,6 +68,7 @@ class Trajectory:
             a = a * self._factor
         if a.ndim != 2 or a.shape[1] != 3 or not np.isfinite(a).all():
             raise ValueError(f"Invalid coordinates in frame {index}")
+        # __init__ reads frame 0 to learn n_atoms, so the attribute may not exist yet.
         if hasattr(self, "n_atoms") and len(a) != self.n_atoms:
             raise ValueError(f"Atom count changes in frame {index}")
         return a
@@ -79,6 +94,7 @@ class Trajectory:
         group = universe.select_atoms(selection)
         if not len(group):
             raise ValueError("MD selection contains no atoms")
+        # Build the topology from the selected atoms, one residue at a time.
         atoms, residues = [], []
         for ri, res in enumerate(group.residues):
             selected = res.atoms.intersection(group)
@@ -88,7 +104,10 @@ class Trajectory:
                 try:
                     element = a.element.title()
                 except (AttributeError, mda.exceptions.NoDataError):
+                    # Topologies without element records (GRO files, for example): guess from
+                    # the first letter of the name after any leading digits, so "1HB" is H.
                     element = a.name.lstrip("0123456789")[0].upper()
+                # PDB-style chain ID if the topology has one, otherwise the segment ID.
                 chain = getattr(a, "chainID", "") or a.segid
                 atoms.append(
                     Atom(chain, int(a.resid), getattr(a, "icode", "").strip(), a.resname, a.name, element, ri)
@@ -118,6 +137,11 @@ class Trajectory:
         return result
 
     def aligned(self, reference=None, *, indices=None, selection=None):
+        """A lazy trajectory with every frame superposed on ``reference`` (default: frame 0).
+
+        The Kabsch fit uses ``indices`` or the atoms of ``selection`` when given, all atoms
+        otherwise, and moves the whole frame. Timestamps carry over.
+        """
         if selection is not None:
             from .regions import Region
 
@@ -131,6 +155,8 @@ class Trajectory:
         reference = coordinates(self.frame(0) if reference is None else reference, self.n_atoms)
         parent = self
 
+        # Frames are aligned one at a time as they are read. parent.frame() has already
+        # converted them to Å, so the new trajectory keeps the default units.
         class Aligned:
             def __len__(self):
                 return len(parent)
@@ -144,13 +170,18 @@ class Trajectory:
 
 
 class _MDFrames:
+    """Frames of an MDAnalysis Universe for the selected atom indices; frame i is reader frame i × stride."""
+
     def __init__(self, universe, indices, stride):
         self.universe, self.indices, self.stride = universe, indices, stride
 
     def __len__(self):
+        # Ceiling division: frames 0, stride, 2 × stride, … that exist in the file.
         return (len(self.universe.trajectory) + self.stride - 1) // self.stride
 
     def times(self):
+        """Timestamps in ps of the strided frames."""
+        # Indexing the reader seeks it. Return to the frame it was on afterwards.
         reader = self.universe.trajectory
         current = reader.frame
         try:
@@ -159,11 +190,18 @@ class _MDFrames:
             reader[current]
 
     def __getitem__(self, i):
+        # Seeking loads the frame into universe.atoms.positions, which the next seek
+        # overwrites, so return a copy.
         self.universe.trajectory[i * self.stride]
         return np.array(self.universe.atoms.positions[self.indices], dtype=np.float32, copy=True)
 
 
 class FrameCache:
+    """Least-recently-used cache of validated, read-only frames, at most ``maxsize`` of them.
+
+    PlayTrajectory reads the two frames around the current time through it.
+    """
+
     def __init__(self, trajectory, maxsize=3):
         self.trajectory, self.maxsize = trajectory, maxsize
         self.cache = OrderedDict()

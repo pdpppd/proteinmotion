@@ -1,4 +1,14 @@
-"""Named studio lighting, materials, and global film effects."""
+"""Named studio lighting, materials, and global film effects.
+
+StudioLook holds every setting of the Studio renderer (studio.py). StudioRenderer compiles
+the lights and the material into its scene shader when it is created (STUDIO_SHADE), and
+reads the effect settings again for every frame. Scenes, the preview window and the CLI
+(cli.py) build a look from preset names plus explicit overrides.
+
+A preset fills only the fields that are still None, so the precedence is: explicit values,
+then the grain, bloom and halation presets, then the ``effects`` recipe, then the lighting
+and material presets, then the fallbacks in StudioLook.__post_init__.
+"""
 
 from dataclasses import dataclass, fields, replace
 
@@ -6,7 +16,12 @@ import numpy as np
 
 
 class _PresetFloat(float):
-    """Resolved default carrying its recipe through dataclasses.replace()."""
+    """Resolved default carrying its recipe through dataclasses.replace().
+
+    The type marks a value that a preset filled in, as opposed to one the user set.
+    ``recipe`` is what the field held before resolution: the preset name for the grain,
+    bloom or halation field itself, None for every other filled-in field.
+    """
 
     def __new__(cls, value, recipe=None):
         result = super().__new__(cls, value)
@@ -15,11 +30,24 @@ class _PresetFloat(float):
 
 
 class _PresetTuple(tuple):
-    pass
+    """A color or direction that a preset filled in (see _PresetFloat)."""
 
 
-# Lighting presets: lights that follow the camera (direction in camera right/up/toward-camera
-# axes, color, intensity), hemisphere ambient, and the matching occlusion and bloom strengths.
+# Lighting presets. Every light is fixed to the camera, so a molecule stays lit from the
+# same side of the screen while the camera orbits.
+#   key, fill, rim      Intensity: a unitless multiplier of the light's color. Diffuse light
+#                       is base color / π × intensity, so an intensity of about 3.14 lights a
+#                       surface that faces a white light to its own base color. The rim light
+#                       also adds a colored band along silhouettes.
+#   *_color             Linear RGB color, multiplied by the intensity. Values may exceed 1.
+#   *_direction         Direction from the surface toward the light, in camera axes: x to the
+#                       right of the screen, y up, z toward the viewer. Negative z puts a light
+#                       behind the molecule, as for the rim light. The shader normalizes it.
+#   ambient, sky,       Hemisphere ambient light: base color × ambient × a blend from ground
+#   ground              (normals pointing down the screen) to sky (pointing up). Unlike the
+#                       lights, the ambient term is not divided by π.
+#   ambient_occlusion,  Occlusion strength in [0, 1] for this lighting, and the bloom strength
+#   bloom               used when no effects recipe or bloom preset sets one.
 LIGHTING_PRESETS = {
     # Warm key from the upper left, cool fill, mint rim: the default film look.
     "studio": dict(
@@ -92,6 +120,13 @@ LIGHTING_PRESETS = {
 }
 
 # Material presets: base roughness, specular strength, and a clearcoat layer.
+#   roughness             GGX roughness in [0.02, 1], squared in the shader (alpha =
+#                         roughness²). Low values give small, sharp highlights.
+#   specular              Strength of the base specular lobe, whose Fresnel reflectance is
+#                         4% at normal incidence, as for a typical dielectric. It also scales
+#                         a faint reflection of the ambient sky.
+#   clearcoat             Strength of a second specular lobe added on top, like a lacquer.
+#   clearcoat_roughness   GGX roughness of the clearcoat lobe.
 MATERIAL_PRESETS = {
     "rough": dict(roughness=0.85, specular=0.45, clearcoat=0.0, clearcoat_roughness=0.4),
     "medium": dict(roughness=0.55, specular=0.8, clearcoat=0.25, clearcoat_roughness=0.3),
@@ -99,6 +134,15 @@ MATERIAL_PRESETS = {
 }
 
 # Named recipes can be combined, or overridden with a numeric strength (0 disables).
+# Thresholds compare the luminance of the scene's HDR color, in which 1 is display white.
+#   grain                 Amplitude of monochrome noise in display values (0 to 1), largest
+#                         in midtones. grain_size is the noise cell in 1080p pixels.
+#   bloom                 Multiplier of the blurred highlights added onto the image.
+#                         bloom_threshold is where blooming starts (with a soft knee);
+#                         bloom_radius widens the blur filter (1 is the standard tent).
+#   halation              Multiplier of the warm fringe around the outside of bright edges.
+#                         halation_threshold is where bright areas start to spill;
+#                         halation_radius is the Gaussian blur sigma in 1080p pixels.
 GRAIN_PRESETS = {
     "off": dict(grain=0.0),
     "fine": dict(grain=0.018, grain_size=0.75),
@@ -115,6 +159,7 @@ HALATION_PRESETS = {
     "subtle": dict(halation=0.2, halation_threshold=0.8, halation_radius=3.0),
     "warm": dict(halation=0.5, halation_threshold=0.65, halation_radius=6.0),
 }
+# Global recipes (``effects=``) that set grain, bloom and halation together.
 EFFECTS_PRESETS = {
     "clean": dict(grain=0.0, bloom=0.0, halation=0.0),
     "subtle": dict(grain=0.014, grain_size=0.75, bloom=0.2, halation=0.12),
@@ -144,6 +189,12 @@ class StudioLook:
     ``StudioLook(lighting="dramatic", material="medium", grain="fine",
     bloom="soft", halation="warm")``. Zero disables an effect.
 
+    Lights follow the camera. Their directions are in camera axes (x right, y up, z toward
+    the viewer) and point toward the light. Light colors are linear RGB multipliers, and the
+    ``key``, ``fill`` and ``rim`` intensities scale them: about 3.14 lights a surface facing
+    a white light to its own base color. ``sky`` and ``ground`` color the ambient light
+    from above and below the screen, scaled by ``ambient``.
+
     Explicit controls override individual effect presets, which override the global
     recipe. With no effects recipe, the original lighting-dependent bloom is retained.
     Grain size and halation radius use 1080p design pixels and scale with output height.
@@ -155,9 +206,11 @@ class StudioLook:
     round loop tubes. ``"legacy"`` retains the original elliptical sweep.
     """
 
+    # Preset names. A field left as None below takes its value from a preset.
     lighting: str = "studio"
     material: str = "glossy"
     effects: str | None = None
+    # Lights and ambient (see LIGHTING_PRESETS), compiled into the scene shader.
     key: float = None
     key_color: tuple = None
     key_direction: tuple = None
@@ -170,47 +223,59 @@ class StudioLook:
     ambient: float = None
     sky: tuple = None
     ground: tuple = None
+    # Material (see MATERIAL_PRESETS), compiled into the scene shader.
     roughness: float = None
     specular: float = None
     clearcoat: float = None
     clearcoat_roughness: float = None
+    # Post-processing (see GRAIN_PRESETS), read again for every frame.
     ambient_occlusion: float = None
     bloom: float | str | None = None
     bloom_threshold: float | None = None
     bloom_radius: float | None = None
     grain: float | str | None = None
     grain_size: float | None = None
-    grain_fps: float = 24.0
+    grain_fps: float = 24.0  # Grain pattern changes per second of scene time
     grain_seed: int = 0
     halation: float | str | None = None
     halation_threshold: float | None = None
     halation_radius: float | None = None
-    halation_color: tuple = (1.0, 0.22, 0.045)
-    knee: float = 0.72
-    vignette: float = 0.0
+    halation_color: tuple = (1.0, 0.22, 0.045)  # RGB of the halation fringe
+    knee: float = 0.72  # Brightest channel above which highlights roll off toward 1
+    vignette: float = 0.0  # Strength in [0, 1]; corners blend toward the background color
+    # Surfaces and cartoons. surface_mode and cartoon_style are fixed when the renderer is
+    # created; the density-mode settings are read for every frame.
     surface_mode: str = "molecular"
     surface_inflation: float = 0.45  # Å added to each atom radius in density mode
-    surface_blobbiness: float = 1.6
-    surface_voxels: int = 3_000_000
+    surface_blobbiness: float = 1.6  # Density falloff per atom; higher merges atoms less
+    surface_voxels: int = 3_000_000  # Approximate voxel budget of a density-mode grid
     cartoon_style: str = "classic"
 
     def __post_init__(self):
+        # While _resolving is set, __setattr__ assigns plainly instead of re-resolving.
         object.__setattr__(self, "_resolving", True)
+        # dataclasses.replace() passes resolved values back in. Turn every value that a
+        # preset filled in back into what the field held before (None, or the preset name),
+        # so the presets apply afresh and only explicit values carry over.
         for item in fields(self):
             value = getattr(self, item.name)
             if isinstance(value, (_PresetFloat, _PresetTuple)):
                 object.__setattr__(self, item.name, getattr(value, "recipe", None))
 
         def apply(kind, name, presets):
+            """Fill the fields that are still None from ``presets[name]``."""
             if not isinstance(name, str) or name not in presets:
                 raise ValueError(f"Unknown {kind} preset {name!r}; choose from {', '.join(presets)}")
             for field_name, value in presets[name].items():
                 if getattr(self, field_name) is None:
                     resolved = _PresetTuple(value) if isinstance(value, tuple) else _PresetFloat(value)
+                    # The grain, bloom or halation strength remembers its preset's name.
                     if field_name == kind and isinstance(resolved, _PresetFloat):
                         resolved.recipe = name
                     object.__setattr__(self, field_name, resolved)
 
+        # Most specific first; each step fills only what earlier steps left as None.
+        # A preset name in grain, bloom or halation is replaced by the values it names.
         for kind, presets in (
             ("grain", GRAIN_PRESETS),
             ("bloom", BLOOM_PRESETS),
@@ -227,6 +292,8 @@ class StudioLook:
             ("material", self.material, MATERIAL_PRESETS),
         ):
             apply(kind, name, presets)
+        # Effect settings that no preset set. They are marked as preset values too, so a
+        # later with_presets() can still fill them from a new recipe.
         defaults = dict(
             bloom_threshold=0.85,
             bloom_radius=1.0,
@@ -243,10 +310,13 @@ class StudioLook:
         object.__setattr__(self, "_resolving", False)
 
     def __setattr__(self, name, value):
+        # After construction, assigning lighting, material or effects, or a preset name to
+        # grain, bloom or halation, re-resolves the look as with_presets() does. Other values
+        # are stored as explicit overrides. The dataclass __init__ runs before _resolving
+        # exists, so its assignments are plain.
         if not getattr(self, "_resolving", True) and (
             name in ("lighting", "material", "effects")
-            or name in ("grain", "bloom", "halation")
-            and isinstance(value, str)
+            or (name in ("grain", "bloom", "halation") and isinstance(value, str))
         ):
             # Resolve a replacement first so an invalid preset leaves this look intact.
             updated = self.with_presets(**{name: value})
@@ -282,6 +352,7 @@ class StudioLook:
             "surface_inflation": (0, 10),
             "surface_blobbiness": (0.01, 20),
         }
+        # Light, ambient and specular strengths share one generous range.
         ranges.update({name: (0, 100) for name in ("key", "fill", "rim", "ambient", "specular", "clearcoat")})
         for name, (lo, hi) in ranges.items():
             value = getattr(self, name)
@@ -302,6 +373,7 @@ class StudioLook:
             "fill_direction",
             "rim_direction",
         ):
+            # Colors may be given as "#RRGGBB"; store them as RGB tuples in [0, 1].
             if not name.endswith("direction") and isinstance(getattr(self, name), str):
                 from .math3d import color
 
@@ -312,11 +384,13 @@ class StudioLook:
                 raise ValueError(f"{name} needs three finite numbers") from error
             if value.shape != (3,) or not np.isfinite(value).all():
                 raise ValueError(f"{name} needs three finite numbers")
+            # The shader normalizes directions, so only a zero vector is invalid.
             if name.endswith("direction"):
                 if np.linalg.norm(value) < 1e-6:
                     raise ValueError(f"{name} must be nonzero")
             elif np.any(value < 0):
                 raise ValueError(f"{name} must be nonnegative")
+        # The grain seed is uploaded as a uint32.
         for name, lo, hi in (("grain_seed", 0, 2**32 - 1), ("surface_voxels", 1, 2**31 - 1)):
             value = getattr(self, name)
             if not isinstance(value, (int, np.integer)) or isinstance(value, bool) or not lo <= value <= hi:

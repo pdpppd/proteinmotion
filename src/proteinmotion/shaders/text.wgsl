@@ -1,10 +1,17 @@
 // Cached vector glyphs. Write draws arc-length contours, then introduces the fill.
+// One text placement or leader line (overlay._Drawing.update), 64 bytes. Positions are in
+// pixels from the top-left; scale converts glyph units to pixels. progress is the Write
+// animation in [0, 1] and lag staggers glyphs like Manim's lag_ratio. glyph_offset is the rank
+// of this placement's first glyph among the glyph_count glyphs written together, and reverse
+// runs that order backward.
 struct Uniforms {
     viewport: vec2f, origin: vec2f,
     scale: f32, opacity: f32, progress: f32, lag: f32,
     glyph_count: f32, glyph_offset: f32, reverse: f32, stroke_width: f32,
     color: vec4f,
 };
+// One straight piece of a glyph outline: ends (x0, y0, x1, y1) in glyph units, and path (start
+// and end as fractions of the outline's arc length, glyph index, unused).
 struct Segment { ends: vec4f, path: vec4f };
 @group(0) @binding(0) var<uniform> u: Uniforms;
 @group(0) @binding(1) var<storage, read> segments: array<Segment>;
@@ -13,11 +20,15 @@ fn clip_position(pixel: vec2f) -> vec4f {
     return vec4f(pixel.x / u.viewport.x * 2.0 - 1.0,
                  1.0 - pixel.y / u.viewport.y * 2.0, 0.0, 1.0);
 }
+// Progress of one glyph. Glyphs take equal time, each starting lag × that time after the one
+// before, and the last one finishes at progress 1.
 fn glyph_progress(index: f32) -> f32 {
     var rank = u.glyph_offset + index;
     if u.reverse > 0.5 { rank = u.glyph_count - 1.0 - rank; }
     return clamp(u.progress * (1.0 + max(0.0, u.glyph_count - 1.0) * u.lag) - rank * u.lag, 0.0, 1.0);
 }
+// Fill triangles: vertex xy in glyph units, z the glyph index. The fill fades in during the
+// second half of each glyph's progress.
 struct FillVertex { @builtin(position) position: vec4f, @location(0) opacity: f32 };
 @vertex fn fill_vertex(@location(0) vertex: vec3f) -> FillVertex {
     var out: FillVertex;
@@ -34,6 +45,9 @@ struct StrokeVertex {
     @location(1) @interpolate(flat) radius: f32,
     @location(2) @interpolate(flat) visible: f32,
 };
+// One instance per outline segment. During the first half of a glyph's progress, its outline
+// is drawn along its arc length; during the second half the stroke thins away as the fill
+// appears. The quad is the segment's bounding box, padded for the pen and antialiasing.
 @vertex fn stroke_vertex(@builtin(vertex_index) vertex: u32, @builtin(instance_index) instance: u32) -> StrokeVertex {
     let s = segments[instance];
     let progress = glyph_progress(s.path.z);
@@ -52,6 +66,8 @@ struct StrokeVertex {
     out.visible = select(0.0, 1.0, fraction > 0.0 && radius > 0.0);
     return out;
 }
+// Coverage of a round-capped pen: distance from the pixel to the segment, smoothed over about
+// one pixel.
 @fragment fn stroke_fragment(in: StrokeVertex) -> @location(0) vec4f {
     if in.visible < 0.5 { discard; }
     let a = in.ends.xy;

@@ -1,4 +1,19 @@
-"""MRC/CCP4 density maps in physical coordinates, with surfaces and sampled slices."""
+"""MRC/CCP4 density maps in physical coordinates, with surfaces and sampled slices.
+
+``DensityMap`` holds a 3D grid of cryo-EM or X-ray map values and the affine map from
+grid indices to Å, ``xyz = origin + basis @ ijk``. Two scene objects draw it:
+
+- ``DensitySurface`` contours the map with marching cubes. The level is either in the
+  map's own units or in σ: standard deviations above the mean, as X-ray map contours
+  are usually quoted.
+- ``DensitySlice`` samples one grid plane and colors it with a ``ColorScale``.
+
+Both are ``MeshObject``s. The renderers draw them through the general triangle-mesh
+path (``density_vertex`` in shaders/molecule.wgsl). Each rebuilds its mesh on the CPU
+only when its contour level, slice position or colors change. ``DensityAnimate``
+(``surface.animate.set_level``, ``slice.animate.set_slice``) animates the level and
+the position.
+"""
 
 from itertools import product
 
@@ -20,6 +35,7 @@ class DensityMap:
     ``basis`` is an optional 3×3 matrix whose columns are voxel step vectors.
     It supports non-orthogonal crystallographic cells. ``spacing`` is the simpler
     orthogonal equivalent. Values are kept in their original units.
+    Grid index ``ijk`` lies at ``origin + basis @ ijk``.
     """
 
     def __init__(
@@ -49,6 +65,7 @@ class DensityMap:
         ):
             raise ValueError("basis must be a finite invertible 3×3 matrix")
         self.values.flags.writeable = self.origin.flags.writeable = self.basis.flags.writeable = False
+        # Statistics for σ contour levels, accumulated in float64.
         self.mean, self.std = float(self.values.mean(dtype=float)), float(self.values.std(dtype=float))
         self.minimum, self.maximum = float(self.values.min()), float(self.values.max())
 
@@ -81,29 +98,42 @@ class DensityMap:
             header = source.read(1024)
         if len(header) < 1024:
             raise ValueError("Truncated MRC/CCP4 header")
+        # NX, NY, NZ are the first three 32-bit words. The byte order is not known yet, so
+        # accept the file if either order gives a sane size. Python ints cannot overflow.
         dimensions = [np.frombuffer(header[:12], dtype=d) for d in ("<i4", ">i4")]
         if not any(np.all(d >= 2) and np.prod(d.astype(object)) <= max_voxels for d in dimensions):
             raise ValueError("Invalid map dimensions or map exceeds max_voxels; crop or downsample the input")
+        # setup=False keeps the file's axis order; the axes are permuted below. Header
+        # words are numbered from 1 as in the MRC format description.
         m = gemmi.read_ccp4_map(str(path), setup=False)
+        # Words 17-19 (MAPC, MAPR, MAPS) give the x/y/z axis stored along the file's
+        # columns, rows and sections. Transpose the grid to (x, y, z) order.
         axes = np.array([m.header_i32(i) - 1 for i in (17, 18, 19)])
         if sorted(axes) != [0, 1, 2]:
             raise ValueError("MRC MAPC/MAPR/MAPS must be a permutation of 1, 2, 3")
         order = np.argsort(axes)
         values = np.asarray(m.grid).transpose(order)
+        # Words 8-10 (MX, MY, MZ): grid samples along each unit-cell edge.
         sampling = np.array([m.header_i32(i) for i in (8, 9, 10)])
         if np.any(sampling <= 0):
             raise ValueError("MRC sampling intervals must be positive")
         cell = m.grid.unit_cell
         if not cell.is_crystal():
             raise ValueError("MRC/CCP4 map needs valid cell dimensions and angles")
+        # The columns of the orthogonalization matrix are the cell edges a, b, c in Å.
+        # Dividing each by its sample count gives one voxel step.
         basis = np.asarray(cell.orth.mat) / sampling[None, :]
+        # Words 5-7 (NXSTART...) are the grid index of the first voxel, in file axis order.
         start = np.array([m.header_i32(i) for i in (5, 6, 7)])[order]
+        # Words 50-52: the ORIGIN in Å, which cryo-EM maps tend to use instead of start indices.
         header_origin = np.array([m.header_float(i) for i in (50, 51, 52)])
         offset = (
             header_origin
             if origin == "header" or (origin == "auto" and np.any(header_origin != 0))
             else basis @ start
         )
+        # Word 23 is the space group. A crystallographic map that covers exactly one unit
+        # cell repeats in every direction, so sampling may wrap around its edges.
         periodic = 1 <= m.header_i32(23) <= 230 and tuple(values.shape) == tuple(sampling)
         return cls(values, basis=basis, origin=offset, periodic=periodic, max_voxels=max_voxels)
 
@@ -118,12 +148,14 @@ class DensityMap:
         points = np.asarray(points, dtype=float)
         if points.shape[-1:] != (3,) or not np.isfinite(points).all():
             raise ValueError("Sample points must be finite and shaped (..., 3)")
+        # Continuous (unrounded) grid indices of each point.
         ijk = (points - self.origin) @ np.linalg.inv(self.basis).T
         if not self.periodic:
             # Recover boundary samples after a float32 mesh round-trip through Å.
             edge = np.asarray(self.values.shape) - 1
             near = (ijk >= -1e-5) & (ijk <= edge + 1e-5)
             ijk = np.where(near, np.clip(ijk, 0, edge), ijk)
+        # order=1 is trilinear interpolation; points outside a non-periodic grid get cval.
         return map_coordinates(
             self.values,
             ijk.reshape(-1, 3).T,
@@ -138,16 +170,20 @@ class DensityMap:
             raise ValueError("padding must be finite and nonnegative")
         region._validate()
         points = region.positions
+        # The region's padded bounding box in Å, then the range of grid indices that holds
+        # its eight corners. In a skewed cell that range is larger than the box.
         corners = np.array(list(product(*zip(points.min(0) - padding, points.max(0) + padding))))
         ijk = (corners - self.origin) @ np.linalg.inv(self.basis).T
         lo = np.floor(ijk.min(0)).astype(int)
         hi = np.ceil(ijk.max(0)).astype(int) + 1
         if not self.periodic:
             lo, hi = np.maximum(lo, 0), np.minimum(hi, self.values.shape)
+        # The same limit as the default max_voxels of a new map.
         if np.prod((hi - lo).astype(object)) > 32_000_000:
             raise ValueError("Crop exceeds 32 million voxels; reduce padding or region size")
         if np.any(hi - lo < 2):
             raise ValueError("Selected region does not overlap a usable part of the map")
+        # A periodic map wraps its indices, so a crop can cross the unit-cell edge.
         values = (
             self.values[np.ix_(*[np.arange(a, b) % n for a, b, n in zip(lo, hi, self.values.shape)])]
             if self.periodic
@@ -159,6 +195,7 @@ class DensityMap:
             origin=self.origin + self.basis @ lo,
             max_voxels=max(self.values.size, values.size),
         )
+        # Keep the whole map's statistics, so a σ level draws the same contour on the crop.
         cropped.mean, cropped.std = self.mean, self.std
         cropped._follow = region.protein
         return cropped
@@ -172,7 +209,7 @@ class DensityMap:
             color=color,
             opacity=opacity,
             step_size=step_size,
-            follow=self._follow if follow is None else None if follow is False else follow,
+            follow=self._follow_for(follow),
         )
 
     def slice(
@@ -189,11 +226,16 @@ class DensityMap:
             scale=scale,
             opacity=opacity,
             resolution=count,
-            follow=self._follow if follow is None else None if follow is False else follow,
+            follow=self._follow_for(follow),
         )
+
+    def _follow_for(self, follow):
+        """The protein a new surface or slice follows: None means the attached one, False none."""
+        return self._follow if follow is None else None if follow is False else follow
 
 
 def _mesh(vertices, faces, colors, normals):
+    """A MeshObject mesh: float32 (n, 3) vertices in Å, colors and normals; int32 (m, 3) faces."""
     return dict(
         vertices=np.asarray(vertices, np.float32).reshape(-1, 3),
         faces=np.asarray(faces, np.int32).reshape(-1, 3),
@@ -236,11 +278,14 @@ class DensitySurface(MeshObject):
         key = (self.level, tuple(self.color), self.step_size)
         if key != self._mesh_key:
             d = self.density
+            # The contour in the map's own units.
             level = d.mean + self.level * d.std if self.units == "sigma" else self.level
             if not d.minimum < level < d.maximum:
                 self._mesh = _mesh([], [], [], [])
             else:
                 try:
+                    # marching_cubes rejects read-only arrays such as d.values, hence the copy.
+                    # Its output is in grid index units.
                     vertices, faces, normals, _ = marching_cubes(
                         d.values.copy(), level, step_size=self.step_size, allow_degenerate=False
                     )
@@ -251,8 +296,11 @@ class DensitySurface(MeshObject):
                     self._mesh, self._mesh_key = _mesh([], [], [], []), key
                     return self._mesh
                 vertices = vertices @ d.basis.T + d.origin
+                # Normals transform by the inverse transpose of the basis, here applied to
+                # row vectors; this keeps them perpendicular to the surface in a skewed cell.
                 normals = normalize(normals @ np.linalg.inv(d.basis))
                 # Orient faces consistently with the outward marching-cubes normals.
+                # This also covers a basis with negative determinant, which mirrors the mesh.
                 if len(faces):
                     tri = vertices[faces]
                     orient = np.einsum(
@@ -284,6 +332,7 @@ class DensitySlice(MeshObject):
         self.color_scale = ColorScale.from_values(density.values) if scale is None else scale
         if not isinstance(self.color_scale, ColorScale):
             raise TypeError("scale must be a ColorScale")
+        # Draw the color scale as is, without lighting.
         self.unlit = True
         self.set_slice(position)
 
@@ -302,16 +351,21 @@ class DensitySlice(MeshObject):
         key = (self.coordinate, self.resolution, id(self.color_scale))
         if key != self._mesh_key:
             d, n = self.density, self.resolution
+            # An n × n lattice of continuous grid indices spanning the two in-plane axes,
+            # at the slice's position along the third.
             axes = [i for i in range(3) if i != self.axis]
             grid = np.zeros((n, n, 3))
             grid[..., axes[0]], grid[..., axes[1]] = np.meshgrid(
                 *[np.linspace(0, d.values.shape[i] - 1, n) for i in axes], indexing="ij"
             )
             grid[..., self.axis] = self.coordinate * (d.values.shape[self.axis] - 1)
+            # Trilinear samples; the lattice stays inside the grid, so no point is NaN.
             values = map_coordinates(d.values, grid.reshape(-1, 3).T, order=1, mode="nearest")
             vertices = grid.reshape(-1, 3) @ d.basis.T + d.origin
+            # Two triangles per lattice square; ``a`` indexes each square's first corner.
             a = (np.arange(n - 1)[:, None] * n + np.arange(n - 1)[None]).ravel()
             faces = np.concatenate((np.stack((a, a + n, a + 1), -1), np.stack((a + 1, a + n, a + n + 1), -1)))
+            # The plane's normal is perpendicular to its two in-plane voxel steps.
             normal = normalize(np.cross(d.basis[:, axes[0]], d.basis[:, axes[1]]))
             self._mesh = _mesh(
                 vertices, faces, self.color_scale.map(values), np.tile(normal, (len(vertices), 1))
@@ -324,13 +378,21 @@ class DensityAnimate(Animate):
     """Fluent contour or slice animation, plus the usual mesh transforms and fades."""
 
     def set_level(self, level):
+        """Animate a surface's contour to ``level``, in the units chosen at construction."""
         return self._extra(_DensityParameter(self.target, "level", level))
 
     def set_slice(self, position):
+        """Animate a slice to the fractional grid position ``position`` in [0, 1]."""
         return self._extra(_DensityParameter(self.target, "coordinate", position))
 
 
 class _DensityParameter(Animation):
+    """Move one numeric attribute (``level`` or ``coordinate``) linearly to ``value``.
+
+    The animation's rate function supplies any easing. The start value is read at bind
+    time, so the parameter continues from wherever earlier animations left it.
+    """
+
     def __init__(self, target, field, value):
         super().__init__(target)
         if not hasattr(target, field) or not np.isfinite(value):
